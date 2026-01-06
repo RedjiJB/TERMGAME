@@ -1,0 +1,282 @@
+# TermGame Project Rules
+
+## Project Overview
+TermGame is a terminal-based CLI training platform for teaching Linux, Cisco IOS, and PowerShell skills through gamified missions. It uses containerized sandboxes for safe, isolated practice environments.
+
+## Technology Stack
+- **Language**: Python 3.12+
+- **Package Manager**: uv
+- **TUI Framework**: Textual
+- **CLI Framework**: Typer
+- **Linter**: ruff (replaces black, isort, flake8)
+- **Type Checker**: mypy (strict mode)
+- **Testing**: pytest with coverage
+- **Container Runtime**: Docker (default) and Podman support
+- **Database**: SQLAlchemy with SQLite/PostgreSQL
+
+## Code Style Guidelines
+
+### Python Code Style
+- Use ruff for linting and formatting (configured in pyproject.toml)
+- Maximum line length: 100 characters
+- Use double quotes for strings
+- Follow PEP 8 and PEP 257
+- Use type hints for all functions and methods
+- Strict mypy checking enabled
+
+### Type Hints
+```python
+# All functions must have type hints
+def process_command(command: str, timeout: int | None = None) -> list[str]:
+    """Process a command and return output lines."""
+    ...
+
+# Use modern union syntax (| instead of Union)
+def get_value() -> str | None:
+    ...
+```
+
+### Docstrings
+Use Google-style docstrings for all public APIs:
+
+```python
+def validate_scenario(scenario_path: str, strict: bool = False) -> bool:
+    """Validate a scenario YAML file.
+
+    Args:
+        scenario_path: Path to the scenario YAML file.
+        strict: If True, apply stricter validation rules.
+
+    Returns:
+        True if scenario is valid, False otherwise.
+
+    Raises:
+        FileNotFoundError: If scenario file doesn't exist.
+        ValueError: If scenario format is invalid.
+    """
+    ...
+```
+
+## Project Structure
+
+```
+termgame/
+├── src/termgame/           # Main application code
+│   ├── __init__.py
+│   ├── __main__.py         # Entry point
+│   ├── cli.py              # Typer CLI application
+│   ├── tui/                # Textual UI components
+│   ├── engine/             # Game engine and state management
+│   ├── runtimes/           # Container runtime abstraction
+│   ├── matchers/           # Command validation matchers
+│   ├── coach/              # AI coaching system
+│   ├── models/             # Pydantic data models
+│   └── db/                 # Database models and migrations
+├── scenarios/              # Mission scenario YAML files
+│   ├── linux/
+│   ├── ios/
+│   └── powershell/
+├── tests/                  # Test suite
+│   ├── unit/
+│   ├── integration/
+│   └── fixtures/
+└── scripts/                # Utility scripts
+```
+
+## Development Workflow
+
+### Before Committing
+1. Run tests: `pytest`
+2. Check types: `mypy src/termgame`
+3. Lint code: `ruff check .`
+4. Format code: `ruff format .`
+5. Pre-commit hooks will run automatically
+
+### Testing Requirements
+- All new features must include tests
+- Maintain >80% code coverage
+- Use pytest fixtures for common setups
+- Mark slow tests with `@pytest.mark.slow`
+- Mark integration tests with `@pytest.mark.integration`
+
+### Commit Message Format
+Follow Conventional Commits:
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation changes
+- `test:` Test additions/changes
+- `refactor:` Code refactoring
+- `chore:` Maintenance tasks
+
+Example: `feat: add PowerShell scenario validation`
+
+## Architecture Patterns
+
+### Dependency Injection
+Use dependency injection for testability:
+
+```python
+class MissionEngine:
+    def __init__(self, runtime: ContainerRuntime, db: Database):
+        self.runtime = runtime
+        self.db = db
+```
+
+### Error Handling
+- Use custom exceptions in `termgame.exceptions`
+- Always provide helpful error messages
+- Log errors appropriately
+
+```python
+class ScenarioValidationError(Exception):
+    """Raised when scenario validation fails."""
+    pass
+```
+
+### Async/Await
+Use async/await for I/O operations:
+
+```python
+async def execute_command(self, command: str) -> CommandResult:
+    """Execute command in container asynchronously."""
+    ...
+```
+
+## Scenario Design
+
+### YAML Structure
+Scenarios are defined in YAML:
+
+```yaml
+mission:
+  id: "linux/basics/navigation"
+  title: "Directory Navigation"
+  difficulty: beginner
+  description: "Learn to navigate the filesystem"
+
+steps:
+  - id: "step-1"
+    description: "List files in current directory"
+    validation:
+      type: "command-output"
+      matcher: "contains"
+      expected: "README.md"
+```
+
+### Validation Matchers
+Available matcher types:
+- `exact`: Exact string match
+- `contains`: Substring match
+- `regex`: Regular expression match
+- `file-exists`: Check file existence
+- `file-content`: Validate file contents
+- `command-output`: Validate command output
+
+## Configuration
+
+### Environment Variables
+- `TERMGAME_DATA_DIR`: Data directory path
+- `TERMGAME_RUNTIME`: Container runtime (docker/podman)
+- `TERMGAME_LOG_LEVEL`: Logging level
+- `TERMGAME_CONFIG`: Config file path
+
+### Settings Management
+Use Pydantic Settings:
+
+```python
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    data_dir: Path = Path.home() / ".termgame"
+    runtime: str = "docker"
+    log_level: str = "INFO"
+
+    class Config:
+        env_prefix = "TERMGAME_"
+```
+
+## Container Management
+
+### Runtime Abstraction
+Support both Docker and Podman through abstraction:
+
+```python
+class ContainerRuntime(Protocol):
+    async def create_container(self, image: str, **kwargs) -> Container:
+        ...
+
+    async def execute_command(self, container: Container, command: str) -> str:
+        ...
+```
+
+### Container Lifecycle
+1. Create container from appropriate image
+2. Set up initial state
+3. Execute user commands
+4. Validate outputs
+5. Clean up container
+
+## Security Considerations
+
+- Never execute untrusted code on host
+- All user commands run in isolated containers
+- Implement resource limits (CPU, memory, disk)
+- Sanitize all user inputs
+- Use minimal container images
+- Apply security scanning to containers
+
+## Performance Guidelines
+
+- Use async/await for I/O operations
+- Implement caching where appropriate
+- Clean up containers promptly
+- Monitor resource usage
+- Profile slow operations
+
+## Documentation
+
+- Keep README.md up to date
+- Document all public APIs
+- Update architecture.md for design changes
+- Maintain mission-design.md for scenario authors
+- Add examples to documentation
+
+## When Adding New Features
+
+1. Design the API first
+2. Write tests (TDD approach)
+3. Implement the feature
+4. Add type hints
+5. Write documentation
+6. Update CHANGELOG.md
+7. Create examples/scenarios if applicable
+
+## Common Tasks
+
+### Adding a New Matcher
+1. Create matcher class in `src/termgame/matchers/`
+2. Implement `Matcher` protocol
+3. Add tests in `tests/unit/matchers/`
+4. Register in matcher factory
+5. Document in `docs/api-reference.md`
+
+### Adding a New Scenario
+1. Create YAML file in appropriate `scenarios/` subdirectory
+2. Validate with `scripts/validate_scenarios.py`
+3. Test manually
+4. Add to scenario index
+5. Document in scenario README
+
+### Adding a New TUI Screen
+1. Create screen class in `src/termgame/tui/screens/`
+2. Inherit from Textual Screen
+3. Implement widgets and layout
+4. Add to screen router
+5. Add integration test
+
+## Questions?
+
+- Check `docs/` directory first
+- Review existing code for patterns
+- Ask in GitHub Discussions
+- Create an issue for bugs

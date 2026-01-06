@@ -1,0 +1,54 @@
+mission:
+  id: "linux/basics/navigation"
+  title: "Directory Navigation Basics"
+  difficulty: beginner
+  description: "Learn fundamental directory navigation commands"
+  estimated_time: "10 minutes"
+  tags:
+    - linux
+    - basics
+    - navigation
+
+environment:
+  image: "ubuntu:22.04"
+  setup:
+    - "mkdir -p /home/learner/documents"
+    - "mkdir -p /home/learner/pictures"
+    - "touch /home/learner/README.txt"
+
+steps:
+  - id: "check-current-dir"
+    title: "Check Current Directory"
+    description: "Use the 'pwd' command to print your current working directory"
+    hint: "Type 'pwd' and press Enter"
+    validation:
+      type: "command-output"
+      command: "pwd"
+      matcher: "exact"
+      expected: "/home/learner"
+
+  - id: "list-files"
+    title: "List Files"
+    description: "List all files and directories in the current location"
+    hint: "The 'ls' command lists directory contents"
+    validation:
+      type: "command-output"
+      command: "ls"
+      matcher: "contains"
+      expected: "documents"
+
+  - id: "change-directory"
+    title: "Change Directory"
+    description: "Navigate to the 'documents' directory"
+    hint: "Use 'cd documents' to change directory"
+    validation:
+      type: "command-output"
+      command: "pwd"
+      matcher: "exact"
+      expected: "/home/learner/documents"
+
+completion:
+  message: "Great job! You've mastered basic directory navigation."
+  xp: 100
+  unlocks:
+    - "linux/basics/file-operations"

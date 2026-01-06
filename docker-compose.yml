@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  termgame:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: termgame:latest
+    container_name: termgame
+    volumes:
+      - ./scenarios:/app/scenarios:ro
+      - termgame-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TERMGAME_DATA_DIR=/app/data
+      - TERMGAME_RUNTIME=docker
+    networks:
+      - termgame-network
+    stdin_open: true
+    tty: true
+
+  # Linux sandbox template
+  linux-sandbox:
+    image: ubuntu:22.04
+    container_name: termgame-linux-sandbox
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    networks:
+      - termgame-network
+    profiles:
+      - sandbox
+
+  # PowerShell sandbox template
+  powershell-sandbox:
+    image: mcr.microsoft.com/powershell:lts-ubuntu-22.04
+    container_name: termgame-powershell-sandbox
+    command: pwsh
+    stdin_open: true
+    tty: true
+    networks:
+      - termgame-network
+    profiles:
+      - sandbox
+
+volumes:
+  termgame-data:
+    driver: local
+
+networks:
+  termgame-network:
+    driver: bridge
