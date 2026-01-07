@@ -32,7 +32,18 @@
       "Bash(.venv/Scripts/mypy.exe src/termgame)",
       "Bash(.venv/Scripts/pytest.exe -v --tb=short)",
       "Bash(git restore:*)",
-      "Bash(.venv/Scripts/ruff.exe format .)"
+      "Bash(.venv/Scripts/ruff.exe format .)",
+      "Bash(pytest:*)",
+      "Bash(./Scripts/ruff.exe check:*)",
+      "Bash(./Scripts/mypy.exe:*)",
+      "Bash(.venv/Scripts/pytest.exe -q)",
+      "Bash(test -f:*)",
+      "Bash(.venv/Scripts/alembic.exe:*)",
+      "Bash(.venv/Scripts/ruff.exe check src/termgame)",
+      "Bash(.venv/Scripts/ruff.exe check src/termgame --fix)",
+      "Bash(.venv/Scripts/ruff.exe format src/termgame)",
+      "Bash(.venv/Scripts/pytest.exe -v tests/unit)",
+      "Bash(.venv/Scripts/pytest.exe -v tests/unit --tb=short)"
     ]
   }
 }

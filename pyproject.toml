@@ -155,6 +155,14 @@ ignore = [
 "src/termgame/matchers/base.py" = [
     "ANN401",  # Any is acceptable in protocol definitions
 ]
+"src/termgame/matchers/implementations.py" = [
+    "ANN401",  # Any required by Matcher protocol
+]
+"src/termgame/engine/mission_engine.py" = [
+    "PLR0912",  # Complex validation logic requires many branches
+    "TRY301",  # Inline raise is clearer for validation errors
+    "S110",  # Best-effort cleanup intentionally swallows exceptions
+]
 "src/termgame/tui/app.py" = [
     "RUF012",  # Textual uses mutable class attributes intentionally
 ]

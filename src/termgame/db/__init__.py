@@ -3,6 +3,6 @@
 This package contains database models, migrations, and data access logic.
 """
 
-from termgame.db.models import Base
+from termgame.db.models import Achievement, Base, MissionProgress, User
 
-__all__ = ["Base"]
+__all__ = ["Achievement", "Base", "MissionProgress", "User"]
