@@ -42,7 +42,7 @@ class HomeScreen(Screen[None]):
                 classes="app-title",
             ),
             Static(
-                "Learn command-line skills through\n" "interactive, hands-on missions",
+                "Learn command-line skills through\ninteractive, hands-on missions",
                 classes="welcome-text",
             ),
             Vertical(

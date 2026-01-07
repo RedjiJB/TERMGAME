@@ -11,6 +11,8 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, DataTable, Footer, Header, Static
 
+from termgame.tui.engine_wrapper import get_engine_wrapper
+
 
 class MissionListScreen(Screen[None]):
     """Screen displaying available missions.
@@ -103,6 +105,7 @@ class MissionStartScreen(Screen[None]):
         """
         super().__init__(*args, **kwargs)
         self.mission_id = mission_id
+        self._starting = False
 
     def compose(self) -> ComposeResult:
         """Compose the mission start layout."""
@@ -121,21 +124,64 @@ class MissionStartScreen(Screen[None]):
 
     def on_mount(self) -> None:
         """Load mission details when screen mounts."""
-        # TODO: Load actual mission details from scenario
+        # Load mission details from scenario
         details = self.query_one("#mission-details", Static)
         details.update(
             f"Mission ID: {self.mission_id}\n\n"
-            "This will create a container environment.\n"
-            "Press Start to begin."
+            "This will create a Docker/Podman container environment.\n"
+            "The container will be automatically cleaned up when done.\n\n"
+            "Press Start to begin, or Cancel to go back."
         )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
         if event.button.id == "cancel-btn":
             self.app.pop_screen()
-        elif event.button.id == "confirm-btn":
-            # TODO: Actually start the mission
-            self.app.push_screen(ActiveMissionScreen(self.mission_id))
+        elif event.button.id == "confirm-btn" and not self._starting:
+            self._starting_mission()
+
+    def _starting_mission(self) -> None:
+        """Start the mission asynchronously."""
+        self._starting = True
+        # Update UI
+        self.query_one("#mission-details", Static).update("Starting mission...")
+        self.query_one("#confirm-btn", Button).disabled = True
+
+        # Start mission in background
+        self.run_worker(self._start_mission_async())
+
+    async def _start_mission_async(self) -> None:
+        """Async worker to start mission."""
+        try:
+            wrapper = get_engine_wrapper()
+            await wrapper.initialize()
+
+            result = await wrapper.start_mission(self.mission_id)
+
+            if result["success"]:
+                # Navigate to active mission screen
+                self.app.call_from_thread(self.app.pop_screen)  # Remove this screen
+                self.app.call_from_thread(
+                    self.app.push_screen,
+                    ActiveMissionScreen(self.mission_id, result["step"]),
+                )
+            else:
+                self.app.call_from_thread(
+                    self.notify,
+                    f"Failed to start mission: {result.get('error', 'Unknown error')}",
+                    severity="error",
+                )
+                self._starting = False
+                self.query_one("#confirm-btn", Button).disabled = False
+
+        except Exception as e:
+            self.app.call_from_thread(
+                self.notify,
+                f"Error starting mission: {e}",
+                severity="error",
+            )
+            self._starting = False
+            self.query_one("#confirm-btn", Button).disabled = False
 
 
 class ActiveMissionScreen(Screen[None]):
@@ -150,17 +196,25 @@ class ActiveMissionScreen(Screen[None]):
         ("a", "abandon", "Abandon"),
     ]
 
-    def __init__(self, mission_id: str, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        mission_id: str,
+        step_info: dict[str, Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         """Initialize active mission screen.
 
         Args:
             mission_id: Mission identifier
+            step_info: Current step information
             *args: Additional positional arguments
             **kwargs: Additional keyword arguments
         """
         super().__init__(*args, **kwargs)
         self.mission_id = mission_id
-        self.current_step = 0
+        self.step_info = step_info
+        self._validating = False
 
     def compose(self) -> ComposeResult:
         """Compose the active mission layout."""
@@ -168,7 +222,7 @@ class ActiveMissionScreen(Screen[None]):
         yield Container(
             Static(f"Mission: {self.mission_id}", classes="screen-title"),
             Vertical(
-                Static("Step 1", id="step-title", classes="step-title"),
+                Static("Loading...", id="step-title", classes="step-title"),
                 Static("Loading...", id="step-description"),
                 Static("", id="hint-text", classes="hint-box"),
                 classes="step-info",
@@ -186,22 +240,18 @@ class ActiveMissionScreen(Screen[None]):
 
     def on_mount(self) -> None:
         """Load current step when screen mounts."""
-        # TODO: Load actual step from engine
         self._update_step_display()
 
     def _update_step_display(self) -> None:
         """Update the displayed step information."""
         step_title = self.query_one("#step-title", Static)
         step_desc = self.query_one("#step-description", Static)
+        hint_box = self.query_one("#hint-text", Static)
 
-        step_title.update(f"Step {self.current_step + 1}")
-        step_desc.update(
-            "This is a placeholder step.\n\n"
-            "In a real mission, this would show:\n"
-            "- Step instructions\n"
-            "- What you need to do\n"
-            "- Expected outcome"
-        )
+        step_num = int(self.step_info.get("index", 0)) + 1
+        step_title.update(f"Step {step_num}: {self.step_info.get('title', 'Unknown')}")
+        step_desc.update(self.step_info.get("description", "No description available"))
+        hint_box.update("")  # Clear hint
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
@@ -214,20 +264,113 @@ class ActiveMissionScreen(Screen[None]):
 
     def action_show_hint(self) -> None:
         """Show hint for current step."""
-        hint_box = self.query_one("#hint-text", Static)
-        hint_box.update("💡 Hint: This is a placeholder hint for the current step.")
+        self.run_worker(self._get_hint_async())
+
+    async def _get_hint_async(self) -> None:
+        """Async worker to get hint."""
+        try:
+            wrapper = get_engine_wrapper()
+            hint = await wrapper.get_hint(self.mission_id)
+
+            if hint:
+                self.app.call_from_thread(
+                    self.query_one("#hint-text", Static).update,
+                    f"💡 Hint: {hint}",
+                )
+            else:
+                self.app.call_from_thread(
+                    self.query_one("#hint-text", Static).update,
+                    "No hint available for this step.",
+                )
+        except Exception as e:
+            self.app.call_from_thread(
+                self.notify,
+                f"Error getting hint: {e}",
+                severity="error",
+            )
 
     def action_validate(self) -> None:
         """Validate current step."""
-        status = self.query_one("#status-message", Static)
-        # TODO: Actual validation
-        status.update("✓ Step validation successful! (placeholder)")
-        self.current_step += 1
-        self._update_step_display()
+        if not self._validating:
+            self._validating = True
+            self.query_one("#validate-btn", Button).disabled = True
+            self.query_one("#status-message", Static).update("Validating...")
+            self.run_worker(self._validate_async())
+
+    async def _validate_async(self) -> None:
+        """Async worker to validate step."""
+        try:
+            wrapper = get_engine_wrapper()
+            result = await wrapper.validate_step(self.mission_id)
+
+            if result["success"]:
+                if result.get("completed"):
+                    # Mission complete!
+                    xp = result.get("xp_earned", 0)
+                    self.app.call_from_thread(
+                        self.notify,
+                        f"🎉 Mission Complete! You earned {xp} XP!",
+                        severity="information",
+                    )
+                    self.app.call_from_thread(self.app.pop_screen)
+                else:
+                    # Move to next step
+                    next_step = result.get("next_step")
+                    if next_step:
+                        self.step_info = next_step
+                        self.app.call_from_thread(self._update_step_display)
+                        self.app.call_from_thread(
+                            self.query_one("#status-message", Static).update,
+                            f"✓ {result.get('message', 'Step complete!')}",
+                        )
+            else:
+                self.app.call_from_thread(
+                    self.query_one("#status-message", Static).update,
+                    f"✗ {result.get('message', 'Validation failed')}",
+                )
+
+        except Exception as e:
+            self.app.call_from_thread(
+                self.notify,
+                f"Validation error: {e}",
+                severity="error",
+            )
+        finally:
+            self._validating = False
+            self.app.call_from_thread(
+                lambda: self.query_one("#validate-btn", Button)
+            ).disabled = False
 
     def action_abandon(self) -> None:
         """Abandon the mission."""
-        self.app.pop_screen()
+        self.run_worker(self._abandon_async())
+
+    async def _abandon_async(self) -> None:
+        """Async worker to abandon mission."""
+        try:
+            wrapper = get_engine_wrapper()
+            success = await wrapper.abandon_mission(self.mission_id)
+
+            if success:
+                self.app.call_from_thread(
+                    self.notify,
+                    "Mission abandoned. Progress saved.",
+                    severity="warning",
+                )
+                self.app.call_from_thread(self.app.pop_screen)
+            else:
+                self.app.call_from_thread(
+                    self.notify,
+                    "Failed to abandon mission",
+                    severity="error",
+                )
+
+        except Exception as e:
+            self.app.call_from_thread(
+                self.notify,
+                f"Error abandoning mission: {e}",
+                severity="error",
+            )
 
 
 class ProgressScreen(Screen[None]):
@@ -253,14 +396,34 @@ class ProgressScreen(Screen[None]):
 
     def on_mount(self) -> None:
         """Load progress when screen mounts."""
-        progress_info = self.query_one("#progress-info", Static)
-        # TODO: Load actual progress from database
-        progress_info.update(
-            "Total XP: 0\n"
-            "Missions Completed: 0\n"
-            "Active Missions: 0\n\n"
-            "Start a mission to begin earning XP!"
-        )
+        self.run_worker(self._load_progress_async())
+
+    async def _load_progress_async(self) -> None:
+        """Async worker to load progress."""
+        try:
+            wrapper = get_engine_wrapper()
+            await wrapper.initialize()
+            progress = await wrapper.get_progress()
+
+            progress_text = (
+                f"Total XP: {progress.get('total_xp', 0)}\n"
+                f"Missions Completed: {progress.get('missions_completed', 0)}\n"
+                f"Active Missions: {progress.get('active_missions', 0)}\n\n"
+            )
+
+            if progress.get("missions_completed", 0) == 0:
+                progress_text += "Start a mission to begin earning XP!"
+
+            self.app.call_from_thread(
+                self.query_one("#progress-info", Static).update,
+                progress_text,
+            )
+
+        except Exception as e:
+            self.app.call_from_thread(
+                self.query_one("#progress-info", Static).update,
+                f"Error loading progress: {e}",
+            )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""

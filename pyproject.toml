@@ -181,6 +181,10 @@ ignore = [
     "RUF012",  # Textual uses mutable class attributes intentionally
     "ANN401",  # Any allowed for *args/**kwargs in widgets
 ]
+"src/termgame/tui/engine_wrapper.py" = [
+    "TRY300",  # Direct return in try block is clearer than else block
+    "PLW0603",  # Global singleton pattern is intentional
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["termgame"]
