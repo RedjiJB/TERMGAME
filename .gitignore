@@ -91,6 +91,8 @@ scenarios/*.backup
 scenarios/*.tmp
 temp/
 tmp/
+test_*.py
+docker-desktop-config.json
 
 # Local executables and tools (installed to Scripts dir)
 scripts/*.exe

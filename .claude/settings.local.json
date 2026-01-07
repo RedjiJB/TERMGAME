@@ -43,7 +43,17 @@
       "Bash(.venv/Scripts/ruff.exe check src/termgame --fix)",
       "Bash(.venv/Scripts/ruff.exe format src/termgame)",
       "Bash(.venv/Scripts/pytest.exe -v tests/unit)",
-      "Bash(.venv/Scripts/pytest.exe -v tests/unit --tb=short)"
+      "Bash(.venv/Scripts/pytest.exe -v tests/unit --tb=short)",
+      "Bash(.venv/Scripts/mypy.exe:*)",
+      "Bash(.venv/Scripts/ruff.exe check src/termgame/runtimes)",
+      "Bash(.venv/Scripts/ruff.exe format src/termgame/runtimes)",
+      "Bash(test:*)",
+      "Bash(.venv/Scripts/pytest.exe tests/integration/test_mission_engine_docker.py -v -m integration)",
+      "Bash(.venv/Scripts/pytest.exe:*)",
+      "Bash(.venv/Scripts/pip.exe:*)",
+      "Bash(python -c:*)",
+      "Bash(../../.venv/Scripts/python.exe:*)",
+      "Bash(git reset:*)"
     ]
   }
 }
