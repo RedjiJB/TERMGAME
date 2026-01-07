@@ -1,6 +1,6 @@
 """Scenario data model."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Scenario(BaseModel):
@@ -9,10 +9,7 @@ class Scenario(BaseModel):
     Scenarios define the structure and validation rules for missions.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     mission_id: str = Field(..., description="Mission identifier")
     version: str = Field("1.0", description="Scenario version")
-
-    class Config:
-        """Pydantic configuration."""
-
-        frozen = True

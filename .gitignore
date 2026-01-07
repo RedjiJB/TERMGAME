@@ -92,6 +92,10 @@ scenarios/*.tmp
 temp/
 tmp/
 
+# Local executables and tools (installed to Scripts dir)
+scripts/*.exe
+.claude/settings.local.json
+
 # Documentation builds
 docs/_build/
 site/

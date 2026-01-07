@@ -11,7 +11,28 @@
       "Bash(pip install:*)",
       "Bash(pip:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(/c/Python313/python.exe --version)",
+      "Bash(/c/Python313/python.exe -m pip:*)",
+      "Bash(py --version:*)",
+      "Bash(py -m pip:*)",
+      "Bash(py -m ensurepip:*)",
+      "Bash(./Scripts/pip.exe:*)",
+      "Bash(./Scripts/uv.exe:*)",
+      "Bash(source:*)",
+      "Bash(.venv/Scripts/pre-commit.exe:*)",
+      "Bash(.venv/Scripts/pytest.exe --version)",
+      "Bash(.venv/Scripts/pytest.exe -v)",
+      "Bash(.venv/Scripts/pytest.exe -v --no-cov)",
+      "Bash(.venv/Scripts/ruff.exe check .)",
+      "Bash(.venv/Scripts/ruff.exe check . --fix)",
+      "Bash(.venv/Scripts/mypy.exe src/termgame)",
+      "Bash(.venv/Scripts/pytest.exe -v --tb=short)",
+      "Bash(git restore:*)",
+      "Bash(.venv/Scripts/ruff.exe format .)"
     ]
   }
 }

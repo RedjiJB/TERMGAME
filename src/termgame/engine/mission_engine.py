@@ -24,7 +24,7 @@ class MissionEngine:
         """
         # TODO: Implement mission start logic
 
-    async def validate_step(self, step_id: str) -> bool:
+    async def validate_step(self, step_id: str) -> bool:  # noqa: ARG002
         """Validate completion of a mission step.
 
         Args:

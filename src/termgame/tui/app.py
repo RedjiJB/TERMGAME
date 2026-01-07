@@ -7,7 +7,7 @@ from textual.app import App, ComposeResult
 from textual.widgets import Footer, Header
 
 
-class TermGameApp(App[None]):
+class TermGameApp(App[None]):  # type: ignore[misc]
     """Main TermGame TUI application.
 
     This app provides an interactive terminal interface for navigating
@@ -33,7 +33,7 @@ class TermGameApp(App[None]):
 
     def action_toggle_dark(self) -> None:
         """Toggle dark mode."""
-        self.dark = not self.dark
+        self.dark = not self.dark  # type: ignore[has-type]
 
 
 if __name__ == "__main__":

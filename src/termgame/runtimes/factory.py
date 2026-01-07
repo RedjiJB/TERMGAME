@@ -19,10 +19,9 @@ def create_runtime(runtime_type: str = "docker") -> ContainerRuntime:
         # TODO: Import and return DockerRuntime
         msg = "Docker runtime not yet implemented"
         raise NotImplementedError(msg)
-    elif runtime_type == "podman":
+    if runtime_type == "podman":
         # TODO: Import and return PodmanRuntime
         msg = "Podman runtime not yet implemented"
         raise NotImplementedError(msg)
-    else:
-        msg = f"Unsupported runtime type: {runtime_type}"
-        raise ValueError(msg)
+    msg = f"Unsupported runtime type: {runtime_type}"
+    raise ValueError(msg)

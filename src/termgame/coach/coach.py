@@ -11,7 +11,7 @@ class Coach:
         """Initialize the coach."""
         # TODO: Implement initialization
 
-    async def get_hint(self, context: str) -> str:
+    async def get_hint(self, context: str) -> str:  # noqa: ARG002
         """Get a hint based on current context.
 
         Args:

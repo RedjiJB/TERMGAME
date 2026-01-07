@@ -1,6 +1,6 @@
 """Mission data model."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Mission(BaseModel):
@@ -10,12 +10,9 @@ class Mission(BaseModel):
     learning objectives.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     id: str = Field(..., description="Unique mission identifier")
     title: str = Field(..., description="Mission title")
     description: str = Field(..., description="Mission description")
     difficulty: str = Field("beginner", description="Difficulty level")
-
-    class Config:
-        """Pydantic configuration."""
-
-        frozen = True
