@@ -9,7 +9,7 @@ Please be respectful and constructive in all interactions with the community.
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/RedjiJB/termgame.git`
+2. Clone your fork: `git clone https://github.com/RedjiJB/TERMGAME.git`
 3. Create a new branch: `git checkout -b feature/your-feature-name`
 4. Set up the development environment (see below)
 
@@ -190,7 +190,7 @@ We welcome feature requests! Please:
 
 ## Questions?
 
-- Open a [GitHub Discussion](https://github.com/RedjiJB/termgame/discussions)
+- Open a [GitHub Discussion](https://github.com/RedjiJB/TERMGAME/discussions)
 - Check [documentation](docs/)
 - Review existing issues
 

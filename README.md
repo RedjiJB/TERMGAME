@@ -31,8 +31,8 @@ TermGame provides an interactive learning environment where users can practice c
 
 ```bash
 # Clone the repository
-git clone https://github.com/RedjiJB/termgame.git
-cd termgame
+git clone https://github.com/RedjiJB/TERMGAME.git
+cd TermGame
 
 # Install using uv (recommended)
 uv pip install -e ".[dev]"
@@ -114,5 +114,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 - 📖 Documentation: [docs/](docs/)
-- 🐛 Issue Tracker: [GitHub Issues](https://github.com/RedjiJB/termgame/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/RedjiJB/termgame/discussions)
+- 🐛 Issue Tracker: [GitHub Issues](https://github.com/RedjiJB/TERMGAME/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/RedjiJB/TERMGAME/discussions)

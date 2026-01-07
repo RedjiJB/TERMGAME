@@ -58,10 +58,10 @@ docs = [
 termgame = "termgame.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/RedjiJB/termgame"
-Repository = "https://github.com/RedjiJB/termgame"
-Documentation = "https://github.com/RedjiJB/termgame/docs"
-"Bug Tracker" = "https://github.com/RedjiJB/termgame/issues"
+Homepage = "https://github.com/RedjiJB/TERMGAME"
+Repository = "https://github.com/RedjiJB/TERMGAME"
+Documentation = "https://github.com/RedjiJB/TERMGAME/docs"
+"Bug Tracker" = "https://github.com/RedjiJB/TERMGAME/issues"
 
 [build-system]
 requires = ["hatchling"]
