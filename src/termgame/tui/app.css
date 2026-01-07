@@ -1,11 +1,51 @@
-/* TermGame TUI Styles */
+/* TermGame TUI - Minimal CLI aesthetic inspired by Codex */
 
-/* Screen containers */
-Container {
-    padding: 1 2;
-    height: 100%;
+/* Remove all backgrounds and borders - pure CLI feel */
+Screen {
+    background: $background;
 }
 
+Container {
+    height: auto;
+    padding: 0;
+}
+
+/* Headers/Footers - minimal, dim text */
+Header {
+    dock: top;
+    height: 1;
+    background: $background;
+    color: $text-muted;
+}
+
+Footer {
+    dock: bottom;
+    height: 1;
+    background: $background;
+    color: $text-muted;
+}
+
+/* Titles - cyan bold for emphasis, like Codex prompts */
+.screen-title {
+    text-align: left;
+    text-style: bold;
+    color: cyan;
+    margin: 1 0 0 2;
+}
+
+.app-title {
+    text-align: center;
+    color: $text;
+    margin: 2 0;
+}
+
+.welcome-text {
+    text-align: center;
+    color: $text-muted;
+    margin: 0 0 2 0;
+}
+
+/* Containers - no styling, just layout */
 .home-container {
     align: center middle;
 }
@@ -15,116 +55,152 @@ Container {
 .active-mission-container,
 .progress-container {
     height: 100%;
+    padding: 0 2;
 }
 
-/* Titles */
-.screen-title {
-    text-align: center;
-    text-style: bold;
-    color: $accent;
-    margin: 1 0;
-    content-align: center middle;
-}
-
-.app-title {
-    text-align: center;
-    text-style: bold;
-    color: $success;
-    padding: 2;
-    content-align: center middle;
-}
-
-/* Tables */
+/* DataTable - minimal, no backgrounds */
 DataTable {
     height: 1fr;
     margin: 1 0;
+    background: $background;
+    border: none;
 }
 
 DataTable > .datatable--header {
-    background: $boost;
-    color: $text;
+    background: $background;
+    color: $text-muted;
     text-style: bold;
 }
 
 DataTable > .datatable--cursor {
-    background: $accent;
-    color: $text;
+    background: $panel;
+    color: cyan;
+    text-style: bold;
 }
 
-/* Buttons */
+DataTable > .datatable--odd-row,
+DataTable > .datatable--even-row {
+    background: $background;
+}
+
+/* Buttons - no backgrounds, simple borders */
 .button-row {
-    dock: bottom;
     height: auto;
     align: center middle;
     margin: 1 0;
+}
+
+.menu-container {
+    align: center middle;
+    width: 50;
 }
 
 Button {
-    margin: 0 1;
     min-width: 16;
+    height: 3;
+    margin: 0 1;
+    background: $background;
+    color: $text;
+    border: solid $text-muted;
 }
 
-/* Step display */
-.step-info {
-    height: 1fr;
-    margin: 1 0;
-    border: solid $accent;
-    padding: 1 2;
+Button:hover {
+    color: cyan;
+    border: solid cyan;
 }
 
-.step-title {
+Button.-primary {
+    color: cyan;
+    border: solid cyan;
+}
+
+Button.-primary:hover {
+    color: $success;
+    border: solid $success;
+}
+
+Button.-error {
+    color: $error;
+    border: solid $error;
+}
+
+Button.-error:hover {
+    color: $error;
+    border: solid $error;
     text-style: bold;
-    color: $accent;
-    margin-bottom: 1;
 }
 
-.hint-box {
-    background: $panel;
-    color: $warning;
-    padding: 1;
-    margin-top: 1;
-    border: solid $warning;
-}
-
-/* Status messages */
-.status {
-    dock: bottom;
-    height: auto;
-    text-align: center;
-    padding: 1;
-    background: $panel;
-}
-
-/* Menu items */
-.menu-container {
-    align: center middle;
-    width: 60;
+Button:disabled {
+    color: $text-disabled;
+    border: solid $text-disabled;
 }
 
 .menu-button {
     width: 100%;
     margin: 1 0;
+    text-align: left;
 }
 
-/* Home screen welcome */
-.welcome-text {
-    text-align: center;
-    color: $text;
-    padding: 2;
-    margin-bottom: 2;
+/* Step display - no borders, just text */
+.step-info {
+    height: 1fr;
+    margin: 1 0;
+    padding: 1 0;
 }
 
-/* Progress info */
-#progress-info {
-    padding: 2;
-    border: solid $accent;
-    margin: 2 0;
+.step-title {
+    text-style: bold;
+    color: cyan;
+    margin: 1 0;
 }
 
-/* Mission details */
+/* Hints - dim, no box */
+.hint-box {
+    color: $warning;
+    margin: 1 0;
+    padding: 0;
+}
+
+/* Status - simple text */
+.status {
+    text-align: left;
+    margin: 1 0;
+    padding: 0;
+    color: $text-muted;
+}
+
+/* Mission details - no border, just text */
 #mission-details {
-    padding: 2;
-    border: solid $primary;
+    padding: 1 0;
     margin: 1 0;
     height: 1fr;
+    color: $text;
+}
+
+/* Progress info - no border */
+#progress-info {
+    padding: 1 0;
+    margin: 1 0;
+    color: $text;
+}
+
+/* Specific element styling */
+#step-title {
+    color: cyan;
+    text-style: bold;
+}
+
+#step-description {
+    color: $text;
+    margin: 1 0;
+}
+
+#hint-text {
+    color: $warning;
+    margin: 1 0;
+}
+
+#status-message {
+    color: $text-muted;
+    margin: 1 0;
 }

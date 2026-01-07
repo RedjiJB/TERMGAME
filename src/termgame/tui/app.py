@@ -30,19 +30,11 @@ class HomeScreen(Screen[None]):
         yield Header()
         yield Container(
             Static(
-                """
-╔═══════════════════════════════════════╗
-║                                       ║
-║           T E R M G A M E             ║
-║                                       ║
-║    Terminal Training Platform         ║
-║                                       ║
-╚═══════════════════════════════════════╝
-                """,
+                "TERMGAME",
                 classes="app-title",
             ),
             Static(
-                "Learn command-line skills through\ninteractive, hands-on missions",
+                "Terminal training platform for Linux, Cisco IOS, and PowerShell",
                 classes="welcome-text",
             ),
             Vertical(
