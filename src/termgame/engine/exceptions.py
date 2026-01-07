@@ -35,3 +35,7 @@ class StepNotFoundError(MissionEngineError):
 
 class ScenarioLoadError(MissionEngineError):
     """Error loading or parsing scenario YAML file."""
+
+
+class NoActiveMissionError(MissionEngineError):
+    """No active mission found for the requested operation."""

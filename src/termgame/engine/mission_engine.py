@@ -293,6 +293,38 @@ class MissionEngine:
                 progress.container_name = None
                 await session.commit()
 
+    async def get_mission_status(self, mission_id: str) -> dict[str, str | int | None] | None:
+        """Get current status of a mission.
+
+        Returns mission progress including status, current step, and XP earned.
+
+        Args:
+            mission_id: Mission identifier.
+
+        Returns:
+            Dictionary with status information or None if no progress found.
+            Dictionary contains: status, current_step, xp_earned
+        """
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(MissionProgress).where(
+                    MissionProgress.user_id == self._user_id,
+                    MissionProgress.mission_id == mission_id,
+                )
+            )
+            progress = result.scalar_one_or_none()
+
+            if not progress:
+                return None
+
+            status = "completed" if progress.completed else "active"
+
+            return {
+                "status": status,
+                "current_step": progress.current_step_index,
+                "xp_earned": progress.xp_earned if progress.completed else 0,
+            }
+
     async def _complete_mission(self, mission_id: str, session: AsyncSession) -> None:
         """Mark mission as completed and award XP.
 
