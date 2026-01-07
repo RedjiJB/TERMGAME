@@ -355,10 +355,13 @@ def tui() -> None:
 
     Opens an interactive text-based UI for navigating missions.
     """
-    console.print("[bold magenta]Launching TUI...[/bold magenta]")
-    console.print("[yellow]TUI not yet implemented[/yellow]")
-    console.print("[dim]Use CLI commands in the meantime: list, start, validate, hint[/dim]")
-    raise typer.Exit(code=1)
+    from termgame.tui import run_tui
+
+    try:
+        run_tui()
+    except Exception as e:
+        console.print(f"[red]Error launching TUI:[/red] {e}")
+        raise typer.Exit(code=1) from e
 
 
 if __name__ == "__main__":

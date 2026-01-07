@@ -172,6 +172,14 @@ ignore = [
 ]
 "src/termgame/tui/app.py" = [
     "RUF012",  # Textual uses mutable class attributes intentionally
+    "ANN401",  # Any allowed for *args/**kwargs in widgets
+]
+"src/termgame/cli.py" = [
+    "PLC0415",  # Lazy import of TUI to avoid loading Textual unless needed
+]
+"src/termgame/tui/screens.py" = [
+    "RUF012",  # Textual uses mutable class attributes intentionally
+    "ANN401",  # Any allowed for *args/**kwargs in widgets
 ]
 
 [tool.ruff.lint.isort]

@@ -4,6 +4,6 @@ This package contains all TUI screens, widgets, and layouts for the
 interactive terminal interface.
 """
 
-from termgame.tui.app import TermGameApp
+from termgame.tui.app import TermGameApp, run_tui
 
-__all__ = ["TermGameApp"]
+__all__ = ["TermGameApp", "run_tui"]

@@ -1,0 +1,130 @@
+/* TermGame TUI Styles */
+
+/* Screen containers */
+Container {
+    padding: 1 2;
+    height: 100%;
+}
+
+.home-container {
+    align: center middle;
+}
+
+.mission-list-container,
+.mission-start-container,
+.active-mission-container,
+.progress-container {
+    height: 100%;
+}
+
+/* Titles */
+.screen-title {
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+    margin: 1 0;
+    content-align: center middle;
+}
+
+.app-title {
+    text-align: center;
+    text-style: bold;
+    color: $success;
+    padding: 2;
+    content-align: center middle;
+}
+
+/* Tables */
+DataTable {
+    height: 1fr;
+    margin: 1 0;
+}
+
+DataTable > .datatable--header {
+    background: $boost;
+    color: $text;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: $accent;
+    color: $text;
+}
+
+/* Buttons */
+.button-row {
+    dock: bottom;
+    height: auto;
+    align: center middle;
+    margin: 1 0;
+}
+
+Button {
+    margin: 0 1;
+    min-width: 16;
+}
+
+/* Step display */
+.step-info {
+    height: 1fr;
+    margin: 1 0;
+    border: solid $accent;
+    padding: 1 2;
+}
+
+.step-title {
+    text-style: bold;
+    color: $accent;
+    margin-bottom: 1;
+}
+
+.hint-box {
+    background: $panel;
+    color: $warning;
+    padding: 1;
+    margin-top: 1;
+    border: solid $warning;
+}
+
+/* Status messages */
+.status {
+    dock: bottom;
+    height: auto;
+    text-align: center;
+    padding: 1;
+    background: $panel;
+}
+
+/* Menu items */
+.menu-container {
+    align: center middle;
+    width: 60;
+}
+
+.menu-button {
+    width: 100%;
+    margin: 1 0;
+}
+
+/* Home screen welcome */
+.welcome-text {
+    text-align: center;
+    color: $text;
+    padding: 2;
+    margin-bottom: 2;
+}
+
+/* Progress info */
+#progress-info {
+    padding: 2;
+    border: solid $accent;
+    margin: 2 0;
+}
+
+/* Mission details */
+#mission-details {
+    padding: 2;
+    border: solid $primary;
+    margin: 1 0;
+    height: 1fr;
+}
