@@ -114,15 +114,37 @@ class MissionEngine:
 
         # Persist to database
         async with self._session_factory() as session:
-            progress = MissionProgress(
-                user_id=self._user_id,
-                mission_id=mission_id,
-                current_step_id=state.current_step.id if state.current_step else None,
-                current_step_index=0,
-                container_id=container.id,
-                container_name=container.name,
+            # Check for existing active progress (shouldn't exist, but handle gracefully)
+            result = await session.execute(
+                select(MissionProgress).where(
+                    MissionProgress.user_id == self._user_id,
+                    MissionProgress.mission_id == mission_id,
+                    MissionProgress.completed == False,  # noqa: E712
+                )
             )
-            session.add(progress)
+            existing_progress = result.scalars().first()
+
+            if existing_progress:
+                # Update existing record instead of creating duplicate
+                step_id = state.current_step.id if state.current_step else None
+                existing_progress.current_step_id = step_id
+                existing_progress.current_step_index = 0
+                existing_progress.container_id = container.id
+                existing_progress.container_name = container.name
+                existing_progress.started_at = datetime.now(UTC)
+                existing_progress.last_activity = datetime.now(UTC)
+            else:
+                # Create new progress record
+                progress = MissionProgress(
+                    user_id=self._user_id,
+                    mission_id=mission_id,
+                    current_step_id=state.current_step.id if state.current_step else None,
+                    current_step_index=0,
+                    container_id=container.id,
+                    container_name=container.name,
+                )
+                session.add(progress)
+
             await session.commit()
 
     async def validate_step(self, mission_id: str, step_id: str | None = None) -> bool:
@@ -205,7 +227,7 @@ class MissionEngine:
                         MissionProgress.completed == False,  # noqa: E712
                     )
                 )
-                progress = result.scalar_one_or_none()
+                progress = result.scalars().first()
 
                 if progress:
                     progress.current_step_index = state.current_step_index
@@ -307,7 +329,7 @@ class MissionEngine:
                     MissionProgress.completed == False,  # noqa: E712
                 )
             )
-            progress = result.scalar_one_or_none()
+            progress = result.scalars().first()
             if progress:
                 progress.container_id = None
                 progress.container_name = None
@@ -327,12 +349,14 @@ class MissionEngine:
         """
         async with self._session_factory() as session:
             result = await session.execute(
-                select(MissionProgress).where(
+                select(MissionProgress)
+                .where(
                     MissionProgress.user_id == self._user_id,
                     MissionProgress.mission_id == mission_id,
                 )
+                .order_by(MissionProgress.started_at.desc())
             )
-            progress = result.scalar_one_or_none()
+            progress = result.scalars().first()
 
             if not progress:
                 return None
@@ -366,7 +390,7 @@ class MissionEngine:
                 MissionProgress.completed == False,  # noqa: E712
             )
         )
-        progress = result.scalar_one_or_none()
+        progress = result.scalars().first()
 
         if progress:
             progress.completed = True
@@ -375,7 +399,7 @@ class MissionEngine:
 
             # Award XP to user
             user_result = await session.execute(select(User).where(User.id == self._user_id))
-            user = user_result.scalar_one_or_none()
+            user = user_result.scalars().first()
             if user:
                 user.total_xp += completion.xp
 
