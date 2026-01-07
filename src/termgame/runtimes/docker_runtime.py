@@ -7,6 +7,7 @@ in asyncio.to_thread() to enable non-blocking async/await usage.
 
 import asyncio
 import shlex
+import time
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
@@ -127,6 +128,8 @@ class DockerRuntime:
         Commands are wrapped in "bash -c" to support shell features like
         pipes, redirects, and environment variable expansion.
 
+        Retries up to 3 times on connection errors before failing.
+
         Args:
             container: Container to execute command in.
             command: Shell command to execute.
@@ -138,27 +141,40 @@ class DockerRuntime:
             docker.errors.NotFound: If container doesn't exist.
             docker.errors.APIError: If command execution fails.
         """
+        max_retries = 3
+        base_retry_delay = 0.5  # seconds
 
         def _exec() -> str:
-            try:
-                sdk_container: DockerSDKContainer = self._client.containers.get(container.id)
-                # Use sh -c for portability (Alpine and minimal images)
-                wrapped_cmd = f"sh -c {shlex.quote(command)}"
-                result = sdk_container.exec_run(wrapped_cmd, tty=False, demux=False)
-                # Decode bytes to string - result.output is bytes
-                output: bytes = result.output if result.output else b""
-                decoded = output.decode("utf-8", errors="replace")
+            for attempt in range(max_retries):
+                try:
+                    # Refresh container connection on each attempt
+                    # This helps with stale Docker API connections
+                    self._client.containers.list()  # Ping the API
+                    sdk_container: DockerSDKContainer = self._client.containers.get(container.id)
+                    # Use sh -c for portability (Alpine and minimal images)
+                    wrapped_cmd = f"sh -c {shlex.quote(command)}"
+                    result = sdk_container.exec_run(wrapped_cmd, tty=False, demux=False)
+                    # Decode bytes to string - result.output is bytes
+                    output: bytes = result.output if result.output else b""
+                    decoded = output.decode("utf-8", errors="replace")
 
-                # Include exit code info if command failed
-                if result.exit_code != 0 and not decoded:
-                    return f"Command exited with code {result.exit_code}"
-                return decoded  # noqa: TRY300
-            except (docker.errors.NotFound, docker.errors.APIError):
-                # Re-raise Docker-specific errors
-                raise
-            except Exception as e:
-                # Catch connection errors and provide helpful message
-                return f"Error executing command: {e}"
+                    # Include exit code info if command failed
+                    if result.exit_code != 0 and not decoded:
+                        return f"Command exited with code {result.exit_code}"
+                    return decoded  # noqa: TRY300
+                except (docker.errors.NotFound, docker.errors.APIError):
+                    # Re-raise Docker-specific errors without retrying
+                    raise
+                except Exception as e:
+                    # Connection errors - retry if we have attempts left
+                    if attempt < max_retries - 1:
+                        # Exponential backoff: 0.5s, 0.75s, 1.125s
+                        delay = base_retry_delay * (1.5**attempt)
+                        time.sleep(delay)
+                        continue
+                    # Out of retries - return error message
+                    return f"Error executing command after {max_retries} attempts: {e}"
+            return ""  # Should never reach here
 
         return await asyncio.to_thread(_exec)
 
