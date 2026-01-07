@@ -100,9 +100,11 @@ class DockerRuntime:
                     pass
 
             # Create container with interactive TTY support
+            # Use 'tail -f /dev/null' as command to keep container alive
             container: DockerSDKContainer = self._client.containers.create(
                 image=image,
                 name=name,
+                command="tail -f /dev/null",
                 working_dir=working_dir,
                 detach=True,
                 tty=True,
