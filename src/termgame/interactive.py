@@ -22,6 +22,9 @@ from termgame.loaders.scenario_loader import ScenarioLoader
 class InteractiveCLI:
     """Interactive command-line interface with continuous prompts."""
 
+    # Constants
+    MAX_ERROR_LENGTH = 200  # Max length for inline error display
+
     def __init__(self) -> None:
         """Initialize the interactive CLI."""
         self.console = Console()
@@ -42,37 +45,56 @@ class InteractiveCLI:
         self.console.print(
             "[dim]Terminal training platform for Linux, Cisco IOS, and PowerShell[/dim]\n"
         )
-        self.console.print("Type [cyan]help[/cyan] for available commands\n")
+        self.console.print(
+            "Type [cyan]help[/cyan] for commands, or [cyan]list[/cyan] to see all missions\n"
+        )
 
     def print_help(self) -> None:
         """Display help message with available commands."""
         if self.current_mission:
             help_text = """
-[bold cyan]Mission Mode Commands:[/bold cyan]
+[bold cyan]Mission Mode - You're in an active mission![/bold cyan]
 
-  When in a mission, you can run any shell command (e.g., [cyan]ls --help[/cyan]).
-  The command will be executed in the mission container.
+[bold white]How it works:[/bold white]
+  • Read the step instructions carefully
+  • Type Linux commands (e.g., [cyan]ls[/cyan], [cyan]pwd[/cyan], [cyan]cat file.txt[/cyan])
+  • Commands are executed inside a real Ubuntu container
+  • When you complete the step, type [cyan]validate[/cyan] to check your work
 
-  [cyan]validate[/cyan]          Validate current step and advance
-  [cyan]hint[/cyan]              Get a hint for current step
-  [cyan]abandon[/cyan]           Abandon current mission
-  [cyan]help[/cyan]              Show this help message
-  [cyan]quit[/cyan]              Exit the interactive CLI
+[bold white]Special Commands:[/bold white]
+  [cyan]validate[/cyan]          Check if you completed the current step correctly
+  [cyan]hint[/cyan]              Get a helpful hint if you're stuck
+  [cyan]abandon[/cyan]           Give up and exit this mission
+  [cyan]help[/cyan]              Show this help message again
+  [cyan]quit[/cyan]              Exit TermGame (mission will be saved)
 
-[dim]Try running commands to complete the mission steps,[/dim]
-[dim]then use 'validate' to check your work.[/dim]
+[bold yellow]Tips:[/bold yellow]
+  • If validation fails, read the error and try again
+  • Use [cyan]hint[/cyan] if you're unsure what to do
+  • Commands run in the container, not your local machine
 """
         else:
             help_text = """
-[bold cyan]Available Commands:[/bold cyan]
+[bold cyan]Welcome to TermGame![/bold cyan]
 
-  [cyan]list[/cyan]              List all available missions
-  [cyan]start <mission-id>[/cyan] Start a mission
-  [cyan]progress[/cyan]          Show your progress
+[bold white]Getting Started:[/bold white]
+  1. Type [cyan]list[/cyan] to see all available missions
+  2. Choose a mission and type [cyan]start <mission-id>[/cyan]
+  3. Complete the mission steps and earn XP!
+
+[bold white]Available Commands:[/bold white]
+  [cyan]list[/cyan]              Show all missions with difficulty and time
+  [cyan]start <mission-id>[/cyan] Begin a training mission
+  [cyan]progress[/cyan]          View your XP and completed missions
   [cyan]help[/cyan]              Show this help message
-  [cyan]quit[/cyan]              Exit the interactive CLI
+  [cyan]quit[/cyan]              Exit TermGame
 
-[dim]Example: start linux/basics/navigation[/dim]
+[bold yellow]Examples:[/bold yellow]
+  [cyan]list[/cyan]                          → See all missions
+  [cyan]start linux/basics/navigation[/cyan]  → Start navigation tutorial
+  [cyan]start linux/files/file-viewing[/cyan] → Learn file viewing commands
+
+[dim]Tip: Start with beginner missions in linux/basics/[/dim]
 """
         self.console.print(help_text)
 
@@ -126,8 +148,12 @@ class InteractiveCLI:
     async def cmd_start(self, args: list[str]) -> None:
         """Start a mission."""
         if not args:
-            self.console.print("[red]Error:[/red] Mission ID required")
-            self.console.print("[dim]Usage: start <mission-id>[/dim]")
+            self.console.print("[red]Error:[/red] Mission ID required\n")
+            self.console.print("[bold white]Usage:[/bold white] [cyan]start <mission-id>[/cyan]")
+            self.console.print("\n[bold white]Examples:[/bold white]")
+            self.console.print("  [cyan]start linux/basics/navigation[/cyan]")
+            self.console.print("  [cyan]start linux/files/file-viewing[/cyan]")
+            self.console.print("\n[dim]Tip: Type 'list' to see all available missions[/dim]\n")
             return
 
         mission_id = args[0]
@@ -145,7 +171,9 @@ class InteractiveCLI:
 
             # Start the mission
             self.console.print(f"[cyan]Starting mission:[/cyan] {mission_id}")
-            self.console.print("[dim]Creating container environment...[/dim]")
+            self.console.print(
+                "[dim]Creating container environment (this may take a moment)...[/dim]\n"
+            )
 
             await self.engine.start_mission(mission_id)
             step_info = await self.engine.get_current_step(mission_id)
@@ -157,8 +185,21 @@ class InteractiveCLI:
             self.current_mission = mission_id
             self._display_step(step_info)
 
+            # Show helpful tip for first-time users
+            self.console.print("[bold yellow]💡 Quick Start:[/bold yellow]")
+            self.console.print("  • Run Linux commands to complete the step")
+            self.console.print("  • Type [cyan]validate[/cyan] when done to check your work")
+            self.console.print("  • Type [cyan]hint[/cyan] if you need help\n")
+
         except Exception as e:
-            self.console.print(f"[red]Error starting mission:[/red] {e}")
+            error_msg = str(e)
+            self.console.print(f"[red]Error starting mission:[/red] {error_msg}\n")
+
+            if "not found" in error_msg.lower():
+                self.console.print("[bold white]Suggestions:[/bold white]")
+                self.console.print("  • Check the mission ID spelling")
+                self.console.print("  • Type [cyan]list[/cyan] to see all available missions")
+                self.console.print("  • Mission IDs are case-sensitive\n")
 
     async def cmd_validate(self, _args: list[str]) -> None:
         """Validate current step."""
@@ -170,7 +211,7 @@ class InteractiveCLI:
         await self.initialize()
 
         try:
-            self.console.print("[dim]Validating step...[/dim]")
+            self.console.print("[dim]Validating step...[/dim]\n")
 
             success = await self.engine.validate_step(self.current_mission)
 
@@ -179,24 +220,34 @@ class InteractiveCLI:
 
                 if next_step:
                     # Move to next step
-                    self.console.print("[green]✓ Step complete![/green]\n")
+                    self.console.print("[bold green]✓ Step Complete![/bold green] Great job!\n")
                     self._display_step(next_step)
                 else:
                     # Mission complete
                     status = await self.engine.get_mission_status(self.current_mission)
                     xp = status.get("xp_earned", 0) if status else 0
+                    self.console.print("\n[bold green]" + "=" * 50 + "[/bold green]")
                     self.console.print(
-                        f"\n[bold green]🎉 Mission Complete![/bold green] "
-                        f"You earned [cyan]{xp} XP[/cyan]\n"
+                        f"[bold green]🎉 MISSION COMPLETE![/bold green] "
+                        f"You earned [bold cyan]{xp} XP[/bold cyan]"
                     )
+                    self.console.print("[bold green]" + "=" * 50 + "[/bold green]\n")
+                    self.console.print("[dim]Type 'list' to start another mission[/dim]\n")
                     self.current_mission = None
             else:
-                self.console.print(
-                    "[red]✗ Validation failed[/red] - Check your work and try again\n"
-                )
+                self.console.print("[bold red]✗ Validation Failed[/bold red]\n")
+                self.console.print("[bold white]What to do:[/bold white]")
+                self.console.print("  • Read the step instructions carefully above")
+                self.console.print("  • Make sure you ran the correct command")
+                self.console.print("  • Type [cyan]hint[/cyan] if you're stuck")
+                self.console.print("  • Try running the command again\n")
 
         except Exception as e:
             self.console.print(f"[red]Validation error:[/red] {e}\n")
+            self.console.print("[dim]There was a problem checking your work.[/dim]")
+            self.console.print(
+                "[dim]Try running your command again, or type 'hint' for help.[/dim]\n"
+            )
 
     async def cmd_hint(self, _args: list[str]) -> None:
         """Get a hint for current step."""
@@ -263,7 +314,7 @@ class InteractiveCLI:
         self.console.print(Markdown(description))
         self.console.print()
 
-    async def handle_command(self, user_input: str) -> None:
+    async def handle_command(self, user_input: str) -> None:  # noqa: PLR0912
         """Parse and execute user command."""
         user_input = user_input.strip()
 
@@ -300,9 +351,20 @@ class InteractiveCLI:
             try:
                 output = await self.engine.execute_command(self.current_mission, user_input)
                 if output:
-                    self.console.print(output)
+                    # Check if output indicates an error
+                    if "command not found" in output.lower() or "no such file" in output.lower():
+                        self.console.print(f"[yellow]{output}[/yellow]")
+                        self.console.print("[dim]Tip: Check spelling and try again[/dim]\n")
+                    elif "error" in output.lower() and len(output) < self.MAX_ERROR_LENGTH:
+                        self.console.print(f"[yellow]{output}[/yellow]")
+                    else:
+                        self.console.print(output)
             except Exception as e:
-                self.console.print(f"[red]Error executing command:[/red] {e}")
+                self.console.print(f"[red]Error executing command:[/red] {e}\n")
+                self.console.print(
+                    "[dim]The container may have stopped. "
+                    "Try typing 'abandon' and restarting.[/dim]\n"
+                )
 
     async def _handle_lobby_command(self, command: str, args: list[str]) -> None:
         """Handle commands available in lobby (outside missions)."""
@@ -315,8 +377,12 @@ class InteractiveCLI:
         if command in lobby_commands:
             await lobby_commands[command](args)
         else:
-            self.console.print(f"[red]Unknown command:[/red] {command}")
-            self.console.print("[dim]Type 'help' for available commands[/dim]\n")
+            self.console.print(f"[red]Unknown command:[/red] '{command}'\n")
+            self.console.print("[bold white]Did you mean?[/bold white]")
+            self.console.print("  [cyan]list[/cyan]     - See all available missions")
+            self.console.print("  [cyan]start[/cyan]    - Begin a mission")
+            self.console.print("  [cyan]help[/cyan]     - Show help information")
+            self.console.print("\n[dim]Type 'help' to see all commands[/dim]\n")
 
     async def run(self) -> None:
         """Run the interactive CLI loop."""
