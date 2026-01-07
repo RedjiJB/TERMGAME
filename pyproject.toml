@@ -163,6 +163,13 @@ ignore = [
     "TRY301",  # Inline raise is clearer for validation errors
     "S110",  # Best-effort cleanup intentionally swallows exceptions
 ]
+"src/termgame/runtimes/docker_runtime.py" = [
+    "S101",  # Assert used to verify Docker SDK contract
+    "S110",  # Best-effort cleanup intentionally swallows exceptions
+]
+"src/termgame/runtimes/factory.py" = [
+    "PLC0415",  # Lazy import to avoid circular dependencies
+]
 "src/termgame/tui/app.py" = [
     "RUF012",  # Textual uses mutable class attributes intentionally
 ]
