@@ -198,6 +198,30 @@ docker rm -f CONTAINER_ID
 **Solution:**
 1. Check internet connection
 2. Verify Docker Hub is accessible
+
+### Windows: Using Podman Desktop when Docker fails
+
+If Docker Desktop won’t start or shows named pipe errors on Windows Home, you can run tests against Podman Desktop (Docker-compatible API).
+
+**Steps:**
+```powershell
+# Initialize/start Podman
+podman machine init --now
+podman machine start
+
+# Point Docker SDK to Podman
+$env:DOCKER_HOST = "npipe:////./pipe/podman-machine-default"
+
+# Run tests directly via pytest
+.venv\Scripts\python.exe -m pytest tests/integration/test_mission_engine_docker.py -v
+```
+
+Notes:
+- The scripts here may check the `docker` CLI and can fail with Podman; prefer running `pytest` directly.
+- Podman uses `sh` inside Alpine; avoid `bash -c` in commands.
+
+**Runtime stability fixes included:**
+- `src/termgame/runtimes/docker_runtime.py` removes any existing container with the same name before creation and uses `sh -c` for exec calls to support Alpine/minimal images.
 3. Try manual pull: `docker pull alpine:latest`
 
 ### Tests Pass Locally But Fail in CI

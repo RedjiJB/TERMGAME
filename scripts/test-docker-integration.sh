@@ -43,28 +43,49 @@ else
     PYTEST=".venv/bin/pytest"
 fi
 
-# Check Docker is running
-echo "Step 1: Checking Docker daemon..."
+# Detect container engine: Docker or Podman
+ENGINE="docker"
+echo "Step 1: Checking container engine..."
 if docker ps &> /dev/null; then
+    # If DOCKER_HOST is set to Podman, prefer Podman CLI to avoid API mismatch
+    if [[ -n "$DOCKER_HOST" ]] && [[ "$DOCKER_HOST" == *podman* ]]; then
+        ENGINE="podman"
+        print_info "DOCKER_HOST points to Podman; using Podman CLI"
+    fi
     print_success "Docker daemon is running"
 else
-    print_error "Docker daemon is not running"
-    echo ""
-    echo "Please start Docker Desktop and try again."
-    exit 1
+    print_warning "Docker daemon is not running"
+    if command -v podman >/dev/null 2>&1; then
+        print_info "Falling back to Podman Desktop"
+        ENGINE="podman"
+        # Start Podman machine if needed (noop on Linux/macOS)
+        podman machine start >/dev/null 2>&1 || true
+        # Configure Docker SDK to use Podman
+        if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
+            export DOCKER_HOST="npipe:////./pipe/podman-machine-default"
+        else
+            export DOCKER_HOST="unix:///run/podman/podman.sock"
+        fi
+        print_success "Podman is ready (DOCKER_HOST set)"
+    else
+        print_error "Neither Docker nor Podman is available"
+        echo ""
+        echo "Install/start Docker Desktop or Podman Desktop and try again."
+        exit 1
+    fi
 fi
 
 # Check Alpine image exists
 echo ""
 echo "Step 2: Checking Alpine image..."
-if docker images alpine:latest | grep -q alpine; then
-    IMAGE_SIZE=$(docker images alpine:latest --format "{{.Size}}")
+if $ENGINE images alpine:latest | grep -q alpine; then
+    IMAGE_SIZE=$($ENGINE images alpine:latest --format "{{.Size}}")
     print_success "Alpine image available (Size: $IMAGE_SIZE)"
 else
     print_warning "Alpine image not found"
     echo ""
     print_info "Pulling alpine:latest (this may take a minute)..."
-    if docker pull alpine:latest; then
+    if $ENGINE pull alpine:latest; then
         print_success "Alpine image pulled successfully"
     else
         print_error "Failed to pull Alpine image"
@@ -97,10 +118,10 @@ fi
 # Clean up any leftover containers from previous runs
 echo ""
 echo "Step 4: Cleaning up previous test containers..."
-LEFTOVER=$(docker ps -a | grep termgame-test | awk '{print $1}' | wc -l)
+LEFTOVER=$($ENGINE ps -a | grep termgame-test | awk '{print $1}' | wc -l)
 if [ "$LEFTOVER" -gt 0 ]; then
     print_info "Found $LEFTOVER leftover test container(s)"
-    docker ps -a | grep termgame-test | awk '{print $1}' | xargs docker rm -f &> /dev/null || true
+    $ENGINE ps -a | grep termgame-test | awk '{print $1}' | xargs $ENGINE rm -f &> /dev/null || true
     print_success "Cleaned up leftover containers"
 else
     print_success "No leftover containers found"
@@ -139,11 +160,11 @@ else
     echo ""
 
     # Check for leftover containers after failure
-    LEFTOVER_AFTER=$(docker ps -a | grep termgame-test | awk '{print $1}' | wc -l)
+    LEFTOVER_AFTER=$($ENGINE ps -a | grep termgame-test | awk '{print $1}' | wc -l)
     if [ "$LEFTOVER_AFTER" -gt 0 ]; then
         print_warning "Found $LEFTOVER_AFTER container(s) after tests"
         print_info "Run this command to clean up:"
-        echo "    docker ps -a | grep termgame-test | awk '{print \$1}' | xargs docker rm -f"
+            echo "    $ENGINE ps -a | grep termgame-test | awk '{print \$1}' | xargs $ENGINE rm -f"
     fi
 
     exit 1

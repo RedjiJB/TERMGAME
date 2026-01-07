@@ -7,6 +7,7 @@ in asyncio.to_thread() to enable non-blocking async/await usage.
 
 import asyncio
 import shlex
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
 
@@ -79,6 +80,22 @@ class DockerRuntime:
         """
 
         def _create() -> DockerSDKContainer:
+            # If a container with the requested name already exists, remove it
+            if name:
+                try:
+                    existing = self._client.containers.get(name)
+                    try:
+                        existing.remove(force=True)
+                    except Exception:
+                        # Best-effort: if removal fails, try stop then remove
+                        with suppress(Exception):
+                            existing.stop(timeout=5)
+                        with suppress(Exception):
+                            existing.remove(force=True)
+                except docker.errors.NotFound:
+                    # No existing container with this name
+                    pass
+
             # Create container with interactive TTY support
             container: DockerSDKContainer = self._client.containers.create(
                 image=image,
@@ -118,8 +135,8 @@ class DockerRuntime:
 
         def _exec() -> str:
             sdk_container: DockerSDKContainer = self._client.containers.get(container.id)
-            # Wrap in bash -c to support shell features
-            wrapped_cmd = f"bash -c {shlex.quote(command)}"
+            # Use sh -c for portability (Alpine and minimal images)
+            wrapped_cmd = f"sh -c {shlex.quote(command)}"
             result = sdk_container.exec_run(wrapped_cmd, tty=False, demux=False)
             # Decode bytes to string - result.output is bytes
             output: bytes = result.output

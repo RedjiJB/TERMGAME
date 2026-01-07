@@ -266,6 +266,67 @@ docker pull alpine:latest
 
 Subsequent runs will be fast (5-15 seconds total).
 
+### Windows: Docker Desktop fails to start (use Podman Desktop)
+
+If Docker Desktop crashes or shows named pipe errors like:
+
+```
+open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified
+```
+
+Use Podman Desktop as a drop-in replacement:
+
+1) Initialize and start the Podman machine
+
+```powershell
+podman machine init --now
+podman machine start
+```
+
+2) Point the Docker SDK to Podman by setting `DOCKER_HOST`
+
+```powershell
+$env:DOCKER_HOST = "npipe:////./pipe/podman-machine-default"
+```
+
+3) Verify connectivity from Python
+
+```powershell
+.venv\Scripts\python.exe -c "import docker; c=docker.from_env(); print(c.version())"
+```
+
+4) Run integration tests via pytest while `DOCKER_HOST` is set
+
+```powershell
+.venv\Scripts\python.exe -m pytest tests/integration/test_mission_engine_docker.py -v
+```
+
+Notes:
+- The helper shell/batch scripts may check the `docker` CLI and can fail with Podman; when using Podman, run tests directly via `pytest` as above.
+- Podman’s Alpine images use `sh`; avoid `bash -c` in container commands.
+
+### Runtime fixes applied
+
+To improve portability and stability across Docker/Podman:
+- `src/termgame/runtimes/docker_runtime.py`
+   - Remove any existing container with the same name before creation to avoid conflicts.
+   - Use `sh -c` for command execution inside containers (Alpine-compatible).
+
+### Verified tests (with Podman)
+
+With `DOCKER_HOST` pointed to Podman Desktop, the following tests pass:
+- `test_full_mission_lifecycle`
+- `test_step_validation_failure`
+- `test_mission_cleanup`
+- `test_get_hint`
+
+Switching back to Docker Desktop later:
+
+```powershell
+Remove-Item Env:\DOCKER_HOST
+# or set it to Docker’s npipe if needed
+```
+
 ## Cleanup After Testing
 
 ### Remove Test Containers

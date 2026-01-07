@@ -99,24 +99,44 @@ echo "  Docker Integration Test Runner"
 echo "======================================"
 echo ""
 
-# Step 1: Check Docker
-echo "Step 1: Checking Docker daemon..."
-if ! docker ps &> /dev/null; then
-    print_error "Docker daemon is not running"
-    echo ""
-    echo "Please start Docker Desktop and try again."
-    exit 1
+# Step 1: Check container engine (Docker or Podman)
+ENGINE="docker"
+echo "Step 1: Checking container engine..."
+if docker ps &> /dev/null; then
+    # If DOCKER_HOST points to Podman, prefer Podman CLI to avoid API mismatch
+    if [[ -n "$DOCKER_HOST" ]] && [[ "$DOCKER_HOST" == *podman* ]]; then
+        ENGINE="podman"
+        print_info "DOCKER_HOST points to Podman; using Podman CLI"
+    fi
+    print_success "Docker daemon is running"
+else
+    print_warning "Docker daemon is not running"
+    if command -v podman >/dev/null 2>&1; then
+        print_info "Falling back to Podman Desktop"
+        ENGINE="podman"
+        podman machine start >/dev/null 2>&1 || true
+        if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
+            export DOCKER_HOST="npipe:////./pipe/podman-machine-default"
+        else
+            export DOCKER_HOST="unix:///run/podman/podman.sock"
+        fi
+        print_success "Podman is ready (DOCKER_HOST set)"
+    else
+        print_error "Neither Docker nor Podman is available"
+        echo ""
+        echo "Install/start Docker Desktop or Podman Desktop and try again."
+        exit 1
+    fi
 fi
-print_success "Docker daemon is running"
 
 # Step 2: Check/pull Alpine image
 echo ""
 echo "Step 2: Checking Alpine image..."
-if docker images alpine:latest | grep -q alpine; then
+if $ENGINE images alpine:latest | grep -q alpine; then
     print_success "Alpine image available"
 else
     print_warning "Alpine image not found, pulling..."
-    docker pull alpine:latest
+    $ENGINE pull alpine:latest
     print_success "Alpine image ready"
 fi
 
@@ -137,10 +157,10 @@ print_success "Dependencies ready"
 if [ "$NO_CLEANUP" != true ]; then
     echo ""
     echo "Step 4: Cleaning up old containers..."
-    LEFTOVER=$(docker ps -a | grep termgame-test | wc -l)
+    LEFTOVER=$($ENGINE ps -a | grep termgame-test | wc -l)
     if [ "$LEFTOVER" -gt 0 ]; then
         print_info "Removing $LEFTOVER old container(s)..."
-        docker ps -a | grep termgame-test | awk '{print $1}' | xargs docker rm -f &> /dev/null || true
+            $ENGINE ps -a | grep termgame-test | awk '{print $1}' | xargs $ENGINE rm -f &> /dev/null || true
         print_success "Cleanup complete"
     else
         print_success "No old containers found"
@@ -199,12 +219,12 @@ else
 
     # Check for leftover containers
     if [ "$NO_CLEANUP" != true ]; then
-        LEFTOVER_AFTER=$(docker ps -a | grep termgame-test | wc -l)
+        LEFTOVER_AFTER=$($ENGINE ps -a | grep termgame-test | wc -l)
         if [ "$LEFTOVER_AFTER" -gt 0 ]; then
             echo ""
             print_warning "Found $LEFTOVER_AFTER container(s) after tests"
             print_info "Cleaning up..."
-            docker ps -a | grep termgame-test | awk '{print $1}' | xargs docker rm -f &> /dev/null || true
+            $ENGINE ps -a | grep termgame-test | awk '{print $1}' | xargs $ENGINE rm -f &> /dev/null || true
         fi
     fi
 

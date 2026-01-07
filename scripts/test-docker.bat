@@ -62,24 +62,43 @@ echo   Docker Integration Test Runner
 echo ======================================
 echo.
 
-REM Step 1: Check Docker
-echo Step 1: Checking Docker daemon...
+REM Step 1: Check container engine (Docker or Podman)
+set "ENGINE_CMD=docker"
+echo Step 1: Checking container engine...
 docker ps >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [X] Docker daemon is not running
-    echo.
-    echo Please start Docker Desktop and try again.
-    exit /b 1
+    echo [!] Docker daemon not available, checking Podman...
+    where podman >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo [X] Neither Docker nor Podman is available
+        echo.
+        echo Please install/start Docker Desktop or Podman Desktop and try again.
+        exit /b 1
+    )
+    echo [i] Falling back to Podman Desktop
+    podman machine start >nul 2>&1
+    set "DOCKER_HOST=npipe:////./pipe/podman-machine-default"
+    set "ENGINE_CMD=podman"
+    echo [OK] Podman is ready (DOCKER_HOST set)
+) else (
+    REM If DOCKER_HOST points to Podman, prefer Podman CLI to avoid API mismatch
+    if defined DOCKER_HOST (
+        echo %DOCKER_HOST% | findstr /I podman >nul 2>&1
+        if %errorlevel% equ 0 (
+            set "ENGINE_CMD=podman"
+            echo [i] DOCKER_HOST points to Podman; using Podman CLI
+        )
+    )
+    echo [OK] Docker daemon is running
 )
-echo [OK] Docker daemon is running
 
 REM Step 2: Check Alpine image
 echo.
 echo Step 2: Checking Alpine image...
-docker images alpine:latest | findstr alpine >nul 2>&1
+%ENGINE_CMD% images alpine:latest | findstr alpine >nul 2>&1
 if %errorlevel% neq 0 (
     echo [!] Alpine image not found, pulling...
-    docker pull alpine:latest
+    %ENGINE_CMD% pull alpine:latest
     if %errorlevel% neq 0 (
         echo [X] Failed to pull Alpine image
         exit /b 1
@@ -107,11 +126,11 @@ REM Step 4: Cleanup
 if not "%NO_CLEANUP%"=="true" (
     echo.
     echo Step 4: Cleaning up old containers...
-    docker ps -a | findstr termgame-test >nul 2>&1
+    %ENGINE_CMD% ps -a | findstr termgame-test >nul 2>&1
     if %errorlevel% equ 0 (
         echo [i] Removing old containers...
-        for /f "tokens=1" %%i in ('docker ps -a ^| findstr termgame-test') do (
-            docker rm -f %%i >nul 2>&1
+        for /f "tokens=1" %%i in ('%ENGINE_CMD% ps -a ^| findstr termgame-test') do (
+            %ENGINE_CMD% rm -f %%i >nul 2>&1
         )
         echo [OK] Cleanup complete
     ) else (
@@ -172,13 +191,13 @@ if %errorlevel% equ 0 (
 
     REM Check for leftover containers
     if not "%NO_CLEANUP%"=="true" (
-        docker ps -a | findstr termgame-test >nul 2>&1
+        %ENGINE_CMD% ps -a | findstr termgame-test >nul 2>&1
         if !errorlevel! equ 0 (
             echo.
             echo [!] Found containers after tests
             echo [i] Cleaning up...
-            for /f "tokens=1" %%i in ('docker ps -a ^| findstr termgame-test') do (
-                docker rm -f %%i >nul 2>&1
+            for /f "tokens=1" %%i in ('%ENGINE_CMD% ps -a ^| findstr termgame-test') do (
+                %ENGINE_CMD% rm -f %%i >nul 2>&1
             )
         )
     )
