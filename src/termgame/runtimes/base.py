@@ -3,7 +3,7 @@
 Defines the interface that all container runtime implementations must follow.
 """
 
-from typing import Protocol
+from typing import Any, Protocol
 
 
 class Container(Protocol):
@@ -24,13 +24,15 @@ class ContainerRuntime(Protocol):
         self,
         image: str,
         name: str | None = None,
-        **kwargs: str,
+        working_dir: str | None = None,
+        **kwargs: Any,  # noqa: ANN401
     ) -> Container:
         """Create a new container.
 
         Args:
             image: Container image to use.
             name: Optional container name.
+            working_dir: Working directory inside container.
             **kwargs: Additional runtime-specific arguments.
 
         Returns:

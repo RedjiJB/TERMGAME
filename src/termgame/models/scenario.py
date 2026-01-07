@@ -31,6 +31,9 @@ class Environment(BaseModel):
 
     image: str = Field(..., description="Docker/Podman container image")
     setup: list[str] = Field(default_factory=list, description="Setup commands to run in container")
+    workdir: str | None = Field(
+        None, description="Working directory for container (default: /root)"
+    )
 
 
 class StepValidation(BaseModel):

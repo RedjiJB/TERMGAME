@@ -3,7 +3,7 @@ mission:
   title: "Directory Navigation Basics"
   difficulty: beginner
   description: "Learn fundamental directory navigation commands"
-  estimated_time: "10 minutes"
+  estimated_time: 10
   tags:
     - linux
     - basics
@@ -11,6 +11,7 @@ mission:
 
 environment:
   image: "ubuntu:22.04"
+  workdir: "/home/learner"
   setup:
     - "mkdir -p /home/learner/documents"
     - "mkdir -p /home/learner/pictures"

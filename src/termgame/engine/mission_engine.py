@@ -87,6 +87,7 @@ class MissionEngine:
             container = await self._runtime.create_container(
                 image=scenario.environment.image,
                 name=container_name,
+                working_dir=scenario.environment.workdir,
             )
         except Exception as e:
             msg = f"Failed to create container: {e}"

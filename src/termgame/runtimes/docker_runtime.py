@@ -58,6 +58,7 @@ class DockerRuntime:
         self,
         image: str,
         name: str | None = None,
+        working_dir: str | None = None,
         **kwargs: Any,  # noqa: ANN401
     ) -> Container:
         """Create and start a Docker container.
@@ -69,6 +70,8 @@ class DockerRuntime:
         Args:
             image: Docker image name (e.g., "alpine:latest", "ubuntu:22.04").
             name: Optional container name. If None, Docker assigns a random name.
+            working_dir: Working directory inside container (e.g., "/home/learner").
+                If None, uses image default (typically /root or /).
             **kwargs: Additional arguments passed to docker.containers.create().
 
         Returns:
@@ -100,6 +103,7 @@ class DockerRuntime:
             container: DockerSDKContainer = self._client.containers.create(
                 image=image,
                 name=name,
+                working_dir=working_dir,
                 detach=True,
                 tty=True,
                 stdin_open=True,
