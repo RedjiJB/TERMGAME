@@ -1,0 +1,49 @@
+mission:
+  id: "test/simple-mission"
+  title: "Simple Test Mission"
+  difficulty: beginner
+  description: "A simple mission for integration testing"
+  estimated_time: 5
+  tags:
+    - test
+
+environment:
+  image: "alpine:latest"
+  setup:
+    - "echo 'Hello World' > /tmp/test.txt"
+    - "mkdir -p /tmp/testdir"
+
+steps:
+  - id: "step-1-echo"
+    title: "Echo Test"
+    description: "Verify echo command works"
+    hint: "Just checking basic command execution"
+    validation:
+      type: "command-output"
+      command: "echo 'test'"
+      matcher: "exact"
+      expected: "test"
+
+  - id: "step-2-file-exists"
+    title: "File Exists Test"
+    description: "Verify setup created test file"
+    hint: "Checking if /tmp/test.txt exists"
+    validation:
+      type: "file-exists"
+      file: "/tmp/test.txt"
+      matcher: "exists"
+
+  - id: "step-3-file-content"
+    title: "File Content Test"
+    description: "Verify file contains correct content"
+    hint: "Checking content of /tmp/test.txt"
+    validation:
+      type: "file-content"
+      file: "/tmp/test.txt"
+      matcher: "contains"
+      expected: "Hello World"
+
+completion:
+  message: "Integration test mission completed successfully!"
+  xp: 50
+  unlocks: []
