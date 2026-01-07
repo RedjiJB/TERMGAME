@@ -1,0 +1,82 @@
+mission:
+  id: "linux/basics/environment-basics"
+  title: "Environment Variables and User Context"
+  difficulty: beginner
+  description: "Understand environment variables and basic shell configuration"
+  estimated_time: 15
+  tags:
+    - linux
+    - basics
+    - environment
+    - shell
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner"
+
+steps:
+  - id: "print-path"
+    title: "View the PATH Variable"
+    description: |
+      Print the PATH environment variable using 'echo $PATH'.
+
+      PATH is a crucial environment variable that tells the shell where to look
+      for executable programs. When you type a command, the shell searches these
+      directories in order.
+    hint: "Type 'echo $PATH' to see the directories in your PATH"
+    validation:
+      type: "command-output"
+      command: "echo $PATH"
+      matcher: "contains"
+      expected: "/usr/bin"
+
+  - id: "list-all-variables"
+    title: "List All Environment Variables"
+    description: |
+      Use the 'env' command to see all environment variables currently set.
+
+      Environment variables store configuration and state information that
+      programs can access. They affect how your shell and programs behave.
+    hint: "Type 'env' to display all environment variables"
+    validation:
+      type: "command-output"
+      command: "env"
+      matcher: "contains"
+      expected: "PATH"
+
+  - id: "check-current-user"
+    title: "Check Your Username"
+    description: |
+      Use the 'whoami' command to print your current username.
+
+      This simple but useful command tells you which user account you're
+      currently logged in as. Important for multi-user systems and debugging
+      permission issues.
+    hint: "Type 'whoami' to see your username"
+    validation:
+      type: "command-output"
+      command: "whoami"
+      matcher: "exact"
+      expected: "root"
+
+  - id: "check-home-directory"
+    title: "View Your Home Directory"
+    description: |
+      Print the HOME environment variable to see your home directory path.
+
+      Every user has a home directory where their personal files are stored.
+      The $HOME variable always points to this location.
+    hint: "Use 'echo $HOME' to see your home directory path"
+    validation:
+      type: "command-output"
+      command: "echo $HOME"
+      matcher: "contains"
+      expected: "/root"
+
+completion:
+  message: "Great job! You now understand environment variables and user context basics."
+  xp: 75
+  unlocks:
+    - "linux/files/piping-redirection"

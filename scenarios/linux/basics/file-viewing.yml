@@ -1,0 +1,83 @@
+mission:
+  id: "linux/basics/file-viewing"
+  title: "Viewing File Content"
+  difficulty: beginner
+  description: "Learn how to view and read file contents using different tools"
+  estimated_time: 15
+  tags:
+    - linux
+    - basics
+    - files
+    - viewing
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner"
+    - "echo -e 'Welcome to TermGame!\nThis is a training platform.\nYou are learning Linux basics.' > /home/learner/welcome.txt"
+    - "seq 1 100 > /home/learner/numbers.txt"
+    - "echo -e 'Linux\nUnix\nWindows\nMacOS' > /home/learner/systems.txt"
+
+steps:
+  - id: "view-with-cat"
+    title: "View File with cat"
+    description: |
+      View the contents of welcome.txt using the 'cat' command.
+
+      The 'cat' command displays the entire file content at once.
+      It's perfect for small files that fit on one screen.
+    hint: "Type 'cat welcome.txt' to view the file"
+    validation:
+      type: "command-output"
+      command: "cat welcome.txt"
+      matcher: "contains"
+      expected: "Welcome to TermGame"
+
+  - id: "view-first-lines"
+    title: "View First Lines with head"
+    description: |
+      Use the 'head' command to view the first 5 lines of numbers.txt.
+
+      The head command is useful when you only need to see the beginning of a file,
+      especially helpful for large files or log files.
+    hint: "Try 'head -n 5 numbers.txt' to see the first 5 lines"
+    validation:
+      type: "command-output"
+      command: "head -n 5 numbers.txt"
+      matcher: "contains"
+      expected: "1"
+
+  - id: "view-last-lines"
+    title: "View Last Lines with tail"
+    description: |
+      Now use the 'tail' command to view the last 3 lines of systems.txt.
+
+      The tail command shows the end of a file, which is particularly useful for
+      viewing the most recent entries in log files.
+    hint: "Use 'tail -n 3 systems.txt' to see the last 3 lines"
+    validation:
+      type: "command-output"
+      command: "tail -n 3 systems.txt"
+      matcher: "contains"
+      expected: "MacOS"
+
+  - id: "count-lines"
+    title: "Count Lines in File"
+    description: |
+      Use 'wc -l' to count how many lines are in numbers.txt.
+
+      The 'wc' (word count) command with -l flag counts lines.
+      Verify that numbers.txt has 100 lines.
+    hint: "Type 'wc -l numbers.txt' and check the output"
+    validation:
+      type: "command-output"
+      command: "wc -l numbers.txt"
+      matcher: "contains"
+      expected: "100"
+
+completion:
+  message: "Excellent! You now know how to view file contents using cat, head, tail, and count lines with wc."
+  xp: 75
+  unlocks:
+    - "linux/basics/file-operations"

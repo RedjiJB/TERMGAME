@@ -1,0 +1,83 @@
+mission:
+  id: "linux/processes/disk-usage"
+  title: "Checking Disk Usage"
+  difficulty: beginner
+  description: "Learn to monitor disk space and directory sizes with df and du"
+  estimated_time: 15
+  tags:
+    - linux
+    - disk
+    - storage
+    - monitoring
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner/project/{src,docs,tests}"
+    - "dd if=/dev/zero of=/home/learner/project/large.dat bs=1M count=10 2>/dev/null"
+    - "echo 'small file' > /home/learner/project/src/main.py"
+    - "echo 'documentation' > /home/learner/project/docs/README.md"
+
+steps:
+  - id: "check-filesystem-space"
+    title: "Check Filesystem Disk Space"
+    description: |
+      Use 'df' to display available disk space on all mounted filesystems.
+
+      df (disk free) shows how much total space, used space, and available space
+      each filesystem has. This is essential for monitoring system health.
+    hint: "Type 'df' to see filesystem disk space"
+    validation:
+      type: "command-output"
+      command: "df"
+      matcher: "contains"
+      expected: "Filesystem"
+
+  - id: "human-readable-disk-space"
+    title: "Display Disk Space in Human-Readable Format"
+    description: |
+      Run 'df -h' to see disk space in gigabytes/megabytes instead of blocks.
+
+      The -h (human-readable) flag converts numbers to KB, MB, GB automatically.
+      This makes the output much easier to understand at a glance.
+    hint: "Use 'df -h' to see sizes in GB/MB"
+    validation:
+      type: "command-output"
+      command: "df -h | head -n 1"
+      matcher: "contains"
+      expected: "Size"
+
+  - id: "check-directory-size"
+    title: "Check Directory Size"
+    description: |
+      Use 'du -sh /home/learner/project' to see how much space the project directory uses.
+
+      du (disk usage) shows space used by files and directories. The -s flag
+      shows a summary, and -h makes it human-readable.
+    hint: "Try 'du -sh /home/learner/project' to see the directory size"
+    validation:
+      type: "command-output"
+      command: "du -sh /home/learner/project"
+      matcher: "contains"
+      expected: "M"
+
+  - id: "list-subdirectory-sizes"
+    title: "List All Subdirectory Sizes"
+    description: |
+      Use 'du -h /home/learner/project' to see the size of each subdirectory.
+
+      Without the -s flag, du shows sizes for all subdirectories individually.
+      This helps identify which directories are using the most space.
+    hint: "Type 'du -h /home/learner/project' to see all subdirectory sizes"
+    validation:
+      type: "command-output"
+      command: "du -h /home/learner/project | grep -c '/'"
+      matcher: "contains"
+      expected: ""
+
+completion:
+  message: "Well done! You can now monitor disk usage and identify space-consuming directories."
+  xp: 75
+  unlocks:
+    - "linux/processes/system-info"

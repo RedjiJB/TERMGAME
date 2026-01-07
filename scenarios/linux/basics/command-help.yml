@@ -1,0 +1,83 @@
+mission:
+  id: "linux/basics/command-help"
+  title: "Finding Command Help"
+  difficulty: beginner
+  description: "Learn how to find help and documentation for Linux commands"
+  estimated_time: 20
+  tags:
+    - linux
+    - basics
+    - documentation
+    - help
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner"
+
+steps:
+  - id: "use-help-flag"
+    title: "Use the --help Flag"
+    description: |
+      Most Linux commands support a --help flag that shows basic usage information.
+      Try running 'ls --help' to see the help output for the ls command.
+
+      This is the quickest way to get a brief overview of a command's options.
+    hint: "Type 'ls --help' and look for the output"
+    validation:
+      type: "command-output"
+      command: "ls --help"
+      matcher: "contains"
+      expected: "Usage"
+
+  - id: "read-man-page"
+    title: "Read a Manual Page"
+    description: |
+      Use 'man ls' to open the full manual page for the ls command.
+      Then verify you can access it by checking if man is available.
+
+      Manual pages (man pages) provide comprehensive documentation for commands,
+      including detailed descriptions, all options, and examples.
+    hint: "Type 'man ls' to open the manual (press 'q' to quit if it opens)"
+    validation:
+      type: "command-output"
+      command: "man ls 2>&1 | head -n 1"
+      matcher: "contains"
+      expected: "LS"
+
+  - id: "search-man-pages"
+    title: "Search Manual Pages"
+    description: |
+      Use 'man -k directory' to search for commands related to directories.
+
+      The -k flag searches manual page descriptions for the given keyword.
+      This helps you discover commands when you know what you want to do
+      but don't know which command to use.
+    hint: "Try 'man -k directory' to search for directory-related commands"
+    validation:
+      type: "command-output"
+      command: "man -k directory"
+      matcher: "contains"
+      expected: "mkdir"
+
+  - id: "use-apropos"
+    title: "Discover Commands with apropos"
+    description: |
+      The 'apropos' command is equivalent to 'man -k' and searches manual pages.
+      Use 'apropos copy' to find commands related to copying.
+
+      Apropos is helpful when you're learning and want to discover new commands
+      for specific tasks.
+    hint: "Type 'apropos copy' to find copy-related commands"
+    validation:
+      type: "command-output"
+      command: "apropos copy"
+      matcher: "contains"
+      expected: "cp"
+
+completion:
+  message: "Well done! You now know how to find help and learn about any Linux command independently."
+  xp: 100
+  unlocks:
+    - "linux/files/file-permissions"

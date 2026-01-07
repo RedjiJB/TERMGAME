@@ -1,0 +1,81 @@
+mission:
+  id: "linux/processes/process-basics"
+  title: "Process Management Basics"
+  difficulty: intermediate
+  description: "Learn to list, monitor, and find processes in Linux"
+  estimated_time: 20
+  tags:
+    - linux
+    - processes
+    - monitoring
+    - system
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner"
+
+steps:
+  - id: "list-current-processes"
+    title: "List Your Current Processes"
+    description: |
+      Use 'ps' to list processes running in your current terminal session.
+
+      ps (process status) is the fundamental tool for viewing running processes.
+      Without options, it shows only processes in your current shell.
+    hint: "Type 'ps' to see your current processes"
+    validation:
+      type: "command-output"
+      command: "ps"
+      matcher: "contains"
+      expected: "PID"
+
+  - id: "list-all-processes"
+    title: "List All System Processes"
+    description: |
+      Use 'ps aux' to see all processes running on the system.
+
+      The 'aux' flags show: 'a' = all users, 'u' = user-oriented format,
+      'x' = including processes not attached to terminals. This is the most
+      common way to view all processes.
+    hint: "Type 'ps aux' to see all processes"
+    validation:
+      type: "command-output"
+      command: "ps aux | head -n 1"
+      matcher: "contains"
+      expected: "USER"
+
+  - id: "find-specific-process"
+    title: "Find a Specific Process"
+    description: |
+      Use 'ps aux | grep bash' to find all bash processes.
+
+      Combining ps with grep is a common pattern for finding specific processes.
+      This is useful when you know the process name but not its PID.
+    hint: "Try 'ps aux | grep bash' to find bash processes"
+    validation:
+      type: "command-output"
+      command: "ps aux | grep bash | grep -v grep"
+      matcher: "contains"
+      expected: "bash"
+
+  - id: "count-processes"
+    title: "Count Running Processes"
+    description: |
+      Count how many processes are currently running using ps and wc.
+
+      This combines what you've learned: pipe ps output to wc -l to count lines.
+      Subtract 1 for the header line to get the actual process count.
+    hint: "Use 'ps aux | wc -l' to count all processes (including header)"
+    validation:
+      type: "command-output"
+      command: "ps aux | wc -l"
+      matcher: "contains"
+      expected: ""
+
+completion:
+  message: "Great job! You now know how to view and find processes on a Linux system."
+  xp: 100
+  unlocks:
+    - "linux/processes/disk-usage"

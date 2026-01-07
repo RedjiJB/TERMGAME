@@ -1,0 +1,80 @@
+mission:
+  id: "linux/processes/system-info"
+  title: "System Information"
+  difficulty: beginner
+  description: "Learn to gather system information using uname, uptime, and free"
+  estimated_time: 15
+  tags:
+    - linux
+    - system
+    - monitoring
+    - information
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner"
+
+steps:
+  - id: "check-system-info"
+    title: "Check System Information"
+    description: |
+      Use 'uname -a' to display all system information.
+
+      uname shows system details like kernel name, version, architecture, and hostname.
+      The -a flag shows all available information at once.
+    hint: "Type 'uname -a' to see complete system information"
+    validation:
+      type: "command-output"
+      command: "uname -a"
+      matcher: "contains"
+      expected: "Linux"
+
+  - id: "check-kernel-version"
+    title: "Check Kernel Version"
+    description: |
+      Use 'uname -r' to display just the kernel version.
+
+      Knowing the kernel version is important for compatibility, troubleshooting,
+      and security updates. The -r flag shows only the release version.
+    hint: "Try 'uname -r' to see the kernel version"
+    validation:
+      type: "command-output"
+      command: "uname -r"
+      matcher: "contains"
+      expected: ""
+
+  - id: "check-system-uptime"
+    title: "Check System Uptime"
+    description: |
+      Use the 'uptime' command to see how long the system has been running.
+
+      uptime shows how long since the system was booted, how many users are logged in,
+      and the system load average. This is crucial for monitoring system stability.
+    hint: "Type 'uptime' to see how long the system has been running"
+    validation:
+      type: "command-output"
+      command: "uptime"
+      matcher: "contains"
+      expected: "up"
+
+  - id: "check-memory-usage"
+    title: "Check Memory Usage"
+    description: |
+      Use 'free -h' to display memory usage in human-readable format.
+
+      free shows total, used, and available memory (RAM and swap). The -h flag
+      displays sizes in GB/MB for easier reading. Essential for diagnosing
+      performance issues.
+    hint: "Use 'free -h' to see memory usage"
+    validation:
+      type: "command-output"
+      command: "free -h | head -n 1"
+      matcher: "contains"
+      expected: "total"
+
+completion:
+  message: "Excellent work! You now know how to gather essential system information for monitoring and troubleshooting."
+  xp: 75
+  unlocks: []

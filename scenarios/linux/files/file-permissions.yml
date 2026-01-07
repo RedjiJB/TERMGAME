@@ -1,0 +1,85 @@
+mission:
+  id: "linux/files/file-permissions"
+  title: "Understanding File Permissions"
+  difficulty: intermediate
+  description: "Learn how to view and modify file permissions using chmod"
+  estimated_time: 25
+  tags:
+    - linux
+    - files
+    - permissions
+    - security
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner"
+    - "echo '#!/bin/bash\necho Hello World' > /home/learner/script.sh"
+    - "echo 'Public data' > /home/learner/public.txt"
+    - "echo 'Private data' > /home/learner/private.txt"
+    - "chmod 644 /home/learner/script.sh"
+    - "chmod 666 /home/learner/public.txt"
+
+steps:
+  - id: "view-permissions"
+    title: "View File Permissions"
+    description: |
+      Use 'ls -l' to view detailed file information including permissions.
+
+      Permissions are shown as 10 characters: the first indicates file type,
+      then 3 groups of 3 for owner, group, and others (rwx = read, write, execute).
+    hint: "Type 'ls -l script.sh' to see the file's permissions"
+    validation:
+      type: "command-output"
+      command: "ls -l script.sh"
+      matcher: "contains"
+      expected: "rw-r--r--"
+
+  - id: "make-executable"
+    title: "Make a Script Executable"
+    description: |
+      Add execute permission to script.sh so it can be run as a program.
+
+      Use 'chmod +x' to add execute permission. This is commonly needed
+      for shell scripts and other executable files.
+    hint: "Try 'chmod +x script.sh' to make it executable"
+    validation:
+      type: "command-output"
+      command: "ls -l script.sh | grep -o '^.rwx'"
+      matcher: "exact"
+      expected: "-rwx"
+
+  - id: "set-numeric-permissions"
+    title: "Set Permissions Using Numeric Mode"
+    description: |
+      Set private.txt permissions to 600 (read/write for owner only).
+
+      Numeric mode uses 3 digits: owner, group, others. Each digit is the sum of:
+      4 (read) + 2 (write) + 1 (execute). So 600 = rw------- (6=4+2, 0=0, 0=0).
+    hint: "Use 'chmod 600 private.txt' to set owner-only read/write"
+    validation:
+      type: "command-output"
+      command: "ls -l private.txt | grep -o '^.rw-------'"
+      matcher: "exact"
+      expected: "-rw-------"
+
+  - id: "verify-security"
+    title: "Verify Permission Changes"
+    description: |
+      Check that private.txt now has restrictive permissions (600).
+
+      After changing permissions, it's good practice to verify the changes
+      took effect correctly. Use 'stat' to get detailed file information.
+    hint: "Type 'stat -c %a private.txt' to see the numeric permissions"
+    validation:
+      type: "command-output"
+      command: "stat -c %a private.txt"
+      matcher: "exact"
+      expected: "600"
+
+completion:
+  message: "Great work! You now understand Linux file permissions and can control access to your files."
+  xp: 125
+  unlocks:
+    - "linux/processes/process-basics"

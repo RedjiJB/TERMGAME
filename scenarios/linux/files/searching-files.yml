@@ -1,0 +1,86 @@
+mission:
+  id: "linux/files/searching-files"
+  title: "Searching File Contents with grep"
+  difficulty: intermediate
+  description: "Master the grep command for searching text patterns in files"
+  estimated_time: 20
+  tags:
+    - linux
+    - files
+    - grep
+    - search
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner"
+    - "echo -e 'apple\nbanana\nAPPLE\ncherry\napricot' > /home/learner/fruits.txt"
+    - "echo -e 'Error: File not found\nWarning: Low memory\nInfo: Process started\nError: Permission denied' > /home/learner/app.log"
+    - "mkdir -p /home/learner/project"
+    - "echo 'TODO: Fix bug' > /home/learner/project/main.py"
+    - "echo 'TODO: Add tests' > /home/learner/project/utils.py"
+    - "echo 'DONE: Refactor code' > /home/learner/project/config.py"
+
+steps:
+  - id: "basic-grep"
+    title: "Basic Text Search"
+    description: |
+      Use grep to search for lines containing 'apple' in fruits.txt.
+
+      grep is one of the most powerful text search tools in Linux.
+      It prints lines that match a given pattern.
+    hint: "Type 'grep apple fruits.txt' to search for 'apple'"
+    validation:
+      type: "command-output"
+      command: "grep apple fruits.txt"
+      matcher: "contains"
+      expected: "apple"
+
+  - id: "case-insensitive-search"
+    title: "Case-Insensitive Search"
+    description: |
+      Search for 'apple' in fruits.txt, ignoring case (finding both 'apple' and 'APPLE').
+
+      Use the -i flag to make grep ignore uppercase and lowercase differences.
+      This is useful when you're not sure about the exact capitalization.
+    hint: "Try 'grep -i apple fruits.txt' to search ignoring case"
+    validation:
+      type: "command-output"
+      command: "grep -i apple fruits.txt | wc -l"
+      matcher: "contains"
+      expected: "2"
+
+  - id: "count-matches"
+    title: "Count Matching Lines"
+    description: |
+      Count how many lines contain 'Error' in app.log using the -c flag.
+
+      The -c flag makes grep print the count of matching lines instead of
+      the lines themselves. Useful for quick statistics.
+    hint: "Use 'grep -c Error app.log' to count lines with 'Error'"
+    validation:
+      type: "command-output"
+      command: "grep -c Error app.log"
+      matcher: "exact"
+      expected: "2"
+
+  - id: "recursive-search"
+    title: "Search in All Files"
+    description: |
+      Search for 'TODO' in all files within the project directory recursively.
+
+      Use the -r flag to search through all files in a directory and its
+      subdirectories. This is incredibly useful for searching through code projects.
+    hint: "Try 'grep -r TODO project' to search all files in the project folder"
+    validation:
+      type: "command-output"
+      command: "grep -r TODO project | wc -l"
+      matcher: "contains"
+      expected: "2"
+
+completion:
+  message: "Excellent! You've mastered grep basics and can now search through files efficiently."
+  xp: 100
+  unlocks:
+    - "linux/files/text-manipulation"

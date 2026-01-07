@@ -1,0 +1,82 @@
+mission:
+  id: "linux/files/piping-redirection"
+  title: "Pipes and Redirection"
+  difficulty: intermediate
+  description: "Master command composition using pipes and output redirection"
+  estimated_time: 25
+  tags:
+    - linux
+    - files
+    - pipes
+    - redirection
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner"
+    - "echo -e 'apple\nbanana\ncherry\napple\ndate' > /home/learner/fruits.txt"
+    - "echo 'First line' > /home/learner/log.txt"
+
+steps:
+  - id: "redirect-to-file"
+    title: "Redirect Output to a File"
+    description: |
+      Run 'ls -l' and redirect the output to a file called 'listing.txt' using >.
+
+      The > operator redirects a command's output to a file, creating the file
+      if it doesn't exist or overwriting it if it does.
+    hint: "Type 'ls -l > listing.txt' to save the directory listing"
+    validation:
+      type: "command-output"
+      command: "test -f listing.txt && echo 'exists' || echo 'missing'"
+      matcher: "exact"
+      expected: "exists"
+
+  - id: "append-to-file"
+    title: "Append Output to a File"
+    description: |
+      Add the text 'Second line' to log.txt using echo and >> (append).
+
+      The >> operator appends to a file instead of overwriting it.
+      This is crucial for log files and accumulating data.
+    hint: "Use 'echo \"Second line\" >> log.txt' to append"
+    validation:
+      type: "command-output"
+      command: "wc -l log.txt"
+      matcher: "contains"
+      expected: "2"
+
+  - id: "basic-pipe"
+    title: "Use a Pipe to Connect Commands"
+    description: |
+      List all files with 'ls -l' and pipe the output to 'wc -l' to count them.
+
+      The | (pipe) operator sends the output of one command as input to another.
+      This is one of the most powerful features of the Linux shell.
+    hint: "Try 'ls -l | wc -l' to count files listed by ls"
+    validation:
+      type: "command-output"
+      command: "ls -l | wc -l"
+      matcher: "contains"
+      expected: "5"
+
+  - id: "chain-multiple-pipes"
+    title: "Chain Multiple Commands"
+    description: |
+      Sort fruits.txt, remove duplicates, and count unique fruits in one command.
+
+      You can chain multiple commands with pipes: each command processes the
+      output from the previous one. This creates powerful data processing pipelines.
+    hint: "Use 'sort fruits.txt | uniq | wc -l' to count unique fruits"
+    validation:
+      type: "command-output"
+      command: "sort fruits.txt | uniq | wc -l"
+      matcher: "contains"
+      expected: "4"
+
+completion:
+  message: "Outstanding! You've mastered pipes and redirection - essential skills for efficient command-line work."
+  xp: 125
+  unlocks:
+    - "linux/processes/disk-usage"

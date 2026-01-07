@@ -1,0 +1,83 @@
+mission:
+  id: "linux/basics/directory-management"
+  title: "Managing Directories"
+  difficulty: beginner
+  description: "Learn how to create and remove directories using mkdir and rmdir"
+  estimated_time: 15
+  tags:
+    - linux
+    - basics
+    - directories
+    - organization
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner"
+    - "mkdir -p /home/learner/existing_folder"
+    - "mkdir -p /home/learner/temp/nested/deep"
+    - "touch /home/learner/temp/file.txt"
+
+steps:
+  - id: "create-directory"
+    title: "Create a New Directory"
+    description: |
+      Create a new directory called 'projects' using the 'mkdir' command.
+
+      Directories (folders) help organize files into logical groups.
+      The mkdir command creates a new directory in the current location.
+    hint: "Type 'mkdir projects' to create the directory"
+    validation:
+      type: "command-output"
+      command: "test -d projects && echo 'exists' || echo 'missing'"
+      matcher: "exact"
+      expected: "exists"
+
+  - id: "create-nested-directories"
+    title: "Create Nested Directories"
+    description: |
+      Create a nested directory structure 'work/documents/reports' in one command.
+
+      Use the -p flag with mkdir to create parent directories as needed.
+      This is much faster than creating each directory individually.
+    hint: "Try 'mkdir -p work/documents/reports' to create all levels at once"
+    validation:
+      type: "command-output"
+      command: "test -d work/documents/reports && echo 'exists' || echo 'missing'"
+      matcher: "exact"
+      expected: "exists"
+
+  - id: "remove-empty-directory"
+    title: "Remove an Empty Directory"
+    description: |
+      Remove the empty 'existing_folder' directory using 'rmdir'.
+
+      The rmdir command only works on empty directories - it's a safety feature
+      to prevent accidental deletion of directories with content.
+    hint: "Use 'rmdir existing_folder' to remove the empty directory"
+    validation:
+      type: "command-output"
+      command: "test -d existing_folder && echo 'exists' || echo 'missing'"
+      matcher: "exact"
+      expected: "missing"
+
+  - id: "remove-directory-tree"
+    title: "Remove a Directory and Its Contents"
+    description: |
+      Remove the 'temp' directory and everything inside it using 'rm -r'.
+
+      When a directory contains files or subdirectories, use rm with the -r
+      (recursive) flag. Be very careful with this command!
+    hint: "Type 'rm -r temp' to recursively remove the directory and its contents"
+    validation:
+      type: "command-output"
+      command: "test -d temp && echo 'exists' || echo 'missing'"
+      matcher: "exact"
+      expected: "missing"
+
+completion:
+  message: "Excellent! You now understand how to create and remove directories safely."
+  xp: 75
+  unlocks:
+    - "linux/files/text-manipulation"

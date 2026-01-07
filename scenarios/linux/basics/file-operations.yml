@@ -1,0 +1,83 @@
+mission:
+  id: "linux/basics/file-operations"
+  title: "Basic File Operations"
+  difficulty: beginner
+  description: "Master essential file manipulation commands: create, copy, move, and delete"
+  estimated_time: 15
+  tags:
+    - linux
+    - basics
+    - files
+    - manipulation
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner"
+    - "echo 'Original content' > /home/learner/sample.txt"
+    - "echo 'Data to preserve' > /home/learner/important.txt"
+
+steps:
+  - id: "create-file"
+    title: "Create a New File"
+    description: |
+      Use the 'touch' command to create a new empty file called 'newfile.txt'.
+
+      The touch command creates a new empty file if it doesn't exist,
+      or updates the timestamp if it already exists.
+    hint: "Type 'touch newfile.txt' to create the file"
+    validation:
+      type: "command-output"
+      command: "test -f newfile.txt && echo 'exists' || echo 'missing'"
+      matcher: "exact"
+      expected: "exists"
+
+  - id: "copy-file"
+    title: "Copy a File"
+    description: |
+      Copy the file 'sample.txt' to a new file called 'sample_backup.txt'.
+
+      The 'cp' command creates a duplicate of a file.
+      This is useful for creating backups before making changes.
+    hint: "Use 'cp sample.txt sample_backup.txt' to copy the file"
+    validation:
+      type: "command-output"
+      command: "cat sample_backup.txt"
+      matcher: "contains"
+      expected: "Original content"
+
+  - id: "rename-file"
+    title: "Rename (Move) a File"
+    description: |
+      Rename 'newfile.txt' to 'renamed.txt' using the 'mv' command.
+
+      The mv command moves or renames files. When used in the same directory,
+      it effectively renames the file.
+    hint: "Type 'mv newfile.txt renamed.txt' to rename it"
+    validation:
+      type: "command-output"
+      command: "test -f renamed.txt && echo 'exists' || echo 'missing'"
+      matcher: "exact"
+      expected: "exists"
+
+  - id: "delete-file"
+    title: "Delete a File"
+    description: |
+      Remove the file 'sample_backup.txt' using the 'rm' command.
+
+      The rm command permanently deletes files. Be careful when using it,
+      as deleted files cannot be easily recovered!
+    hint: "Use 'rm sample_backup.txt' to delete the file"
+    validation:
+      type: "command-output"
+      command: "test -f sample_backup.txt && echo 'exists' || echo 'missing'"
+      matcher: "exact"
+      expected: "missing"
+
+completion:
+  message: "Great work! You can now create, copy, rename, and delete files confidently."
+  xp: 75
+  unlocks:
+    - "linux/basics/directory-management"
+    - "linux/files/searching-files"

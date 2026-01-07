@@ -1,0 +1,83 @@
+mission:
+  id: "linux/files/text-manipulation"
+  title: "Text Processing Tools"
+  difficulty: intermediate
+  description: "Learn essential text manipulation commands: sort, uniq, wc, and cut"
+  estimated_time: 20
+  tags:
+    - linux
+    - files
+    - text
+    - processing
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner"
+    - "echo -e 'zebra\napple\nbanana\napple\ncherry\nbanana' > /home/learner/words.txt"
+    - "echo -e 'Alice,25,Engineer\nBob,30,Designer\nCharlie,25,Developer' > /home/learner/users.csv"
+    - "echo -e 'The quick brown fox\njumps over the\nlazy dog' > /home/learner/sentence.txt"
+
+steps:
+  - id: "sort-lines"
+    title: "Sort Lines Alphabetically"
+    description: |
+      Use the 'sort' command to sort the lines in words.txt alphabetically.
+
+      Sort is essential for organizing data. By default, it sorts in ascending
+      alphabetical order.
+    hint: "Type 'sort words.txt' to sort the words"
+    validation:
+      type: "command-output"
+      command: "sort words.txt | head -n 1"
+      matcher: "exact"
+      expected: "apple"
+
+  - id: "remove-duplicates"
+    title: "Remove Duplicate Lines"
+    description: |
+      Sort words.txt and remove duplicate entries using 'uniq'.
+
+      The uniq command removes adjacent duplicate lines, which is why we
+      usually sort first. This is perfect for finding unique values.
+    hint: "Try 'sort words.txt | uniq' to get unique words"
+    validation:
+      type: "command-output"
+      command: "sort words.txt | uniq | wc -l"
+      matcher: "contains"
+      expected: "4"
+
+  - id: "count-words"
+    title: "Count Words and Lines"
+    description: |
+      Use 'wc' to count the lines, words, and characters in sentence.txt.
+
+      wc (word count) is versatile: -l counts lines, -w counts words,
+      -c counts characters. Without flags, it shows all three.
+    hint: "Type 'wc sentence.txt' to see line, word, and character counts"
+    validation:
+      type: "command-output"
+      command: "wc -l sentence.txt"
+      matcher: "contains"
+      expected: "3"
+
+  - id: "extract-columns"
+    title: "Extract Specific Columns"
+    description: |
+      Extract just the names (first column) from users.csv using 'cut'.
+
+      The cut command extracts fields from each line. Use -d to specify the
+      delimiter (comma for CSV) and -f to specify which field(s) to extract.
+    hint: "Use 'cut -d, -f1 users.csv' to extract the first column"
+    validation:
+      type: "command-output"
+      command: "cut -d, -f1 users.csv"
+      matcher: "contains"
+      expected: "Alice"
+
+completion:
+  message: "Excellent! You now have powerful text processing tools in your skillset."
+  xp: 100
+  unlocks:
+    - "linux/files/piping-redirection"
