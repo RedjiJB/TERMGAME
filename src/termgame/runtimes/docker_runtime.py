@@ -46,14 +46,15 @@ class DockerRuntime:
         >>> await runtime.remove_container(container)
     """
 
-    def __init__(self, base_url: str | None = None) -> None:
+    def __init__(self, base_url: str | None = None, timeout: int = 300) -> None:
         """Initialize Docker client.
 
         Args:
             base_url: Docker daemon URL. If None, uses Docker's default
                 (unix:///var/run/docker.sock on Linux/macOS, npipe on Windows).
+            timeout: Timeout in seconds for API calls (default: 300 = 5 minutes).
         """
-        self._client = docker.DockerClient(base_url=base_url)
+        self._client = docker.DockerClient(base_url=base_url, timeout=timeout)
 
     async def create_container(
         self,

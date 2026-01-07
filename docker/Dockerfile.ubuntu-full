@@ -1,0 +1,48 @@
+# Full Ubuntu image with all common tools for TermGame training
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Install common packages and tools
+RUN apt-get update && apt-get install -y \
+    # Core utilities
+    man-db \
+    manpages \
+    manpages-posix \
+    curl \
+    wget \
+    vim \
+    nano \
+    tree \
+    git \
+    # Network tools
+    net-tools \
+    iputils-ping \
+    dnsutils \
+    traceroute \
+    # Process tools
+    procps \
+    psmisc \
+    htop \
+    # File tools
+    file \
+    findutils \
+    # Build tools
+    build-essential \
+    # Python
+    python3 \
+    python3-pip \
+    # Cleanup
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create trainee user home directory
+RUN mkdir -p /home/learner && chmod 755 /home/learner
+
+# Set working directory
+WORKDIR /home/learner
+
+# Keep container running
+CMD ["tail", "-f", "/dev/null"]

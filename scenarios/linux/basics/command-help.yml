@@ -11,10 +11,9 @@ mission:
     - help
 
 environment:
-  image: "ubuntu:22.04"
+  image: "termgame/ubuntu-full:latest"
   workdir: "/home/learner"
   setup:
-    - "apt-get update -qq && apt-get install -y -qq man-db manpages > /dev/null 2>&1"
     - "mkdir -p /home/learner"
 
 steps:
