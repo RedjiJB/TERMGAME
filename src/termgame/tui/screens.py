@@ -160,14 +160,10 @@ class MissionStartScreen(Screen[None]):
 
             if result["success"]:
                 # Navigate to active mission screen
-                self.app.call_from_thread(self.app.pop_screen)  # Remove this screen
-                self.app.call_from_thread(
-                    self.app.push_screen,
-                    ActiveMissionScreen(self.mission_id, result["step"]),
-                )
+                self.app.pop_screen()  # Remove this screen
+                self.app.push_screen(ActiveMissionScreen(self.mission_id, result["step"]))
             else:
-                self.app.call_from_thread(
-                    self.notify,
+                self.notify(
                     f"Failed to start mission: {result.get('error', 'Unknown error')}",
                     severity="error",
                 )
@@ -175,8 +171,7 @@ class MissionStartScreen(Screen[None]):
                 self.query_one("#confirm-btn", Button).disabled = False
 
         except Exception as e:
-            self.app.call_from_thread(
-                self.notify,
+            self.notify(
                 f"Error starting mission: {e}",
                 severity="error",
             )
@@ -273,18 +268,11 @@ class ActiveMissionScreen(Screen[None]):
             hint = await wrapper.get_hint(self.mission_id)
 
             if hint:
-                self.app.call_from_thread(
-                    self.query_one("#hint-text", Static).update,
-                    f"💡 Hint: {hint}",
-                )
+                self.query_one("#hint-text", Static).update(f"💡 Hint: {hint}")
             else:
-                self.app.call_from_thread(
-                    self.query_one("#hint-text", Static).update,
-                    "No hint available for this step.",
-                )
+                self.query_one("#hint-text", Static).update("No hint available for this step.")
         except Exception as e:
-            self.app.call_from_thread(
-                self.notify,
+            self.notify(
                 f"Error getting hint: {e}",
                 severity="error",
             )
@@ -307,39 +295,33 @@ class ActiveMissionScreen(Screen[None]):
                 if result.get("completed"):
                     # Mission complete!
                     xp = result.get("xp_earned", 0)
-                    self.app.call_from_thread(
-                        self.notify,
+                    self.notify(
                         f"🎉 Mission Complete! You earned {xp} XP!",
                         severity="information",
                     )
-                    self.app.call_from_thread(self.app.pop_screen)
+                    self.app.pop_screen()
                 else:
                     # Move to next step
                     next_step = result.get("next_step")
                     if next_step:
                         self.step_info = next_step
-                        self.app.call_from_thread(self._update_step_display)
-                        self.app.call_from_thread(
-                            self.query_one("#status-message", Static).update,
-                            f"✓ {result.get('message', 'Step complete!')}",
+                        self._update_step_display()
+                        self.query_one("#status-message", Static).update(
+                            f"✓ {result.get('message', 'Step complete!')}"
                         )
             else:
-                self.app.call_from_thread(
-                    self.query_one("#status-message", Static).update,
-                    f"✗ {result.get('message', 'Validation failed')}",
+                self.query_one("#status-message", Static).update(
+                    f"✗ {result.get('message', 'Validation failed')}"
                 )
 
         except Exception as e:
-            self.app.call_from_thread(
-                self.notify,
+            self.notify(
                 f"Validation error: {e}",
                 severity="error",
             )
         finally:
             self._validating = False
-            self.app.call_from_thread(
-                lambda: self.query_one("#validate-btn", Button)
-            ).disabled = False
+            self.query_one("#validate-btn", Button).disabled = False
 
     def action_abandon(self) -> None:
         """Abandon the mission."""
@@ -352,22 +334,19 @@ class ActiveMissionScreen(Screen[None]):
             success = await wrapper.abandon_mission(self.mission_id)
 
             if success:
-                self.app.call_from_thread(
-                    self.notify,
+                self.notify(
                     "Mission abandoned. Progress saved.",
                     severity="warning",
                 )
-                self.app.call_from_thread(self.app.pop_screen)
+                self.app.pop_screen()
             else:
-                self.app.call_from_thread(
-                    self.notify,
+                self.notify(
                     "Failed to abandon mission",
                     severity="error",
                 )
 
         except Exception as e:
-            self.app.call_from_thread(
-                self.notify,
+            self.notify(
                 f"Error abandoning mission: {e}",
                 severity="error",
             )
@@ -414,16 +393,10 @@ class ProgressScreen(Screen[None]):
             if progress.get("missions_completed", 0) == 0:
                 progress_text += "Start a mission to begin earning XP!"
 
-            self.app.call_from_thread(
-                self.query_one("#progress-info", Static).update,
-                progress_text,
-            )
+            self.query_one("#progress-info", Static).update(progress_text)
 
         except Exception as e:
-            self.app.call_from_thread(
-                self.query_one("#progress-info", Static).update,
-                f"Error loading progress: {e}",
-            )
+            self.query_one("#progress-info", Static).update(f"Error loading progress: {e}")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""

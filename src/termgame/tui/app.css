@@ -1,8 +1,8 @@
 /* TermGame TUI - Minimal CLI aesthetic inspired by Codex */
 
-/* Remove all backgrounds and borders - pure CLI feel */
+/* Base styling */
 Screen {
-    background: $background;
+    background: transparent;
 }
 
 Container {
@@ -14,15 +14,17 @@ Container {
 Header {
     dock: top;
     height: 1;
-    background: $background;
-    color: $text-muted;
+    background: transparent;
+    color: white;
+    text-style: dim;
 }
 
 Footer {
     dock: bottom;
     height: 1;
-    background: $background;
-    color: $text-muted;
+    background: transparent;
+    color: white;
+    text-style: dim;
 }
 
 /* Titles - cyan bold for emphasis, like Codex prompts */
@@ -35,13 +37,14 @@ Footer {
 
 .app-title {
     text-align: center;
-    color: $text;
+    color: cyan;
     margin: 2 0;
 }
 
 .welcome-text {
     text-align: center;
-    color: $text-muted;
+    color: white;
+    text-style: dim;
     margin: 0 0 2 0;
 }
 
@@ -62,25 +65,25 @@ Footer {
 DataTable {
     height: 1fr;
     margin: 1 0;
-    background: $background;
+    background: transparent;
     border: none;
 }
 
 DataTable > .datatable--header {
-    background: $background;
-    color: $text-muted;
-    text-style: bold;
+    background: transparent;
+    color: white;
+    text-style: bold dim;
 }
 
 DataTable > .datatable--cursor {
-    background: $panel;
+    background: ansi_bright_black;
     color: cyan;
     text-style: bold;
 }
 
 DataTable > .datatable--odd-row,
 DataTable > .datatable--even-row {
-    background: $background;
+    background: transparent;
 }
 
 /* Buttons - no backgrounds, simple borders */
@@ -99,14 +102,20 @@ Button {
     min-width: 16;
     height: 3;
     margin: 0 1;
-    background: $background;
-    color: $text;
-    border: solid $text-muted;
+    background: transparent;
+    color: white;
+    border: solid white;
 }
 
 Button:hover {
     color: cyan;
     border: solid cyan;
+}
+
+Button:focus {
+    color: cyan;
+    border: solid cyan;
+    text-style: bold;
 }
 
 Button.-primary {
@@ -115,24 +124,32 @@ Button.-primary {
 }
 
 Button.-primary:hover {
-    color: $success;
-    border: solid $success;
+    color: green;
+    border: solid green;
+    text-style: bold;
+}
+
+Button.-primary:focus {
+    color: green;
+    border: solid green;
+    text-style: bold;
 }
 
 Button.-error {
-    color: $error;
-    border: solid $error;
+    color: red;
+    border: solid red;
 }
 
 Button.-error:hover {
-    color: $error;
-    border: solid $error;
+    color: red;
+    border: solid red;
     text-style: bold;
 }
 
 Button:disabled {
-    color: $text-disabled;
-    border: solid $text-disabled;
+    color: white;
+    text-style: dim;
+    border: solid white;
 }
 
 .menu-button {
@@ -156,7 +173,8 @@ Button:disabled {
 
 /* Hints - dim, no box */
 .hint-box {
-    color: $warning;
+    color: magenta;
+    text-style: dim;
     margin: 1 0;
     padding: 0;
 }
@@ -166,7 +184,25 @@ Button:disabled {
     text-align: left;
     margin: 1 0;
     padding: 0;
-    color: $text-muted;
+}
+
+.status-success {
+    color: green;
+    text-style: bold;
+}
+
+.status-error {
+    color: red;
+    text-style: bold;
+}
+
+.status-info {
+    color: cyan;
+}
+
+.status-dim {
+    text-style: dim;
+    color: white;
 }
 
 /* Mission details - no border, just text */
@@ -174,14 +210,12 @@ Button:disabled {
     padding: 1 0;
     margin: 1 0;
     height: 1fr;
-    color: $text;
 }
 
 /* Progress info - no border */
 #progress-info {
     padding: 1 0;
     margin: 1 0;
-    color: $text;
 }
 
 /* Specific element styling */
@@ -191,16 +225,34 @@ Button:disabled {
 }
 
 #step-description {
-    color: $text;
     margin: 1 0;
 }
 
 #hint-text {
-    color: $warning;
+    color: magenta;
+    text-style: dim;
     margin: 1 0;
 }
 
 #status-message {
-    color: $text-muted;
+    text-style: dim;
+    color: white;
     margin: 1 0;
+}
+
+/* Input styling */
+Input {
+    border: solid cyan;
+    height: 3;
+    margin: 1 0;
+}
+
+Input:focus {
+    border: solid cyan;
+    text-style: bold;
+}
+
+/* Text styling */
+Static {
+    width: 100%;
 }
