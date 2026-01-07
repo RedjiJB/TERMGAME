@@ -7,7 +7,7 @@ from textual.app import App, ComposeResult
 from textual.widgets import Footer, Header
 
 
-class TermGameApp(App[None]):  # type: ignore[misc]
+class TermGameApp(App[None]):
     """Main TermGame TUI application.
 
     This app provides an interactive terminal interface for navigating
