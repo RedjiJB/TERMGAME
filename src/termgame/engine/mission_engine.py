@@ -259,6 +259,26 @@ class MissionEngine:
             return None
         return state.current_step.hint
 
+    async def execute_command(self, mission_id: str, command: str) -> str:
+        """Execute a command in the mission's container.
+
+        Args:
+            mission_id: Mission identifier.
+            command: Command to execute.
+
+        Returns:
+            Command output as string.
+
+        Raises:
+            MissionNotFoundError: If mission not active.
+        """
+        state = self._active_missions.get(mission_id)
+        if not state:
+            msg = f"No active mission: {mission_id}"
+            raise MissionNotFoundError(msg)
+
+        return await self._runtime.execute_command(state.container, command)
+
     async def abandon_mission(self, mission_id: str) -> None:
         """Abandon an active mission and cleanup resources.
 

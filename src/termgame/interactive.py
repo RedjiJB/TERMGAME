@@ -46,14 +46,28 @@ class InteractiveCLI:
 
     def print_help(self) -> None:
         """Display help message with available commands."""
-        help_text = """
+        if self.current_mission:
+            help_text = """
+[bold cyan]Mission Mode Commands:[/bold cyan]
+
+  When in a mission, you can run any shell command (e.g., [cyan]ls --help[/cyan]).
+  The command will be executed in the mission container.
+
+  [cyan]validate[/cyan]          Validate current step and advance
+  [cyan]hint[/cyan]              Get a hint for current step
+  [cyan]abandon[/cyan]           Abandon current mission
+  [cyan]help[/cyan]              Show this help message
+  [cyan]quit[/cyan]              Exit the interactive CLI
+
+[dim]Try running commands to complete the mission steps,[/dim]
+[dim]then use 'validate' to check your work.[/dim]
+"""
+        else:
+            help_text = """
 [bold cyan]Available Commands:[/bold cyan]
 
   [cyan]list[/cyan]              List all available missions
   [cyan]start <mission-id>[/cyan] Start a mission
-  [cyan]validate[/cyan]          Validate current step
-  [cyan]hint[/cyan]              Get a hint for current step
-  [cyan]abandon[/cyan]           Abandon current mission
   [cyan]progress[/cyan]          Show your progress
   [cyan]help[/cyan]              Show this help message
   [cyan]quit[/cyan]              Exit the interactive CLI
@@ -251,15 +265,16 @@ class InteractiveCLI:
 
     async def handle_command(self, user_input: str) -> None:
         """Parse and execute user command."""
-        parts = user_input.strip().split()
+        user_input = user_input.strip()
 
-        if not parts:
+        if not user_input:
             return
 
+        parts = user_input.split()
         command = parts[0].lower()
         args = parts[1:]
 
-        # Command routing
+        # Handle quit command
         if command in ("quit", "exit", "q"):
             self.running = False
             if self.current_mission:
@@ -267,28 +282,38 @@ class InteractiveCLI:
                     "\n[yellow]Exiting with active mission - use 'abandon' to clean up[/yellow]"
                 )
             self.console.print("[dim]Goodbye![/dim]\n")
-
+        # Handle commands that work in any mode
         elif command == "help":
             self.print_help()
-
-        elif command == "list":
-            await self.cmd_list(args)
-
-        elif command == "start":
-            await self.cmd_start(args)
-
         elif command == "validate":
             await self.cmd_validate(args)
-
         elif command == "hint":
             await self.cmd_hint(args)
-
         elif command == "abandon":
             await self.cmd_abandon(args)
+        # Handle commands outside missions
+        elif not self.current_mission:
+            await self._handle_lobby_command(command, args)
+        # When in a mission, execute commands in the container
+        else:
+            await self.initialize()
+            try:
+                output = await self.engine.execute_command(self.current_mission, user_input)
+                if output:
+                    self.console.print(output)
+            except Exception as e:
+                self.console.print(f"[red]Error executing command:[/red] {e}")
 
-        elif command == "progress":
-            await self.cmd_progress(args)
+    async def _handle_lobby_command(self, command: str, args: list[str]) -> None:
+        """Handle commands available in lobby (outside missions)."""
+        lobby_commands = {
+            "list": self.cmd_list,
+            "start": self.cmd_start,
+            "progress": self.cmd_progress,
+        }
 
+        if command in lobby_commands:
+            await lobby_commands[command](args)
         else:
             self.console.print(f"[red]Unknown command:[/red] {command}")
             self.console.print("[dim]Type 'help' for available commands[/dim]\n")
