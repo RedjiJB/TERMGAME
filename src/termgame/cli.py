@@ -351,16 +351,17 @@ def abandon(mission_id: str) -> None:
 
 @app.command()
 def tui() -> None:
-    """Launch the Terminal User Interface.
+    """Launch interactive CLI mode.
 
-    Opens an interactive text-based UI for navigating missions.
+    Opens a continuous prompt interface for running missions,
+    similar to Codex/Gemini CLI experience.
     """
-    from termgame.tui import run_tui
+    from termgame.interactive import run_interactive
 
     try:
-        run_tui()
+        run_interactive()
     except Exception as e:
-        console.print(f"[red]Error launching TUI:[/red] {e}")
+        console.print(f"[red]Error launching interactive CLI:[/red] {e}")
         raise typer.Exit(code=1) from e
 
 
