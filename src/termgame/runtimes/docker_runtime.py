@@ -130,7 +130,7 @@ class DockerRuntime:
             command: Shell command to execute.
 
         Returns:
-            Command stdout as a string (utf-8 decoded).
+            Command stdout and stderr as a string (utf-8 decoded).
 
         Raises:
             docker.errors.NotFound: If container doesn't exist.
@@ -138,13 +138,25 @@ class DockerRuntime:
         """
 
         def _exec() -> str:
-            sdk_container: DockerSDKContainer = self._client.containers.get(container.id)
-            # Use sh -c for portability (Alpine and minimal images)
-            wrapped_cmd = f"sh -c {shlex.quote(command)}"
-            result = sdk_container.exec_run(wrapped_cmd, tty=False, demux=False)
-            # Decode bytes to string - result.output is bytes
-            output: bytes = result.output
-            return output.decode("utf-8")
+            try:
+                sdk_container: DockerSDKContainer = self._client.containers.get(container.id)
+                # Use sh -c for portability (Alpine and minimal images)
+                wrapped_cmd = f"sh -c {shlex.quote(command)}"
+                result = sdk_container.exec_run(wrapped_cmd, tty=False, demux=False)
+                # Decode bytes to string - result.output is bytes
+                output: bytes = result.output if result.output else b""
+                decoded = output.decode("utf-8", errors="replace")
+
+                # Include exit code info if command failed
+                if result.exit_code != 0 and not decoded:
+                    return f"Command exited with code {result.exit_code}"
+                return decoded  # noqa: TRY300
+            except (docker.errors.NotFound, docker.errors.APIError):
+                # Re-raise Docker-specific errors
+                raise
+            except Exception as e:
+                # Catch connection errors and provide helpful message
+                return f"Error executing command: {e}"
 
         return await asyncio.to_thread(_exec)
 
