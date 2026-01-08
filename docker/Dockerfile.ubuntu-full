@@ -5,6 +5,10 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
+# Run unminimize to restore man pages and documentation
+# Use yes to automatically answer prompts
+RUN yes | /usr/local/sbin/unminimize || true
+
 # Install common packages and tools
 RUN apt-get update && apt-get install -y \
     # Core utilities
@@ -34,6 +38,8 @@ RUN apt-get update && apt-get install -y \
     # Python
     python3 \
     python3-pip \
+    # Build man database
+    && mandb \
     # Cleanup
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
