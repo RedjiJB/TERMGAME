@@ -99,10 +99,10 @@ def list_missions(
 
         # Create table
         table = Table(title="Available Missions", show_header=True, header_style="bold")
-        table.add_column("ID", style="cyan", no_wrap=True)
-        table.add_column("Title", style="green")
-        table.add_column("Difficulty", justify="center")
-        table.add_column("Time", justify="right")
+        table.add_column("ID", style="cyan", no_wrap=True, width=40)
+        table.add_column("Title", style="green", width=35)
+        table.add_column("Difficulty", justify="center", width=12)
+        table.add_column("Time", justify="right", width=8)
         table.add_column("Description", style="dim")
 
         # Color coding for difficulty
