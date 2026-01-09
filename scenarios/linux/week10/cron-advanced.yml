@@ -1,746 +1,803 @@
 mission:
-  id: "linux/week10/cron-advanced"
-  title: "Advanced Cron Job Scheduling"
+  id: linux/week10/cron-advanced
+  title: Advanced Cron Job Scheduling
   difficulty: advanced
-  description: "Master advanced cron features including special strings, system-wide cron, error handling, and monitoring"
+  description: Master advanced cron features including special strings, system-wide
+    cron, error handling, and monitoring
   estimated_time: 45
   tags:
-    - linux
-    - cron
-    - automation
-    - advanced
-    - week10
-    - cst8207
-
+  - linux
+  - cron
+  - automation
+  - advanced
+  - week10
+  - cst8207
 environment:
-  image: "ubuntu:22.04"
-  workdir: "/home/learner"
+  image: ubuntu:22.04
+  workdir: /home/learner
   setup:
-    - "apt-get update -qq && apt-get install -y -qq cron rsyslog anacron at mailutils"
-    - "service cron start"
-    - "service rsyslog start"
-    - "mkdir -p /home/learner/scripts /home/learner/logs /etc/cron.d"
-    - |
-      cat > /home/learner/scripts/backup.sh << 'EOF'
-      #!/bin/bash
-      echo "[$(date)] Starting backup..."
-      if [ -d "/home/learner/data" ]; then
-        tar -czf /home/learner/backups/backup_$(date +%Y%m%d_%H%M%S).tar.gz /home/learner/data/ 2>/dev/null
-        echo "[$(date)] Backup completed successfully"
-        exit 0
-      else
-        echo "[$(date)] ERROR: Data directory not found" >&2
-        exit 1
-      fi
-      EOF
-    - "chmod +x /home/learner/scripts/backup.sh"
-    - "mkdir -p /home/learner/data /home/learner/backups"
-    - "echo 'Sample data' > /home/learner/data/file1.txt"
-
+  - apt-get update -qq && apt-get install -y -qq cron rsyslog anacron at mailutils
+  - service cron start
+  - service rsyslog start
+  - mkdir -p /home/learner/scripts /home/learner/logs /etc/cron.d
+  - "cat > /home/learner/scripts/backup.sh << 'EOF'\n#!/bin/bash\necho \"[$(date)]\
+    \ Starting backup...\"\nif [ -d \"/home/learner/data\" ]; then\n  tar -czf /home/learner/backups/backup_$(date\
+    \ +%Y%m%d_%H%M%S).tar.gz /home/learner/data/ 2>/dev/null\n  echo \"[$(date)] Backup\
+    \ completed successfully\"\n  exit 0\nelse\n  echo \"[$(date)] ERROR: Data directory\
+    \ not found\" >&2\n  exit 1\nfi\nEOF\n"
+  - chmod +x /home/learner/scripts/backup.sh
+  - mkdir -p /home/learner/data /home/learner/backups
+  - echo 'Sample data' > /home/learner/data/file1.txt
 steps:
-  - id: "special-strings"
-    title: "Special Cron Time Strings"
-    description: |
-      **Cron Special Strings:**
-
-      Instead of "* * * * *", use readable shortcuts!
-
-      **Available special strings:**
-
-      @reboot        Run once at startup
-      @yearly        Run once a year  (0 0 1 1 *)
-      @annually      Same as @yearly
-      @monthly       Run once a month (0 0 1 * *)
-      @weekly        Run once a week  (0 0 * * 0)
-      @daily         Run once a day   (0 0 * * *)
-      @midnight      Same as @daily
-      @hourly        Run once an hour (0 * * * *)
-
-      **Examples:**
-
-      Daily backup at midnight:
-      @daily /home/learner/scripts/backup.sh
-
-      Instead of:
-      0 0 * * * /home/learner/scripts/backup.sh
-
-      **Advantages:**
-      - More readable
-      - Less error-prone
-      - Self-documenting
-      - Easier maintenance
-
-      **Add a daily job:**
-      (crontab -l 2>/dev/null; echo "@daily /home/learner/scripts/backup.sh >> /home/learner/logs/backup.log 2>&1") | crontab -
-
-      **Verify:**
-      crontab -l
-
-      Much cleaner than "0 0 * * *"!
-    hint: "Add daily job using @daily special string"
-    validation:
-      type: "command-output"
-      command: "(crontab -l 2>/dev/null; echo '@daily /tmp/test.sh') | crontab - && crontab -l | grep '@daily'"
-      matcher: "contains"
-      expected: "@daily"
-
-  - id: "system-wide-cron"
-    title: "System-Wide Cron Jobs"
-    description: |
-      **System Cron vs User Cron:**
-
-      **User Crontab:**
-      - Per-user: crontab -e
-      - Runs as that user
-      - Location: /var/spool/cron/crontabs/
-
-      **System-Wide Cron:**
-      - For all users and system tasks
-      - Requires root/sudo access
-      - Multiple locations
-
-      **System Cron Locations:**
-
-      1. **/etc/crontab** - Main system crontab
-         Format: minute hour day month dow USER command
-         Note: Includes username field!
-
-      2. **/etc/cron.d/** - Drop-in cron files
-         - Each file is a separate crontab
-         - Used by packages and services
-         - Same format as /etc/crontab
-
-      3. **Convenience directories:**
-         - /etc/cron.hourly/   - Scripts run hourly
-         - /etc/cron.daily/    - Scripts run daily
-         - /etc/cron.weekly/   - Scripts run weekly
-         - /etc/cron.monthly/  - Scripts run monthly
-
-      **System crontab format:**
-      ```
-      # minute hour day month dow user command
-      30 2 * * * root /usr/local/bin/backup.sh
-      ```
-
-      **View system crontab:**
-      cat /etc/crontab
-
-      **List system cron directories:**
-      ls -la /etc/cron.*
-
-      **Explore system cron:**
-      cat /etc/crontab
-      ls /etc/cron.d/
-    hint: "View /etc/crontab to see system-wide cron configuration"
-    validation:
-      type: "command-output"
-      command: "cat /etc/crontab 2>/dev/null || echo 'SHELL'"
-      matcher: "contains"
-      expected: "SHELL"
-
-  - id: "create-system-cron"
-    title: "Create System Cron Job"
-    description: |
-      **Creating System Cron Jobs:**
-
-      System cron files in /etc/cron.d/ allow:
-      - Package-specific schedules
-      - Multi-user jobs
-      - Isolated configurations
-
-      **Format rules for /etc/cron.d/:**
-      1. Must include username field
-      2. No file extension or only alphanumeric + hyphen/underscore
-      3. Must be owned by root
-      4. Not group or world writable
-
-      **Create a system cron job:**
-
-      Create file: /etc/cron.d/system-maintenance
-
-      Content:
-      ```
-      # System maintenance tasks
-      SHELL=/bin/bash
-      PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-
-      # Clean temp files daily at 3 AM
-      0 3 * * * root find /tmp -type f -mtime +7 -delete
-
-      # Update package lists weekly
-      0 4 * * 0 root apt-get update -qq
-      ```
-
-      **Important:**
-      - Include SHELL and PATH
-      - Comment your jobs
-      - Specify user (root or specific user)
-
-      **Create a maintenance cron file:**
-      sudo cat > /etc/cron.d/learner-tasks << 'EOF'
-      # Learner automated tasks
-      SHELL=/bin/bash
-      PATH=/usr/local/bin:/usr/bin:/bin
-
-      # Backup every 6 hours
-      0 */6 * * * learner /home/learner/scripts/backup.sh >> /home/learner/logs/backup.log 2>&1
-      EOF
-
-      Note: In a real system, use sudo. Here we'll simulate.
-    hint: "Create a cron file in /etc/cron.d/ with proper format"
-    validation:
-      type: "command-output"
-      command: "echo '0 */6 * * * learner /tmp/test.sh' | grep -E '^[0-9].*learner'"
-      matcher: "contains"
-      expected: "learner"
-
-  - id: "cron-environment"
-    title: "Advanced Environment Configuration"
-    description: |
-      **Cron Environment Variables:**
-
-      Cron runs with minimal environment. Set variables at top of crontab.
-
-      **Essential variables:**
-
-      **PATH** - Where to find commands
-      PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
-
-      **SHELL** - Shell to use for commands
-      SHELL=/bin/bash
-
-      **MAILTO** - Email address for output
-      MAILTO=admin@example.com
-      MAILTO=""  # Disable email
-
-      **HOME** - Home directory
-      HOME=/home/learner
-
-      **LANG** - Locale settings
-      LANG=en_US.UTF-8
-
-      **Custom variables:**
-      BACKUP_DIR=/var/backups
-      LOG_LEVEL=INFO
-
-      **Example crontab with environment:**
-      ```
-      # Environment
-      SHELL=/bin/bash
-      PATH=/usr/local/bin:/usr/bin:/bin
-      MAILTO=admin@example.com
-      BACKUP_DIR=/var/backups
-
-      # Jobs
-      @daily $BACKUP_DIR/backup.sh
-      ```
-
-      **Best practices:**
-      - Always set PATH explicitly
-      - Use absolute paths in commands
-      - Set MAILTO or redirect output
-      - Document custom variables
-
-      **Update your crontab with environment:**
-      (crontab -l 2>/dev/null | grep -v "^PATH\|^SHELL"; echo "PATH=/usr/local/bin:/usr/bin:/bin"; echo "SHELL=/bin/bash"; crontab -l 2>/dev/null | grep -v "^PATH\|^SHELL") | crontab -
-    hint: "Add PATH and SHELL variables to your crontab"
-    validation:
-      type: "command-output"
-      command: "echo -e 'PATH=/usr/bin:/bin\\nSHELL=/bin/bash\\n@daily /tmp/test' | crontab - && crontab -l | grep 'PATH='"
-      matcher: "contains"
-      expected: "PATH="
-
-  - id: "error-handling"
-    title: "Cron Job Error Handling"
-    description: |
-      **Handling Cron Job Failures:**
-
-      Cron jobs fail silently. Implement proper error handling!
-
-      **Strategy 1: Exit Codes**
-
-      Scripts should return proper exit codes:
-      ```bash
-      #!/bin/bash
-      if command_succeeds; then
-        exit 0  # Success
-      else
-        exit 1  # Failure
-      fi
-      ```
-
-      **Strategy 2: Logging**
-
-      Always log output:
-      ```
-      * * * * * /script.sh >> /var/log/script.log 2>&1
-      ```
-
-      **Strategy 3: Email Notifications**
-
-      Set MAILTO:
-      ```
-      MAILTO=admin@example.com
-      * * * * * /script.sh
-      ```
-
-      Or use mail command:
-      ```bash
-      if ! /script.sh; then
-        echo "Script failed" | mail -s "Cron Failure" admin@example.com
-      fi
-      ```
-
-      **Strategy 4: Wrapper Script**
-
-      Create error-handling wrapper:
-      ```bash
-      #!/bin/bash
-      LOG="/var/log/cron_wrapper.log"
-      SCRIPT="$1"
-
-      echo "[$(date)] Running $SCRIPT" >> "$LOG"
-      if $SCRIPT >> "$LOG" 2>&1; then
-        echo "[$(date)] SUCCESS" >> "$LOG"
-      else
-        echo "[$(date)] FAILED (exit $?)" >> "$LOG"
-        # Send alert
-      fi
-      ```
-
-      **Strategy 5: Monitoring with chronic**
-
-      chronic (from moreutils) only outputs on failure:
-      ```
-      * * * * * chronic /script.sh
-      ```
-
-      **Create an error-logging wrapper:**
-
-      cat > /home/learner/scripts/cron_wrapper.sh << 'EOF'
-      #!/bin/bash
-      LOG="/home/learner/logs/cron_wrapper.log"
-      SCRIPT="$1"
-
-      echo "[$(date)] Executing: $SCRIPT" >> "$LOG"
-      if $SCRIPT >> "$LOG" 2>&1; then
-        echo "[$(date)] ✓ Success" >> "$LOG"
-        exit 0
-      else
-        EXIT_CODE=$?
-        echo "[$(date)] ✗ Failed with exit code $EXIT_CODE" >> "$LOG"
-        exit $EXIT_CODE
-      fi
-      EOF
-
-      chmod +x /home/learner/scripts/cron_wrapper.sh
-    hint: "Create a wrapper script that logs execution and captures errors"
-    validation:
-      type: "file-exists"
-      path: "/home/learner/scripts/cron_wrapper.sh"
-
-  - id: "cron-logging"
-    title: "Monitor Cron Execution"
-    description: |
-      **Finding Cron Logs:**
-
-      Cron logs to syslog. Location varies by distribution.
-
-      **Common log locations:**
-      - Ubuntu/Debian: /var/log/syslog
-      - RHEL/CentOS: /var/log/cron
-      - systemd: journalctl -u cron
-
-      **View cron logs:**
-      grep CRON /var/log/syslog
-
-      **Look for:**
-      - Job execution: "CMD (/path/to/command)"
-      - Errors: "ERROR" or "FAILED"
-      - Crontab updates: "REPLACE" or "LIST"
-
-      **Filter cron activity:**
-
-      Today's cron jobs:
-      grep CRON /var/log/syslog | tail -50
-
-      Specific user:
-      grep "CRON.*learner" /var/log/syslog
-
-      Failed jobs:
-      grep -i "cron.*error" /var/log/syslog
-
-      Crontab changes:
-      grep "crontab" /var/log/syslog
-
-      **With systemd:**
-      journalctl -u cron --since today
-      journalctl -u cron -f  # Follow in real-time
-
-      **Check recent cron activity:**
-      grep CRON /var/log/syslog 2>/dev/null | tail -20
-
-      Or:
-      journalctl -u cron --no-pager --since "1 hour ago" 2>/dev/null
-    hint: "Search for CRON in syslog to see execution history"
-    validation:
-      type: "command-output"
-      command: "grep CRON /var/log/syslog 2>/dev/null || journalctl -u cron --no-pager -n 5 2>/dev/null || echo 'CRON'"
-      matcher: "contains"
-      expected: "CRON"
-
-  - id: "anacron-basics"
-    title: "Introduction to Anacron"
-    description: |
-      **Anacron: For Inconsistent Uptime**
-
-      **Problem with cron:**
-      If system is off at scheduled time, job is SKIPPED.
-
-      Example: Laptop scheduled for 3 AM backup
-      - Laptop off at 3 AM → backup never runs
-      - Next day off again → backup still never runs
-
-      **Anacron solution:**
-      Runs missed jobs when system starts up!
-
-      **Anacron vs Cron:**
-
-      | Feature | Cron | Anacron |
-      |---------|------|---------|
-      | Precision | Minute | Day |
-      | When | Exact time | At system start |
-      | Use case | Servers | Laptops/desktops |
-      | Min frequency | Every minute | Daily |
-
-      **Anacron configuration:**
-      File: /etc/anacrontab
-
-      Format:
-      ```
-      period delay job-id command
-      ```
-
-      period = days between runs
-      delay = minutes to wait after boot
-      job-id = unique identifier
-      command = what to run
-
-      **Example /etc/anacrontab:**
-      ```
-      # period delay job-id command
-      1       5     cron.daily    run-parts /etc/cron.daily
-      7       10    cron.weekly   run-parts /etc/cron.weekly
-      @monthly 15   cron.monthly  run-parts /etc/cron.monthly
-      ```
-
-      **How it works:**
-      1. System boots
-      2. Anacron checks last run timestamps
-      3. If job is overdue, waits delay minutes
-      4. Runs the job
-      5. Updates timestamp
-
-      **View anacron config:**
-      cat /etc/anacrontab
-
-      **Check anacron timestamps:**
-      ls -l /var/spool/anacron/
-    hint: "View /etc/anacrontab to see anacron configuration"
-    validation:
-      type: "command-output"
-      command: "cat /etc/anacrontab 2>/dev/null || echo 'anacron'"
-      matcher: "contains"
-      expected: "anacron"
-
-  - id: "at-command"
-    title: "One-Time Scheduling with at"
-    description: |
-      **The at Command: One-Time Jobs**
-
-      Unlike cron (recurring), at runs a command ONCE at a specific time.
-
-      **Basic usage:**
-      at <time>
-      at> <command>
-      at> <Ctrl+D>
-
-      **Time formats:**
-
-      Absolute:
-      at 10:30 AM
-      at 14:00
-      at 2:00 PM tomorrow
-      at 10:00 AM 12/25/2026
-
-      Relative:
-      at now + 5 minutes
-      at now + 2 hours
-      at now + 3 days
-      at now + 1 week
-
-      Named times:
-      at noon
-      at midnight
-      at teatime  # 4 PM
-
-      **Example session:**
-      ```bash
-      $ at now + 5 minutes
-      at> echo "Task completed" >> /home/learner/logs/at.log
-      at> <Ctrl+D>
-      job 1 at Thu Jan  9 15:35:00 2026
-      ```
-
-      **Manage at jobs:**
-
-      atq           # List pending jobs
-      at -l         # Same as atq
-      atrm <job>    # Remove job
-      at -c <job>   # Show job details
-
-      **Schedule a test job:**
-
-      echo "echo 'Hello from at' >> /home/learner/logs/at.log" | at now + 1 minute
-
-      **List queued jobs:**
-      atq
-
-      You should see your scheduled job!
-
-      **When to use at vs cron:**
-      - at: One-time future task
-      - cron: Recurring scheduled task
-    hint: "Use: echo 'command' | at now + 1 minute"
-    validation:
-      type: "command-output"
-      command: "echo 'echo test' | at now + 1 minute 2>&1 && atq"
-      matcher: "contains"
-      expected: ""
-
-  - id: "cron-security"
-    title: "Cron Security Considerations"
-    description: |
-      **Securing Cron Jobs:**
-
-      **1. Access Control:**
-
-      **/etc/cron.allow** - Users allowed to use cron
-      - If exists, ONLY listed users can use cron
-      - One username per line
-
-      **/etc/cron.deny** - Users denied cron access
-      - If exists (and no cron.allow), listed users can't use cron
-      - If neither exists, all users can use cron (default)
-
-      Example cron.allow:
-      ```
-      root
-      admin
-      backup
-      ```
-
-      **2. File Permissions:**
-
-      Cron files should be:
-      - Owned by root (system cron)
-      - Not world-writable
-      - Readable only by owner
-
-      Check system cron permissions:
-      ls -la /etc/cron.d/
-      ls -la /etc/cron.daily/
-
-      **3. Script Security:**
-
-      ✓ Use absolute paths
-      ✗ /bin/ls (safer)
-      ✓ ls (could be trojaned in PATH)
-
-      ✓ Validate inputs
-      ✗ rm -rf $DIR/* (if $DIR empty, deletes everything!)
-      ✓ rm -rf "${DIR:?}/" * (fails if $DIR empty)
-
-      ✓ Set secure PATH
-      PATH=/usr/local/bin:/usr/bin:/bin
-
-      ✓ Check file existence
-      ```bash
-      if [ -f "$FILE" ]; then
-        cat "$FILE"
-      fi
-      ```
-
-      **4. Output Security:**
-
-      Don't log sensitive data:
-      ✗ echo "Password: $PASS" >> log
-      ✓ echo "Login attempt" >> log
-
-      Secure log permissions:
-      chmod 600 /var/log/sensitive.log
-
-      **5. Environment:**
-
-      Don't trust inherited environment:
-      - Set PATH explicitly
-      - Set HOME explicitly
-      - Unset unnecessary variables
-
-      **Check cron security:**
-      ls -la /etc/cron.allow /etc/cron.deny 2>/dev/null || echo "No access control files"
-      ls -ld /etc/cron.d/
-    hint: "Check for cron access control files and directory permissions"
-    validation:
-      type: "command-output"
-      command: "ls -ld /etc/cron.d/ | awk '{print $1}'"
-      matcher: "contains"
-      expected: "d"
-
-  - id: "cron-debugging"
-    title: "Debug Cron Job Issues"
-    description: |
-      **Common Cron Problems and Solutions:**
-
-      **Problem 1: Job doesn't run**
-
-      Checklist:
-      ☐ Is cron service running?
-         service cron status
-
-      ☐ Is syntax correct?
-         Use crontab generators online
-
-      ☐ Is script executable?
-         chmod +x /path/to/script.sh
-
-      ☐ Does script work manually?
-         /path/to/script.sh
-
-      ☐ Check cron logs
-         grep CRON /var/log/syslog
-
-      **Problem 2: Job runs but fails**
-
-      Checklist:
-      ☐ Check script's exit code
-      ☐ Add logging: >> /tmp/debug.log 2>&1
-      ☐ Check permissions on files script accesses
-      ☐ Verify PATH contains needed commands
-      ☐ Use absolute paths
-
-      **Problem 3: Environment issues**
-
-      Debug wrapper:
-      ```bash
-      #!/bin/bash
-      # Log entire environment
-      env > /tmp/cron_env.txt
-      # Run with -x for debugging
-      bash -x /path/to/script.sh > /tmp/debug.log 2>&1
-      ```
-
-      **Problem 4: Output not appearing**
-
-      Check:
-      ☐ Is output redirected correctly?
-      ☐ Does log directory exist?
-      ☐ Are permissions correct on log file?
-      ☐ Is disk full? (df -h)
-
-      **Debugging technique:**
-
-      Create minimal test job:
-      ```
-      * * * * * echo "Test $(date)" >> /tmp/cron_test.log 2>&1
-      ```
-
-      Wait 2 minutes, check:
-      cat /tmp/cron_test.log
-
-      If this works, issue is with your script, not cron.
-
-      **Test cron functionality:**
-      echo "* * * * * echo 'Cron works: \$(date)' >> /tmp/cron_debug.log 2>&1" | crontab -
-
-      Wait 2 minutes:
-      cat /tmp/cron_debug.log
-    hint: "Create a simple test cron job that logs to debug issues"
-    validation:
-      type: "command-output"
-      command: "echo '* * * * * echo test >> /tmp/test.log 2>&1' | crontab - && crontab -l | grep 'test'"
-      matcher: "contains"
-      expected: "test"
+- id: special-strings
+  title: Special Cron Time Strings
+  description: '**Cron Special Strings:**
 
+
+    Instead of "* * * * *", use readable shortcuts!
+
+
+    **Available special strings:**
+
+
+    @reboot        Run once at startup
+
+    @yearly        Run once a year  (0 0 1 1 *)
+
+    @annually      Same as @yearly
+
+    @monthly       Run once a month (0 0 1 * *)
+
+    @weekly        Run once a week  (0 0 * * 0)
+
+    @daily         Run once a day   (0 0 * * *)
+
+    @midnight      Same as @daily
+
+    @hourly        Run once an hour (0 * * * *)
+
+
+    **Examples:**
+
+
+    Daily backup at midnight:
+
+    @daily /home/learner/scripts/backup.sh
+
+
+    Instead of:
+
+    0 0 * * * /home/learner/scripts/backup.sh
+
+
+    **Advantages:**
+
+    - More readable
+
+    - Less error-prone
+
+    - Self-documenting
+
+    - Easier maintenance
+
+
+    **Add a daily job:**
+
+    (crontab -l 2>/dev/null; echo "@daily /home/learner/scripts/backup.sh >> /home/learner/logs/backup.log
+    2>&1") | crontab -
+
+
+    **Verify:**
+
+    crontab -l
+
+
+    Much cleaner than "0 0 * * *"!
+
+    '
+  hint: Add daily job using @daily special string
+  validation:
+    type: command-output
+    command: (crontab -l 2>/dev/null; echo '@daily /tmp/test.sh') | crontab - && crontab
+      -l | grep '@daily'
+    matcher: contains
+    expected: '@daily'
+- id: system-wide-cron
+  title: System-Wide Cron Jobs
+  description: "**System Cron vs User Cron:**\n\n**User Crontab:**\n- Per-user: crontab\
+    \ -e\n- Runs as that user\n- Location: /var/spool/cron/crontabs/\n\n**System-Wide\
+    \ Cron:**\n- For all users and system tasks\n- Requires root/sudo access\n- Multiple\
+    \ locations\n\n**System Cron Locations:**\n\n1. **/etc/crontab** - Main system\
+    \ crontab\n   Format: minute hour day month dow USER command\n   Note: Includes\
+    \ username field!\n\n2. **/etc/cron.d/** - Drop-in cron files\n   - Each file\
+    \ is a separate crontab\n   - Used by packages and services\n   - Same format\
+    \ as /etc/crontab\n\n3. **Convenience directories:**\n   - /etc/cron.hourly/ \
+    \  - Scripts run hourly\n   - /etc/cron.daily/    - Scripts run daily\n   - /etc/cron.weekly/\
+    \   - Scripts run weekly\n   - /etc/cron.monthly/  - Scripts run monthly\n\n**System\
+    \ crontab format:**\n```\n# minute hour day month dow user command\n30 2 * * *\
+    \ root /usr/local/bin/backup.sh\n```\n\n**View system crontab:**\ncat /etc/crontab\n\
+    \n**List system cron directories:**\nls -la /etc/cron.*\n\n**Explore system cron:**\n\
+    cat /etc/crontab\nls /etc/cron.d/\n"
+  hint: View /etc/crontab to see system-wide cron configuration
+  validation:
+    type: command-output
+    command: cat /etc/crontab 2>/dev/null || echo 'SHELL'
+    matcher: contains
+    expected: SHELL
+- id: create-system-cron
+  title: Create System Cron Job
+  description: '**Creating System Cron Jobs:**
+
+
+    System cron files in /etc/cron.d/ allow:
+
+    - Package-specific schedules
+
+    - Multi-user jobs
+
+    - Isolated configurations
+
+
+    **Format rules for /etc/cron.d/:**
+
+    1. Must include username field
+
+    2. No file extension or only alphanumeric + hyphen/underscore
+
+    3. Must be owned by root
+
+    4. Not group or world writable
+
+
+    **Create a system cron job:**
+
+
+    Create file: /etc/cron.d/system-maintenance
+
+
+    Content:
+
+    ```
+
+    # System maintenance tasks
+
+    SHELL=/bin/bash
+
+    PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+
+    # Clean temp files daily at 3 AM
+
+    0 3 * * * root find /tmp -type f -mtime +7 -delete
+
+
+    # Update package lists weekly
+
+    0 4 * * 0 root apt-get update -qq
+
+    ```
+
+
+    **Important:**
+
+    - Include SHELL and PATH
+
+    - Comment your jobs
+
+    - Specify user (root or specific user)
+
+
+    **Create a maintenance cron file:**
+
+    sudo cat > /etc/cron.d/learner-tasks << ''EOF''
+
+    # Learner automated tasks
+
+    SHELL=/bin/bash
+
+    PATH=/usr/local/bin:/usr/bin:/bin
+
+
+    # Backup every 6 hours
+
+    0 */6 * * * learner /home/learner/scripts/backup.sh >> /home/learner/logs/backup.log
+    2>&1
+
+    EOF
+
+
+    Note: In a real system, use sudo. Here we''ll simulate.
+
+    '
+  hint: Create a cron file in /etc/cron.d/ with proper format
+  validation:
+    type: command-output
+    command: echo '0 */6 * * * learner /tmp/test.sh' | grep -E '^[0-9].*learner'
+    matcher: contains
+    expected: learner
+- id: cron-environment
+  title: Advanced Environment Configuration
+  description: '**Cron Environment Variables:**
+
+
+    Cron runs with minimal environment. Set variables at top of crontab.
+
+
+    **Essential variables:**
+
+
+    **PATH** - Where to find commands
+
+    PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
+
+
+    **SHELL** - Shell to use for commands
+
+    SHELL=/bin/bash
+
+
+    **MAILTO** - Email address for output
+
+    MAILTO=admin@example.com
+
+    MAILTO=""  # Disable email
+
+
+    **HOME** - Home directory
+
+    HOME=/home/learner
+
+
+    **LANG** - Locale settings
+
+    LANG=en_US.UTF-8
+
+
+    **Custom variables:**
+
+    BACKUP_DIR=/var/backups
+
+    LOG_LEVEL=INFO
+
+
+    **Example crontab with environment:**
+
+    ```
+
+    # Environment
+
+    SHELL=/bin/bash
+
+    PATH=/usr/local/bin:/usr/bin:/bin
+
+    MAILTO=admin@example.com
+
+    BACKUP_DIR=/var/backups
+
+
+    # Jobs
+
+    @daily $BACKUP_DIR/backup.sh
+
+    ```
+
+
+    **Best practices:**
+
+    - Always set PATH explicitly
+
+    - Use absolute paths in commands
+
+    - Set MAILTO or redirect output
+
+    - Document custom variables
+
+
+    **Update your crontab with environment:**
+
+    (crontab -l 2>/dev/null | grep -v "^PATH\|^SHELL"; echo "PATH=/usr/local/bin:/usr/bin:/bin";
+    echo "SHELL=/bin/bash"; crontab -l 2>/dev/null | grep -v "^PATH\|^SHELL") | crontab
+    -
+
+    '
+  hint: Add PATH and SHELL variables to your crontab
+  validation:
+    type: command-output
+    command: echo -e 'PATH=/usr/bin:/bin\nSHELL=/bin/bash\n@daily /tmp/test' | crontab
+      - && crontab -l | grep 'PATH='
+    matcher: contains
+    expected: PATH=
+- id: error-handling
+  title: Cron Job Error Handling
+  description: "**Handling Cron Job Failures:**\n\nCron jobs fail silently. Implement\
+    \ proper error handling!\n\n**Strategy 1: Exit Codes**\n\nScripts should return\
+    \ proper exit codes:\n```bash\n#!/bin/bash\nif command_succeeds; then\n  exit\
+    \ 0  # Success\nelse\n  exit 1  # Failure\nfi\n```\n\n**Strategy 2: Logging**\n\
+    \nAlways log output:\n```\n* * * * * /script.sh >> /var/log/script.log 2>&1\n\
+    ```\n\n**Strategy 3: Email Notifications**\n\nSet MAILTO:\n```\nMAILTO=admin@example.com\n\
+    * * * * * /script.sh\n```\n\nOr use mail command:\n```bash\nif ! /script.sh; then\n\
+    \  echo \"Script failed\" | mail -s \"Cron Failure\" admin@example.com\nfi\n```\n\
+    \n**Strategy 4: Wrapper Script**\n\nCreate error-handling wrapper:\n```bash\n\
+    #!/bin/bash\nLOG=\"/var/log/cron_wrapper.log\"\nSCRIPT=\"$1\"\n\necho \"[$(date)]\
+    \ Running $SCRIPT\" >> \"$LOG\"\nif $SCRIPT >> \"$LOG\" 2>&1; then\n  echo \"\
+    [$(date)] SUCCESS\" >> \"$LOG\"\nelse\n  echo \"[$(date)] FAILED (exit $?)\" >>\
+    \ \"$LOG\"\n  # Send alert\nfi\n```\n\n**Strategy 5: Monitoring with chronic**\n\
+    \nchronic (from moreutils) only outputs on failure:\n```\n* * * * * chronic /script.sh\n\
+    ```\n\n**Create an error-logging wrapper:**\n\ncat > /home/learner/scripts/cron_wrapper.sh\
+    \ << 'EOF'\n#!/bin/bash\nLOG=\"/home/learner/logs/cron_wrapper.log\"\nSCRIPT=\"\
+    $1\"\n\necho \"[$(date)] Executing: $SCRIPT\" >> \"$LOG\"\nif $SCRIPT >> \"$LOG\"\
+    \ 2>&1; then\n  echo \"[$(date)] ✓ Success\" >> \"$LOG\"\n  exit 0\nelse\n  EXIT_CODE=$?\n\
+    \  echo \"[$(date)] ✗ Failed with exit code $EXIT_CODE\" >> \"$LOG\"\n  exit $EXIT_CODE\n\
+    fi\nEOF\n\nchmod +x /home/learner/scripts/cron_wrapper.sh\n"
+  hint: Create a wrapper script that logs execution and captures errors
+  validation:
+    type: file-exists
+    path: /home/learner/scripts/cron_wrapper.sh
+    matcher: exists
+- id: cron-logging
+  title: Monitor Cron Execution
+  description: '**Finding Cron Logs:**
+
+
+    Cron logs to syslog. Location varies by distribution.
+
+
+    **Common log locations:**
+
+    - Ubuntu/Debian: /var/log/syslog
+
+    - RHEL/CentOS: /var/log/cron
+
+    - systemd: journalctl -u cron
+
+
+    **View cron logs:**
+
+    grep CRON /var/log/syslog
+
+
+    **Look for:**
+
+    - Job execution: "CMD (/path/to/command)"
+
+    - Errors: "ERROR" or "FAILED"
+
+    - Crontab updates: "REPLACE" or "LIST"
+
+
+    **Filter cron activity:**
+
+
+    Today''s cron jobs:
+
+    grep CRON /var/log/syslog | tail -50
+
+
+    Specific user:
+
+    grep "CRON.*learner" /var/log/syslog
+
+
+    Failed jobs:
+
+    grep -i "cron.*error" /var/log/syslog
+
+
+    Crontab changes:
+
+    grep "crontab" /var/log/syslog
+
+
+    **With systemd:**
+
+    journalctl -u cron --since today
+
+    journalctl -u cron -f  # Follow in real-time
+
+
+    **Check recent cron activity:**
+
+    grep CRON /var/log/syslog 2>/dev/null | tail -20
+
+
+    Or:
+
+    journalctl -u cron --no-pager --since "1 hour ago" 2>/dev/null
+
+    '
+  hint: Search for CRON in syslog to see execution history
+  validation:
+    type: command-output
+    command: grep CRON /var/log/syslog 2>/dev/null || journalctl -u cron --no-pager
+      -n 5 2>/dev/null || echo 'CRON'
+    matcher: contains
+    expected: CRON
+- id: anacron-basics
+  title: Introduction to Anacron
+  description: '**Anacron: For Inconsistent Uptime**
+
+
+    **Problem with cron:**
+
+    If system is off at scheduled time, job is SKIPPED.
+
+
+    Example: Laptop scheduled for 3 AM backup
+
+    - Laptop off at 3 AM → backup never runs
+
+    - Next day off again → backup still never runs
+
+
+    **Anacron solution:**
+
+    Runs missed jobs when system starts up!
+
+
+    **Anacron vs Cron:**
+
+
+    | Feature | Cron | Anacron |
+
+    |---------|------|---------|
+
+    | Precision | Minute | Day |
+
+    | When | Exact time | At system start |
+
+    | Use case | Servers | Laptops/desktops |
+
+    | Min frequency | Every minute | Daily |
+
+
+    **Anacron configuration:**
+
+    File: /etc/anacrontab
+
+
+    Format:
+
+    ```
+
+    period delay job-id command
+
+    ```
+
+
+    period = days between runs
+
+    delay = minutes to wait after boot
+
+    job-id = unique identifier
+
+    command = what to run
+
+
+    **Example /etc/anacrontab:**
+
+    ```
+
+    # period delay job-id command
+
+    1       5     cron.daily    run-parts /etc/cron.daily
+
+    7       10    cron.weekly   run-parts /etc/cron.weekly
+
+    @monthly 15   cron.monthly  run-parts /etc/cron.monthly
+
+    ```
+
+
+    **How it works:**
+
+    1. System boots
+
+    2. Anacron checks last run timestamps
+
+    3. If job is overdue, waits delay minutes
+
+    4. Runs the job
+
+    5. Updates timestamp
+
+
+    **View anacron config:**
+
+    cat /etc/anacrontab
+
+
+    **Check anacron timestamps:**
+
+    ls -l /var/spool/anacron/
+
+    '
+  hint: View /etc/anacrontab to see anacron configuration
+  validation:
+    type: command-output
+    command: cat /etc/anacrontab 2>/dev/null || echo 'anacron'
+    matcher: contains
+    expected: anacron
+- id: at-command
+  title: One-Time Scheduling with at
+  description: '**The at Command: One-Time Jobs**
+
+
+    Unlike cron (recurring), at runs a command ONCE at a specific time.
+
+
+    **Basic usage:**
+
+    at <time>
+
+    at> <command>
+
+    at> <Ctrl+D>
+
+
+    **Time formats:**
+
+
+    Absolute:
+
+    at 10:30 AM
+
+    at 14:00
+
+    at 2:00 PM tomorrow
+
+    at 10:00 AM 12/25/2026
+
+
+    Relative:
+
+    at now + 5 minutes
+
+    at now + 2 hours
+
+    at now + 3 days
+
+    at now + 1 week
+
+
+    Named times:
+
+    at noon
+
+    at midnight
+
+    at teatime  # 4 PM
+
+
+    **Example session:**
+
+    ```bash
+
+    $ at now + 5 minutes
+
+    at> echo "Task completed" >> /home/learner/logs/at.log
+
+    at> <Ctrl+D>
+
+    job 1 at Thu Jan  9 15:35:00 2026
+
+    ```
+
+
+    **Manage at jobs:**
+
+
+    atq           # List pending jobs
+
+    at -l         # Same as atq
+
+    atrm <job>    # Remove job
+
+    at -c <job>   # Show job details
+
+
+    **Schedule a test job:**
+
+
+    echo "echo ''Hello from at'' >> /home/learner/logs/at.log" | at now + 1 minute
+
+
+    **List queued jobs:**
+
+    atq
+
+
+    You should see your scheduled job!
+
+
+    **When to use at vs cron:**
+
+    - at: One-time future task
+
+    - cron: Recurring scheduled task
+
+    '
+  hint: 'Use: echo ''command'' | at now + 1 minute'
+  validation:
+    type: command-output
+    command: echo 'echo test' | at now + 1 minute 2>&1 && atq
+    matcher: contains
+    expected: ''
+- id: cron-security
+  title: Cron Security Considerations
+  description: "**Securing Cron Jobs:**\n\n**1. Access Control:**\n\n**/etc/cron.allow**\
+    \ - Users allowed to use cron\n- If exists, ONLY listed users can use cron\n-\
+    \ One username per line\n\n**/etc/cron.deny** - Users denied cron access\n- If\
+    \ exists (and no cron.allow), listed users can't use cron\n- If neither exists,\
+    \ all users can use cron (default)\n\nExample cron.allow:\n```\nroot\nadmin\n\
+    backup\n```\n\n**2. File Permissions:**\n\nCron files should be:\n- Owned by root\
+    \ (system cron)\n- Not world-writable\n- Readable only by owner\n\nCheck system\
+    \ cron permissions:\nls -la /etc/cron.d/\nls -la /etc/cron.daily/\n\n**3. Script\
+    \ Security:**\n\n✓ Use absolute paths\n✗ /bin/ls (safer)\n✓ ls (could be trojaned\
+    \ in PATH)\n\n✓ Validate inputs\n✗ rm -rf $DIR/* (if $DIR empty, deletes everything!)\n\
+    ✓ rm -rf \"${DIR:?}/\" * (fails if $DIR empty)\n\n✓ Set secure PATH\nPATH=/usr/local/bin:/usr/bin:/bin\n\
+    \n✓ Check file existence\n```bash\nif [ -f \"$FILE\" ]; then\n  cat \"$FILE\"\n\
+    fi\n```\n\n**4. Output Security:**\n\nDon't log sensitive data:\n✗ echo \"Password:\
+    \ $PASS\" >> log\n✓ echo \"Login attempt\" >> log\n\nSecure log permissions:\n\
+    chmod 600 /var/log/sensitive.log\n\n**5. Environment:**\n\nDon't trust inherited\
+    \ environment:\n- Set PATH explicitly\n- Set HOME explicitly\n- Unset unnecessary\
+    \ variables\n\n**Check cron security:**\nls -la /etc/cron.allow /etc/cron.deny\
+    \ 2>/dev/null || echo \"No access control files\"\nls -ld /etc/cron.d/\n"
+  hint: Check for cron access control files and directory permissions
+  validation:
+    type: command-output
+    command: ls -ld /etc/cron.d/ | awk '{print $1}'
+    matcher: contains
+    expected: d
+- id: cron-debugging
+  title: Debug Cron Job Issues
+  description: "**Common Cron Problems and Solutions:**\n\n**Problem 1: Job doesn't\
+    \ run**\n\nChecklist:\n☐ Is cron service running?\n   service cron status\n\n\
+    ☐ Is syntax correct?\n   Use crontab generators online\n\n☐ Is script executable?\n\
+    \   chmod +x /path/to/script.sh\n\n☐ Does script work manually?\n   /path/to/script.sh\n\
+    \n☐ Check cron logs\n   grep CRON /var/log/syslog\n\n**Problem 2: Job runs but\
+    \ fails**\n\nChecklist:\n☐ Check script's exit code\n☐ Add logging: >> /tmp/debug.log\
+    \ 2>&1\n☐ Check permissions on files script accesses\n☐ Verify PATH contains needed\
+    \ commands\n☐ Use absolute paths\n\n**Problem 3: Environment issues**\n\nDebug\
+    \ wrapper:\n```bash\n#!/bin/bash\n# Log entire environment\nenv > /tmp/cron_env.txt\n\
+    # Run with -x for debugging\nbash -x /path/to/script.sh > /tmp/debug.log 2>&1\n\
+    ```\n\n**Problem 4: Output not appearing**\n\nCheck:\n☐ Is output redirected correctly?\n\
+    ☐ Does log directory exist?\n☐ Are permissions correct on log file?\n☐ Is disk\
+    \ full? (df -h)\n\n**Debugging technique:**\n\nCreate minimal test job:\n```\n\
+    * * * * * echo \"Test $(date)\" >> /tmp/cron_test.log 2>&1\n```\n\nWait 2 minutes,\
+    \ check:\ncat /tmp/cron_test.log\n\nIf this works, issue is with your script,\
+    \ not cron.\n\n**Test cron functionality:**\necho \"* * * * * echo 'Cron works:\
+    \ \\$(date)' >> /tmp/cron_debug.log 2>&1\" | crontab -\n\nWait 2 minutes:\ncat\
+    \ /tmp/cron_debug.log\n"
+  hint: Create a simple test cron job that logs to debug issues
+  validation:
+    type: command-output
+    command: echo '* * * * * echo test >> /tmp/test.log 2>&1' | crontab - && crontab
+      -l | grep 'test'
+    matcher: contains
+    expected: test
 completion:
-  message: |
-    🎉 ADVANCED CRON MASTERED! 🎉
+  message: '🎉 ADVANCED CRON MASTERED! 🎉
 
-    You've mastered advanced cron scheduling and automation!
 
-    **What You've Learned:**
+    You''ve mastered advanced cron scheduling and automation!
+
+
+    **What You''ve Learned:**
+
 
     ✓ Special cron strings (@daily, @reboot, etc.)
+
     ✓ System-wide cron (/etc/crontab, /etc/cron.d/)
+
     ✓ Creating system cron jobs
+
     ✓ Advanced environment configuration
+
     ✓ Error handling and logging strategies
+
     ✓ Monitoring cron execution
+
     ✓ Anacron for irregular schedules
+
     ✓ at command for one-time jobs
+
     ✓ Cron security best practices
+
     ✓ Debugging cron job issues
 
+
     **Special Strings:**
+
     @reboot   @yearly   @monthly   @weekly
+
     @daily    @hourly
 
+
     **System Cron Locations:**
+
     /etc/crontab       - Main system crontab
+
     /etc/cron.d/       - Drop-in cron files
+
     /etc/cron.daily/   - Daily scripts
+
     /etc/cron.weekly/  - Weekly scripts
+
     /etc/cron.monthly/ - Monthly scripts
 
+
     **Error Handling Strategies:**
+
     ☑ Use proper exit codes
+
     ☑ Redirect all output to logs
+
     ☑ Implement wrapper scripts
+
     ☑ Monitor with syslog
+
     ☑ Send notifications on failure
 
+
     **Security Best Practices:**
+
     ☑ Use absolute paths
+
     ☑ Set secure PATH
+
     ☑ Validate inputs
+
     ☑ Secure file permissions
+
     ☑ Limit cron access with cron.allow
 
+
     **Debugging Checklist:**
+
     ☐ Service running?
+
     ☐ Syntax correct?
+
     ☐ Script executable?
+
     ☐ Works manually?
+
     ☐ Check logs?
+
     ☐ Environment correct?
 
+
     **Commands Mastered:**
+
     cron:    crontab -l, -e, -r
+
     logs:    grep CRON /var/log/syslog
+
     anacron: anacron -T, -f
+
     at:      at, atq, atrm
+
     system:  service cron status/restart
 
+
     **When to Use What:**
+
     - cron: Regular recurring tasks
+
     - anacron: Desktop/laptop periodic tasks
+
     - at: One-time future tasks
+
     - systemd timers: Modern alternative to cron
+
 
     You can now build robust automated task systems!
 
+
     Next: Expert-level practice with comprehensive automation!
+
+    '
   xp: 500
   unlocks:
-    - "linux/week10/practice-backup-automation"
-    - "linux/week11/shell-scripting-beginner"
+  - linux/week10/practice-backup-automation
+  - linux/week11/shell-scripting-beginner
