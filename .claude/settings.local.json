@@ -58,7 +58,10 @@
       "Bash(podman pull:*)",
       "Bash($env:DOCKER_HOST = \"npipe:////./pipe/podman-machine-default\")",
       "Bash(DOCKER_HOST=\"npipe:////./pipe/podman-machine-default\" .venv/Scripts/pytest.exe:*)",
-      "Bash(.venv/Scripts/python.exe:*)"
+      "Bash(.venv/Scripts/python.exe:*)",
+      "Bash(python play.py:*)",
+      "Bash(dir:*)",
+      "Bash(DOCKER_HOST=\"npipe:////./pipe/podman-machine-default\" .venv/Scripts/python.exe:*)"
     ]
   }
 }

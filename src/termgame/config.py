@@ -19,12 +19,26 @@ class Config:
         scenarios_dir: Path to mission scenarios directory
         user_id: Default user ID for CLI operations
         runtime_type: Container runtime to use (docker or podman)
+        max_retries: Number of retry attempts for transient failures
+        retry_base_delay: Initial retry delay in seconds
+        retry_max_delay: Maximum retry delay in seconds
+        circuit_breaker_max_failures: Circuit breaker failure threshold
+        circuit_breaker_timeout: Circuit breaker reset timeout in seconds
+        log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
+        log_file: Path to log file (None for default)
     """
 
     database_url: str
     scenarios_dir: Path
     user_id: int
     runtime_type: str
+    max_retries: int
+    retry_base_delay: float
+    retry_max_delay: float
+    circuit_breaker_max_failures: int
+    circuit_breaker_timeout: float
+    log_level: str
+    log_file: str | None
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -35,6 +49,13 @@ class Config:
             TERMGAME_SCENARIOS: Scenarios directory (default: ./scenarios)
             TERMGAME_USER_ID: User ID (default: 1)
             TERMGAME_RUNTIME: Runtime type (default: docker)
+            TERMGAME_MAX_RETRIES: Number of retry attempts (default: 5)
+            TERMGAME_RETRY_BASE_DELAY: Initial retry delay in seconds (default: 1.0)
+            TERMGAME_RETRY_MAX_DELAY: Maximum retry delay in seconds (default: 10.0)
+            TERMGAME_CB_MAX_FAILURES: Circuit breaker failure threshold (default: 5)
+            TERMGAME_CB_TIMEOUT: Circuit breaker reset timeout in seconds (default: 30.0)
+            TERMGAME_LOG_LEVEL: Logging level (default: INFO)
+            TERMGAME_LOG_FILE: Path to log file (default: None, uses ~/.termgame/termgame.log)
 
         Returns:
             Config instance with loaded or default values
@@ -57,11 +78,31 @@ class Config:
         # Runtime type - default to docker
         runtime_type = os.getenv("TERMGAME_RUNTIME", "docker")
 
+        # Retry configuration
+        max_retries = int(os.getenv("TERMGAME_MAX_RETRIES", "5"))
+        retry_base_delay = float(os.getenv("TERMGAME_RETRY_BASE_DELAY", "1.0"))
+        retry_max_delay = float(os.getenv("TERMGAME_RETRY_MAX_DELAY", "10.0"))
+
+        # Circuit breaker configuration
+        circuit_breaker_max_failures = int(os.getenv("TERMGAME_CB_MAX_FAILURES", "5"))
+        circuit_breaker_timeout = float(os.getenv("TERMGAME_CB_TIMEOUT", "30.0"))
+
+        # Logging configuration
+        log_level = os.getenv("TERMGAME_LOG_LEVEL", "INFO")
+        log_file = os.getenv("TERMGAME_LOG_FILE")  # None if not set
+
         return cls(
             database_url=db_url,
             scenarios_dir=Path(scenarios_path),
             user_id=user_id,
             runtime_type=runtime_type,
+            max_retries=max_retries,
+            retry_base_delay=retry_base_delay,
+            retry_max_delay=retry_max_delay,
+            circuit_breaker_max_failures=circuit_breaker_max_failures,
+            circuit_breaker_timeout=circuit_breaker_timeout,
+            log_level=log_level,
+            log_file=log_file,
         )
 
     def validate(self) -> None:

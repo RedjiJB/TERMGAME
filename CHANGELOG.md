@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - 2026-01-08 Session
+
+#### User Interface Improvements
+- **ASCII Art Logo**: Professional startup banner with TermGame ASCII art logo
+- **Progress Tracking in List**: `list` command now shows checkmarks (✓) for completed missions
+- **Real Progress Display**: `progress` command queries database for actual XP and completion stats
+- **Reset Progress Command**: New `reset` command to wipe all progress with confirmation prompt
+- **Cross-Platform Launchers**: Quick-start scripts for all platforms
+  - `play.bat` - Windows batch file (double-click to launch)
+  - `play.ps1` - Windows PowerShell script
+  - `play.sh` - Linux/macOS bash script
+  - `play.py` - Universal Python launcher (works everywhere)
+
+#### Connection Resilience
+- **Enhanced Retry Logic**: Now catches `OSError` family (includes `requests.exceptions.ConnectionError`)
+- **Fixed Connection Validation**: Moved validation outside try block to prevent incorrect exception wrapping
+- **Graceful Retry Messages**: Only show retry progress for 3+ attempts (silent quick recoveries)
+- **Separate Line Retry Messages**: Retry indicators now appear on their own line for cleaner output
+- **Automatic Container Cleanup**: Containers cleanup automatically on quit/exit/Ctrl+C
+- **Reduced Console Clutter**: Changed console logging from WARNING to ERROR level
+
+### Fixed - 2026-01-08 Session
+- 🐛 **Connection Error Handling**: `requests.exceptions.ConnectionError` now properly caught and retried
+- 🐛 **Connection Validation Bug**: Fixed retry logic where connection validation raised exceptions inside try block
+- 🐛 **Exit Cleanup**: Fixed bug where quitting without `abandon` left Docker containers running
+- 🐛 **Console Spam**: Reduced logging noise by showing only ERROR+ on console (all logs still in file)
+- 🐛 **Progress Not Updating**: `progress` command now shows real database values instead of zeros
+- 🐛 **Missing Completion Status**: `list` command now queries database for completion checkmarks
+
+### Changed - 2026-01-08 Session
+- **Logging Level**: Console handler changed from WARNING to ERROR (transient warnings hidden)
+- **Retry Threshold**: Retry messages only appear starting from attempt 3 (was all attempts)
+- **Progress Display**: Shows actual database values with proper formatting
+- **List Display**: Added completion checkmark column and completion count in footer
+
+### Documentation - 2026-01-08 Session
+- Updated README with Quick Launch section for all platforms
+- Added Available Commands reference table
+- Added Reset Progress usage example
+- Updated Project Structure to include launcher scripts
+- Added CHANGELOG entries for all improvements
+
 ### Added
 
 #### Core Engine & Runtime

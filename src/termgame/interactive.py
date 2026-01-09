@@ -5,6 +5,7 @@ similar to Codex CLI's approach of continuous prompting rather than full-screen 
 """
 
 import asyncio
+import logging
 import sys
 from typing import Any
 
@@ -17,6 +18,13 @@ from rich.table import Table
 from termgame.cli_utils import create_cli_engine
 from termgame.config import get_config
 from termgame.loaders.scenario_loader import ScenarioLoader
+from termgame.runtimes.exceptions import (
+    ConnectionError as RuntimeConnectionError,
+)
+from termgame.runtimes.exceptions import (
+    ContainerNotFoundError,
+)
+from termgame.ui.progress import OperationProgress
 
 
 class InteractiveCLI:
@@ -28,20 +36,74 @@ class InteractiveCLI:
     def __init__(self) -> None:
         """Initialize the interactive CLI."""
         self.console = Console()
+        self.progress = OperationProgress(self.console)
         self.config = get_config()
         self.engine: Any = None
         self.current_mission: str | None = None
         self.loader = ScenarioLoader(self.config.scenarios_dir)
         self.running = True
+        self._logger = logging.getLogger(__name__)
 
     async def initialize(self) -> None:
         """Initialize the mission engine."""
         if self.engine is None:
-            self.engine = await create_cli_engine(self.config)
+            self.engine = await create_cli_engine(
+                self.config,
+                progress_callback=self._on_runtime_progress,
+            )
+
+    def _on_runtime_progress(self, message: str, attempt: int, max_attempts: int) -> None:
+        """Handle runtime progress updates.
+
+        Args:
+            message: Progress message describing what's happening.
+            attempt: Current attempt number (1-indexed).
+            max_attempts: Total number of attempts allowed.
+        """
+        self.progress.update_retry(message, attempt, max_attempts)
+
+    def _handle_runtime_error(self, error: Exception) -> None:
+        """Handle runtime errors with context-specific guidance.
+
+        Args:
+            error: The exception that was raised.
+        """
+        if isinstance(error, RuntimeConnectionError):
+            self.console.print("[red]Docker Connection Error[/red]\n")
+            self.console.print("[bold white]What's happening:[/bold white]")
+            self.console.print("  • Cannot communicate with Docker daemon")
+            self.console.print("  • Connection unstable or daemon stopped")
+            self.console.print()
+            self.console.print("[bold white]How to fix:[/bold white]")
+            self.console.print("  1. Check Docker Desktop is running")
+            self.console.print("  2. Run: [cyan]docker ps[/cyan]")
+            self.console.print("  3. Restart Docker if necessary")
+            self.console.print("  4. Try your command again\n")
+
+        elif isinstance(error, ContainerNotFoundError):
+            self.console.print("[red]Container Lost[/red]\n")
+            self.console.print("[bold white]What's happening:[/bold white]")
+            self.console.print("  • Mission container stopped or removed")
+            self.console.print()
+            self.console.print("[bold white]How to fix:[/bold white]")
+            self.console.print("  1. Type [cyan]abandon[/cyan] to clean up")
+            self.console.print("  2. Type [cyan]start <mission-id>[/cyan] to restart\n")
+
+        else:
+            # Generic error handler
+            self.console.print(f"[red]Error:[/red] {error}\n")
+            self.console.print("[dim]Check logs for details: ~/.termgame/termgame.log[/dim]\n")
 
     def print_banner(self) -> None:
-        """Display welcome banner."""
-        self.console.print("\n[bold cyan]TERMGAME[/bold cyan]")
+        """Display welcome banner with ASCII art logo."""
+        logo = """
+  ______                    ______
+ /_  __/__  _________ ___  / ____/___ _____ ___  ___
+  / / / _ \\/ ___/ __ `__ \\/ / __/ __ `/ __ `__ \\/ _ \\
+ / / /  __/ /  / / / / / / /_/ / /_/ / / / / / /  __/
+/_/  \\___/_/  /_/ /_/ /_/\\____/\\__,_/_/ /_/ /_/\\___/
+"""
+        self.console.print(f"[bold cyan]{logo}[/bold cyan]")
         self.console.print(
             "[dim]Terminal training platform for Linux, Cisco IOS, and PowerShell[/dim]\n"
         )
@@ -86,6 +148,8 @@ class InteractiveCLI:
   [cyan]list[/cyan]              Show all missions with difficulty and time
   [cyan]start <mission-id>[/cyan] Begin a training mission
   [cyan]progress[/cyan]          View your XP and completed missions
+  [cyan]reset[/cyan]             Reset all progress and start fresh
+  [cyan]status[/cyan]            Check Docker connection health
   [cyan]help[/cyan]              Show this help message
   [cyan]quit[/cyan]              Exit TermGame
 
@@ -99,7 +163,9 @@ class InteractiveCLI:
         self.console.print(help_text)
 
     async def cmd_list(self, _args: list[str]) -> None:
-        """List all available missions."""
+        """List all available missions with completion status."""
+        await self.initialize()
+
         missions: list[dict[str, Any]] = []
 
         for scenario_file in self.config.scenarios_dir.rglob("*.yml"):
@@ -128,14 +194,35 @@ class InteractiveCLI:
             self.console.print("[yellow]No missions found[/yellow]")
             return
 
+        # Get completion status from database
+        from sqlalchemy import select
+
+        from termgame.db.models import MissionProgress
+
+        completed_missions = set()
+        try:
+            async with self.engine._session_factory() as session:  # noqa: SLF001
+                result = await session.execute(
+                    select(MissionProgress.mission_id).where(
+                        MissionProgress.user_id == self.engine._user_id,  # noqa: SLF001
+                        MissionProgress.completed == True,  # noqa: E712
+                    )
+                )
+                completed_missions = {row[0] for row in result.fetchall()}
+        except Exception as e:
+            self._logger.error(f"Error loading completion status: {e}")
+
         table = Table(show_header=True, header_style="bold dim")
+        table.add_column("✓", style="green", justify="center", width=3)
         table.add_column("ID", style="cyan")
         table.add_column("Title", style="white")
         table.add_column("Difficulty", style="dim")
         table.add_column("Time", style="dim", justify="right")
 
         for mission in sorted(missions, key=lambda m: m["id"]):
+            completed = "✓" if mission["id"] in completed_missions else ""
             table.add_row(
+                completed,
                 mission["id"],
                 mission["title"],
                 mission["difficulty"],
@@ -143,7 +230,11 @@ class InteractiveCLI:
             )
 
         self.console.print(table)
-        self.console.print(f"\n[dim]Found {len(missions)} mission(s)[/dim]\n")
+        completed_count = len(completed_missions)
+        self.console.print(
+            f"\n[dim]Found {len(missions)} mission(s) - "
+            f"[green]{completed_count} completed[/green][/dim]\n"
+        )
 
     async def cmd_start(self, args: list[str]) -> None:
         """Start a mission."""
@@ -192,14 +283,21 @@ class InteractiveCLI:
             self.console.print("  • Type [cyan]hint[/cyan] if you need help\n")
 
         except Exception as e:
-            error_msg = str(e)
-            self.console.print(f"[red]Error starting mission:[/red] {error_msg}\n")
+            self._logger.error(f"Failed to start mission: {e}", exc_info=True)
 
-            if "not found" in error_msg.lower():
-                self.console.print("[bold white]Suggestions:[/bold white]")
-                self.console.print("  • Check the mission ID spelling")
-                self.console.print("  • Type [cyan]list[/cyan] to see all available missions")
-                self.console.print("  • Mission IDs are case-sensitive\n")
+            # Use specialized error handler for runtime errors
+            if isinstance(e, (RuntimeConnectionError, ContainerNotFoundError)):
+                self._handle_runtime_error(e)
+            else:
+                # Mission-specific errors
+                error_msg = str(e)
+                self.console.print(f"[red]Error starting mission:[/red] {error_msg}\n")
+
+                if "not found" in error_msg.lower():
+                    self.console.print("[bold white]Suggestions:[/bold white]")
+                    self.console.print("  • Check the mission ID spelling")
+                    self.console.print("  • Type [cyan]list[/cyan] to see all available missions")
+                    self.console.print("  • Mission IDs are case-sensitive\n")
 
     async def cmd_validate(self, _args: list[str]) -> None:
         """Validate current step."""
@@ -243,11 +341,18 @@ class InteractiveCLI:
                 self.console.print("  • Try running the command again\n")
 
         except Exception as e:
-            self.console.print(f"[red]Validation error:[/red] {e}\n")
-            self.console.print("[dim]There was a problem checking your work.[/dim]")
-            self.console.print(
-                "[dim]Try running your command again, or type 'hint' for help.[/dim]\n"
-            )
+            self._logger.error(f"Validation error: {e}", exc_info=True)
+
+            # Use specialized error handler for runtime errors
+            if isinstance(e, (RuntimeConnectionError, ContainerNotFoundError)):
+                self._handle_runtime_error(e)
+            else:
+                # Validation-specific errors
+                self.console.print(f"[red]Validation error:[/red] {e}\n")
+                self.console.print("[dim]There was a problem checking your work.[/dim]")
+                self.console.print(
+                    "[dim]Try running your command again, or type 'hint' for help.[/dim]\n"
+                )
 
     async def cmd_hint(self, _args: list[str]) -> None:
         """Get a hint for current step."""
@@ -293,15 +398,135 @@ class InteractiveCLI:
         await self.initialize()
 
         try:
-            # TODO: Implement overall progress retrieval
-            self.console.print("[cyan]Your Progress:[/cyan]\n")
-            self.console.print("[dim]Total XP: 0[/dim]")
-            self.console.print("[dim]Missions Completed: 0[/dim]")
-            self.console.print("[dim]Active Missions: 0[/dim]\n")
-            self.console.print("[dim]Start a mission to begin earning XP![/dim]\n")
+            from sqlalchemy import func, select
+
+            from termgame.db.models import MissionProgress, User
+
+            async with self.engine._session_factory() as session:  # noqa: SLF001
+                # Get user info
+                user_result = await session.execute(
+                    select(User).where(User.id == self.engine._user_id)  # noqa: SLF001
+                )
+                user = user_result.scalar_one_or_none()
+
+                # Get completed missions count and total XP
+                completed_result = await session.execute(
+                    select(
+                        func.count(MissionProgress.id),
+                        func.sum(MissionProgress.xp_earned),
+                    ).where(
+                        MissionProgress.user_id == self.engine._user_id,  # noqa: SLF001
+                        MissionProgress.completed == True,  # noqa: E712
+                    )
+                )
+                completed_count, total_xp = completed_result.one()
+                completed_count = completed_count or 0
+                total_xp = total_xp or 0
+
+                # Get active missions count
+                active_result = await session.execute(
+                    select(func.count(MissionProgress.id)).where(
+                        MissionProgress.user_id == self.engine._user_id,  # noqa: SLF001
+                        MissionProgress.completed == False,  # noqa: E712
+                        MissionProgress.container_id.isnot(None),
+                    )
+                )
+                active_count = active_result.scalar() or 0
+
+            self.console.print("[bold cyan]Your Progress:[/bold cyan]\n")
+            self.console.print(f"[bold white]Total XP:[/bold white] {total_xp}")
+            self.console.print(f"[bold white]Missions Completed:[/bold white] {completed_count}")
+            self.console.print(f"[bold white]Active Missions:[/bold white] {active_count}\n")
+
+            if completed_count == 0:
+                self.console.print("[dim]Start a mission to begin earning XP![/dim]\n")
+            else:
+                self.console.print("[green]Keep going! 🎯[/green]\n")
 
         except Exception as e:
+            self._logger.error(f"Error loading progress: {e}", exc_info=True)
             self.console.print(f"[red]Error loading progress:[/red] {e}\n")
+
+    async def cmd_reset(self, _args: list[str]) -> None:
+        """Reset all progress and start fresh."""
+        await self.initialize()
+
+        self.console.print("[bold yellow]⚠️  Reset Progress[/bold yellow]\n")
+        self.console.print("This will [red]permanently delete[/red]:")
+        self.console.print("  • All completed missions")
+        self.console.print("  • All earned XP")
+        self.console.print("  • All mission progress\n")
+
+        # Ask for confirmation
+        from rich.prompt import Confirm
+
+        confirmed = Confirm.ask(
+            "[bold]Are you sure you want to reset everything?[/bold]", default=False
+        )
+
+        if not confirmed:
+            self.console.print("[dim]Reset cancelled[/dim]\n")
+            return
+
+        try:
+            from sqlalchemy import delete
+
+            from termgame.db.models import Achievement, MissionProgress
+
+            async with self.engine._session_factory() as session:  # noqa: SLF001
+                # Delete all mission progress
+                await session.execute(
+                    delete(MissionProgress).where(
+                        MissionProgress.user_id == self.engine._user_id  # noqa: SLF001
+                    )
+                )
+
+                # Delete all achievements
+                await session.execute(
+                    delete(Achievement).where(
+                        Achievement.user_id == self.engine._user_id  # noqa: SLF001
+                    )
+                )
+
+                await session.commit()
+
+            self.console.print("\n[green]✓ Progress reset successfully![/green]")
+            self.console.print("[dim]Type 'list' to start fresh[/dim]\n")
+
+        except Exception as e:
+            self._logger.error(f"Error resetting progress: {e}", exc_info=True)
+            self.console.print(f"[red]Error resetting progress:[/red] {e}\n")
+
+    async def cmd_status(self, _args: list[str]) -> None:
+        """Show Docker connection status."""
+        await self.initialize()
+
+        try:
+            health = self.engine.get_docker_health()
+
+            self.console.print("[bold cyan]Docker Connection Status[/bold cyan]\n")
+
+            if health.get("circuit_open"):
+                self.console.print("[red]⚠ Circuit Breaker: OPEN[/red]")
+                self.console.print(
+                    f"  Too many failures ({health['consecutive_failures']}). "
+                    "Docker daemon may be down."
+                )
+            else:
+                self.console.print("[green]✓ Circuit Breaker: CLOSED[/green]")
+
+            self.console.print(f"\nConsecutive failures: {health.get('consecutive_failures', 0)}")
+
+            if health.get("last_success"):
+                import datetime
+
+                last = datetime.datetime.fromtimestamp(health["last_success"])
+                self.console.print(f"Last successful operation: {last.strftime('%H:%M:%S')}")
+
+            self.console.print("\n[dim]Log file: ~/.termgame/termgame.log[/dim]\n")
+
+        except Exception as e:
+            self.console.print(f"[red]Error getting status:[/red] {e}\n")
 
     def _display_step(self, step_info: dict[str, Any]) -> None:
         """Display step information."""
@@ -328,10 +553,15 @@ class InteractiveCLI:
         # Handle quit command
         if command in ("quit", "exit", "q"):
             self.running = False
+            # Cleanup any active mission containers before exiting
             if self.current_mission:
-                self.console.print(
-                    "\n[yellow]Exiting with active mission - use 'abandon' to clean up[/yellow]"
-                )
+                self.console.print("\n[yellow]Cleaning up active mission...[/yellow]")
+                await self.initialize()
+                try:
+                    await self.engine.abandon_mission(self.current_mission)
+                except Exception as e:
+                    self._logger.error(f"Error cleaning up mission on exit: {e}")
+                    # Continue anyway - best effort
             self.console.print("[dim]Goodbye![/dim]\n")
         # Handle commands that work in any mode
         elif command == "help":
@@ -360,11 +590,18 @@ class InteractiveCLI:
                     else:
                         self.console.print(output)
             except Exception as e:
-                self.console.print(f"[red]Error executing command:[/red] {e}\n")
-                self.console.print(
-                    "[dim]The container may have stopped. "
-                    "Try typing 'abandon' and restarting.[/dim]\n"
-                )
+                self._logger.error(f"Command execution error: {e}", exc_info=True)
+
+                # Use specialized error handler for runtime errors
+                if isinstance(e, (RuntimeConnectionError, ContainerNotFoundError)):
+                    self._handle_runtime_error(e)
+                else:
+                    # Generic command execution error
+                    self.console.print(f"[red]Error executing command:[/red] {e}\n")
+                    self.console.print(
+                        "[dim]The container may have stopped. "
+                        "Try typing 'abandon' and restarting.[/dim]\n"
+                    )
 
     async def _handle_lobby_command(self, command: str, args: list[str]) -> None:
         """Handle commands available in lobby (outside missions)."""
@@ -372,6 +609,8 @@ class InteractiveCLI:
             "list": self.cmd_list,
             "start": self.cmd_start,
             "progress": self.cmd_progress,
+            "reset": self.cmd_reset,
+            "status": self.cmd_status,
         }
 
         if command in lobby_commands:
@@ -383,6 +622,14 @@ class InteractiveCLI:
             self.console.print("  [cyan]start[/cyan]    - Begin a mission")
             self.console.print("  [cyan]help[/cyan]     - Show help information")
             self.console.print("\n[dim]Type 'help' to see all commands[/dim]\n")
+
+    async def cleanup(self) -> None:
+        """Cleanup resources before exit."""
+        if self.current_mission and self.engine:
+            try:
+                await self.engine.abandon_mission(self.current_mission)
+            except Exception as e:
+                self._logger.error(f"Error cleaning up on exit: {e}")
 
     async def run(self) -> None:
         """Run the interactive CLI loop."""
@@ -407,6 +654,9 @@ class InteractiveCLI:
             except Exception as e:
                 self.console.print(f"[red]Error:[/red] {e}\n")
 
+        # Cleanup on normal exit
+        await self.cleanup()
+
 
 def run_interactive() -> None:
     """Entry point for interactive CLI."""
@@ -415,4 +665,8 @@ def run_interactive() -> None:
     try:
         asyncio.run(cli.run())
     except KeyboardInterrupt:
+        # Cleanup on Ctrl+C
+        print("\n[yellow]Interrupted - cleaning up...[/yellow]")
+        if cli.current_mission:
+            asyncio.run(cli.cleanup())
         sys.exit(0)

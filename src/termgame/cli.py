@@ -213,7 +213,7 @@ def validate(mission_id: str) -> None:
                 if next_step:
                     next_step_num = int(next_step["index"]) + 1
                     console.print(
-                        f"\n[bold blue]Step {next_step_num}:[/bold blue] " f"{next_step['title']}"
+                        f"\n[bold blue]Step {next_step_num}:[/bold blue] {next_step['title']}"
                     )
                     console.print(f"[dim]{next_step['description']}[/dim]")
                     console.print(f"\n[yellow]Hint:[/yellow] {next_step['hint']}")

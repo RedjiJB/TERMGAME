@@ -1,5 +1,13 @@
 # TermGame
 
+```
+  ______                    ______
+ /_  __/__  _________ ___  / ____/___ _____ ___  ___
+  / / / _ \/ ___/ __ `__ \/ / __/ __ `/ __ `__ \/ _ \
+ / / /  __/ /  / / / / / / /_/ / /_/ / / / / / /  __/
+/_/  \___/_/  /_/ /_/ /_/\____/\__,_/_/ /_/ /_/\___/
+```
+
 **A gamified terminal-based training platform for mastering Linux, Cisco IOS, and PowerShell through interactive missions.**
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
@@ -101,13 +109,97 @@ uv pip install -e ".[dev]"
 docker ps
 ```
 
-### Running Your First Mission
+### Running TermGame
+
+**Quick Launch (Recommended):**
+
+Choose the launcher for your platform:
 
 ```bash
-# Start the TUI (when implemented)
-termgame
+# Windows (CMD) - Double-click or run:
+.\play.bat
 
-# Or use the Python API directly
+# Windows (PowerShell)
+.\play.ps1
+
+# Linux/macOS (First time only: make executable)
+chmod +x play.sh
+./play.sh
+
+# Universal (Works everywhere with Python)
+python play.py
+```
+
+**Manual Launch:**
+```bash
+# Windows
+.venv\Scripts\activate
+termgame tui
+
+# Linux/macOS
+source .venv/bin/activate
+termgame tui
+```
+
+**What You'll See:**
+```
+  ______                    ______
+ /_  __/__  _________ ___  / ____/___ _____ ___  ___
+  / / / _ \/ ___/ __ `__ \/ / __/ __ `/ __ `__ \/ _ \
+ / / /  __/ /  / / / / / / /_/ / /_/ / / / / / /  __/
+/_/  \___/_/  /_/ /_/ /_/\____/\__,_/_/ /_/ /_/\___/
+
+Terminal training platform for Linux, Cisco IOS, and PowerShell
+
+Type help for commands, or list to see all missions
+
+termgame > :
+```
+
+**First Time Playing:**
+```bash
+# Inside TermGame
+> help       # See all commands
+> list       # Browse available missions
+> start linux/basics/navigation  # Start your first mission
+> progress   # Check your XP and completed missions
+```
+
+### Available Commands
+
+Once inside TermGame, you can use these commands:
+
+| Command | Description |
+|---------|-------------|
+| `list` | Show all missions with completion checkmarks |
+| `start <mission-id>` | Begin a training mission |
+| `progress` | View your total XP and completed missions |
+| `validate` | Check if current step is complete (during mission) |
+| `hint` | Get a helpful hint for current step (during mission) |
+| `abandon` | Give up current mission and cleanup container |
+| `reset` | **Reset all progress** - Deletes all XP and completed missions |
+| `status` | Check Docker connection health |
+| `help` | Show available commands |
+| `quit` | Exit TermGame (auto-cleanup containers) |
+
+**Reset Progress:**
+```bash
+> reset
+⚠️  Reset Progress
+
+This will permanently delete:
+  • All completed missions
+  • All earned XP
+  • All mission progress
+
+Are you sure you want to reset everything? [y/N]: y
+
+✓ Progress reset successfully!
+```
+
+### Advanced Usage
+
+**Python API:**
 python -c "
 from termgame.engine.factory import create_mission_engine
 from termgame.matchers.registry import MatcherRegistry
@@ -327,6 +419,97 @@ pre-commit run --all-files
 
 ---
 
+## 🔧 Troubleshooting
+
+### Docker Connection Errors
+
+If you encounter "Connection aborted" or "RemoteDisconnected" errors:
+
+1. **Check Docker is running**:
+   ```bash
+   docker ps
+   ```
+
+2. **View connection status** (in interactive mode):
+   ```bash
+   termgame tui
+   # Then type: status
+   ```
+
+3. **Check logs for details**:
+   ```bash
+   # Default log location
+   cat ~/.termgame/termgame.log
+
+   # Or custom location if TERMGAME_LOG_FILE is set
+   cat $TERMGAME_LOG_FILE
+   ```
+
+4. **Increase retry attempts** (if needed):
+   ```bash
+   export TERMGAME_MAX_RETRIES=7
+   export TERMGAME_RETRY_MAX_DELAY=30
+   termgame tui
+   ```
+
+### Circuit Breaker Active
+
+If you see "Circuit breaker open" messages:
+
+- **Cause**: Docker daemon is likely down or unresponsive
+- **Check**: Run `docker ps` to verify Docker is running
+- **Wait**: Circuit resets automatically after 30 seconds
+- **Fix**: Restart Docker Desktop and try again
+
+### Container Issues
+
+**Container not found errors**:
+- The mission container may have been manually stopped/removed
+- Solution: Type `abandon` in interactive mode, then restart the mission
+
+**Image pull failures**:
+- Check internet connection
+- Verify Docker Hub access
+- Try pulling the image manually: `docker pull <image-name>`
+
+### Configuration
+
+Fine-tune retry behavior and logging via environment variables:
+
+```bash
+# Retry configuration
+export TERMGAME_MAX_RETRIES=5          # Number of retry attempts (default: 5)
+export TERMGAME_RETRY_BASE_DELAY=1.0   # Initial delay in seconds (default: 1.0)
+export TERMGAME_RETRY_MAX_DELAY=10.0   # Maximum delay in seconds (default: 10.0)
+
+# Circuit breaker configuration
+export TERMGAME_CB_MAX_FAILURES=5      # Failure threshold (default: 5)
+export TERMGAME_CB_TIMEOUT=30.0        # Reset timeout in seconds (default: 30.0)
+
+# Logging configuration
+export TERMGAME_LOG_LEVEL=DEBUG        # Logging level (default: INFO)
+export TERMGAME_LOG_FILE=/path/to/log  # Custom log location (default: ~/.termgame/termgame.log)
+
+# Then run TermGame
+termgame tui
+```
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| Docker daemon not running | Start Docker Desktop, verify with `docker ps` |
+| Permission denied (Linux) | Add user to docker group: `sudo usermod -aG docker $USER` |
+| Slow command execution | Check Docker resource allocation in Docker Desktop settings |
+| Network timeout errors | Increase retry settings or check internet connection |
+
+For more detailed information, see:
+- Architecture decisions: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Docker runtime implementation: `src/termgame/runtimes/docker_runtime.py`
+- Error handling: `src/termgame/runtimes/exceptions.py`
+
+---
+
 ## 🛠️ Development
 
 ### Project Structure
@@ -377,6 +560,10 @@ TermGame/
 ├── scripts/                # Utility scripts
 │   ├── setup-integration-tests.sh
 │   └── setup-integration-tests.bat
+├── play.bat                # Quick launcher (Windows CMD)
+├── play.ps1                # Quick launcher (Windows PowerShell)
+├── play.sh                 # Quick launcher (Linux/macOS)
+├── play.py                 # Quick launcher (Universal Python)
 ├── pyproject.toml          # Project configuration
 ├── README.md
 ├── CONTRIBUTING.md

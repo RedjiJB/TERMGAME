@@ -4,15 +4,21 @@ This module provides helper functions for CLI commands including engine
 initialization, user management, and database operations.
 """
 
+from collections.abc import Callable
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from termgame.config import Config
 from termgame.db.models import Base, User
 from termgame.engine.mission_engine import MissionEngine
+from termgame.logging_config import setup_logging
 from termgame.matchers.implementations import ContainsMatcher, ExactMatcher, ExistsMatcher
 from termgame.matchers.registry import MatcherRegistry
 from termgame.runtimes import create_runtime
+
+# Type alias for progress callback
+ProgressCallback = Callable[[str, int, int], None]
 
 
 async def ensure_database(database_url: str) -> None:
@@ -78,15 +84,22 @@ def create_matcher_registry() -> MatcherRegistry:
     return registry
 
 
-async def create_cli_engine(config: Config) -> MissionEngine:
+async def create_cli_engine(
+    config: Config,
+    progress_callback: ProgressCallback | None = None,
+) -> MissionEngine:
     """Create fully configured mission engine for CLI use.
 
     Args:
         config: Application configuration
+        progress_callback: Optional callback for progress updates during retries
 
     Returns:
         Initialized MissionEngine instance
     """
+    # Setup logging
+    setup_logging()
+
     # Ensure database exists
     await ensure_database(config.database_url)
 
@@ -97,15 +110,20 @@ async def create_cli_engine(config: Config) -> MissionEngine:
     # Ensure user exists
     await get_or_create_user(session_factory, config.user_id)
 
-    # Create runtime and matchers
-    runtime = create_runtime(config.runtime_type)
+    # Create runtime and matchers with config and progress callback
+    runtime = create_runtime(
+        runtime_type=config.runtime_type,
+        config=config,
+        progress_callback=progress_callback,
+    )
     matcher_registry = create_matcher_registry()
 
-    # Create mission engine
+    # Create mission engine with progress callback
     return MissionEngine(
         runtime=runtime,
         matcher_registry=matcher_registry,
         session_factory=session_factory,
         scenarios_dir=config.scenarios_dir,
         user_id=config.user_id,
+        progress_callback=progress_callback,
     )

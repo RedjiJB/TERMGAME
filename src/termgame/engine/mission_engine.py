@@ -4,8 +4,11 @@ This module handles the execution of missions, including state management,
 validation, and progression through mission steps.
 """
 
+import logging
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -23,6 +26,16 @@ from termgame.engine.state import MissionState
 from termgame.loaders.scenario_loader import ScenarioLoader
 from termgame.matchers.registry import MatcherRegistry
 from termgame.runtimes.base import Container, ContainerRuntime
+from termgame.runtimes.exceptions import (
+    ConnectionError as RuntimeConnectionError,
+)
+from termgame.runtimes.exceptions import (
+    ContainerNotFoundError,
+    ImagePullError,
+)
+
+# Type alias for progress callback
+ProgressCallback = Callable[[str, int, int], None]
 
 
 class MissionEngine:
@@ -39,6 +52,7 @@ class MissionEngine:
         session_factory: async_sessionmaker[AsyncSession],
         scenarios_dir: Path,
         user_id: int = 1,
+        progress_callback: ProgressCallback | None = None,
     ) -> None:
         """Initialize the mission engine.
 
@@ -48,13 +62,16 @@ class MissionEngine:
             session_factory: SQLAlchemy async session factory.
             scenarios_dir: Directory containing scenario YAML files.
             user_id: Current user ID (default 1 for MVP).
+            progress_callback: Optional callback for progress updates during retries.
         """
         self._runtime = runtime
         self._matcher_registry = matcher_registry
         self._session_factory = session_factory
         self._user_id = user_id
+        self._progress_callback = progress_callback
         self._loader = ScenarioLoader(scenarios_dir)
         self._active_missions: dict[str, MissionState] = {}
+        self._logger = logging.getLogger(__name__)
 
     async def start_mission(self, mission_id: str) -> None:
         """Start a mission.
@@ -89,18 +106,34 @@ class MissionEngine:
                 name=container_name,
                 working_dir=scenario.environment.workdir,
             )
+        except ImagePullError as e:
+            msg = f"Failed to pull image: {e}"
+            self._logger.error(msg)
+            raise ContainerCreationError(msg) from e
+        except RuntimeConnectionError as e:
+            msg = f"Docker connection error: {e}"
+            self._logger.error(msg)
+            raise ContainerCreationError(msg) from e
         except Exception as e:
             msg = f"Failed to create container: {e}"
+            self._logger.error(msg)
             raise ContainerCreationError(msg) from e
 
         # Run setup commands
         try:
             for setup_cmd in scenario.environment.setup:
                 await self._runtime.execute_command(container, setup_cmd)
+        except RuntimeConnectionError as e:
+            # Cleanup container on setup failure
+            await self._cleanup_container(container)
+            msg = f"Docker connection error during setup: {e}"
+            self._logger.error(msg)
+            raise ContainerCreationError(msg) from e
         except Exception as e:
             # Cleanup container on setup failure
             await self._cleanup_container(container)
             msg = f"Setup failed: {e}"
+            self._logger.error(msg)
             raise ContainerCreationError(msg) from e
 
         # Create mission state
@@ -206,8 +239,17 @@ class MissionEngine:
                 actual = await self._runtime.execute_command(state.container, cmd)
                 actual = actual.strip()
 
+        except ContainerNotFoundError as e:
+            msg = f"Container lost during validation: {e}"
+            self._logger.error(msg)
+            raise ValidationFailedError(msg) from e
+        except RuntimeConnectionError as e:
+            msg = f"Connection error during validation: {e}"
+            self._logger.warning(msg)
+            raise ValidationFailedError(msg) from e
         except Exception as e:
             msg = f"Validation execution failed: {e}"
+            self._logger.error(msg)
             raise ValidationFailedError(msg) from e
 
         # Get matcher and validate
@@ -368,6 +410,23 @@ class MissionEngine:
                 "current_step": progress.current_step_index,
                 "xp_earned": progress.xp_earned if progress.completed else 0,
             }
+
+    def get_docker_health(self) -> dict[str, Any]:
+        """Get Docker connection health status.
+
+        Returns:
+            Dict with health metrics for debugging including circuit breaker state,
+            consecutive failures, last success timestamp, and current status.
+        """
+        if hasattr(self._runtime, "_health"):
+            health = self._runtime._health  # noqa: SLF001
+            return {
+                "circuit_open": health.circuit_open,
+                "consecutive_failures": health.consecutive_failures,
+                "last_success": health.last_success,
+                "should_attempt": health.should_attempt(),
+            }
+        return {"error": "Health monitoring not available"}
 
     async def _complete_mission(self, mission_id: str, session: AsyncSession) -> None:
         """Mark mission as completed and award XP.

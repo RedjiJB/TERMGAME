@@ -3,11 +3,16 @@
 This module provides a concrete implementation of the ContainerRuntime protocol
 using the official Docker SDK for Python. It wraps blocking Docker SDK calls
 in asyncio.to_thread() to enable non-blocking async/await usage.
+
+Enhanced with retry logic, circuit breaker pattern, and comprehensive error handling.
 """
 
 import asyncio
+import http.client
+import logging
 import shlex
 import time
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
@@ -17,6 +22,17 @@ import docker.errors
 from docker.models.containers import Container as DockerSDKContainer
 
 from termgame.runtimes.base import Container
+from termgame.runtimes.exceptions import (
+    ConnectionError as RuntimeConnectionError,
+)
+from termgame.runtimes.exceptions import (
+    ContainerNotFoundError,
+    ImagePullError,
+)
+from termgame.runtimes.health import HealthCheck
+
+# Type alias for progress callback
+ProgressCallback = Callable[[str, int, int], None]
 
 
 @dataclass
@@ -46,15 +62,62 @@ class DockerRuntime:
         >>> await runtime.remove_container(container)
     """
 
-    def __init__(self, base_url: str | None = None, timeout: int = 300) -> None:
-        """Initialize Docker client.
+    def __init__(
+        self,
+        base_url: str | None = None,
+        timeout: int = 300,
+        progress_callback: ProgressCallback | None = None,
+        config: Any = None,  # Config type (avoid circular import)
+    ) -> None:
+        """Initialize Docker client with enhanced reliability features.
 
         Args:
             base_url: Docker daemon URL. If None, uses Docker's default
                 (unix:///var/run/docker.sock on Linux/macOS, npipe on Windows).
             timeout: Timeout in seconds for API calls (default: 300 = 5 minutes).
+            progress_callback: Optional callback for progress updates during retries.
+                Called with (message, attempt, max_attempts).
+            config: Optional Config object with retry and circuit breaker settings.
         """
         self._client = docker.DockerClient(base_url=base_url, timeout=timeout)
+
+        # Initialize health check/circuit breaker
+        max_failures = getattr(config, "circuit_breaker_max_failures", 5) if config else 5
+        circuit_timeout = getattr(config, "circuit_breaker_timeout", 30.0) if config else 30.0
+        self._health = HealthCheck(
+            max_failures=max_failures,
+            circuit_timeout=circuit_timeout,
+        )
+
+        # Store configuration
+        self._progress_callback = progress_callback
+        self._config = config
+
+        # Setup logging
+        self._logger = logging.getLogger(__name__)
+
+    def _validate_connection(self) -> bool:
+        """Validate Docker daemon connection is alive.
+
+        Returns:
+            True if connection is healthy, False otherwise.
+        """
+        try:
+            self._client.ping()
+            return True
+        except Exception:
+            return False
+
+    def _report_progress(self, message: str, attempt: int, max_attempts: int) -> None:
+        """Report retry progress to callback if configured.
+
+        Args:
+            message: Progress message describing what's happening.
+            attempt: Current attempt number (1-indexed).
+            max_attempts: Total number of attempts allowed.
+        """
+        if self._progress_callback:
+            self._progress_callback(message, attempt, max_attempts)
 
     async def create_container(
         self,
@@ -85,10 +148,13 @@ class DockerRuntime:
         """
 
         def _create() -> DockerSDKContainer:
+            self._logger.info(f"Creating container from image: {image}")
+
             # If a container with the requested name already exists, remove it
             if name:
                 try:
                     existing = self._client.containers.get(name)
+                    self._logger.debug(f"Removing existing container: {name}")
                     try:
                         existing.remove(force=True)
                     except Exception:
@@ -103,18 +169,26 @@ class DockerRuntime:
 
             # Create container with interactive TTY support
             # Use 'tail -f /dev/null' as command to keep container alive
-            container: DockerSDKContainer = self._client.containers.create(
-                image=image,
-                name=name,
-                command="tail -f /dev/null",
-                working_dir=working_dir,
-                detach=True,
-                tty=True,
-                stdin_open=True,
-                **kwargs,
-            )
+            try:
+                container: DockerSDKContainer = self._client.containers.create(
+                    image=image,
+                    name=name,
+                    command="tail -f /dev/null",
+                    working_dir=working_dir,
+                    detach=True,
+                    tty=True,
+                    stdin_open=True,
+                    **kwargs,
+                )
+            except docker.errors.ImageNotFound as e:
+                self._logger.error(f"Image not found: {image}")
+                raise ImagePullError(f"Failed to pull image: {image}") from e
+
             # Start the container
             container.start()
+            # Docker SDK guarantees id is set for created containers
+            assert container.id is not None
+            self._logger.info(f"Container created: {container.id[:12]}")
             return container
 
         sdk_container = await asyncio.to_thread(_create)
@@ -124,12 +198,10 @@ class DockerRuntime:
         return DockerContainer(id=sdk_container.id, name=sdk_container.name)
 
     async def execute_command(self, container: Container, command: str) -> str:
-        """Execute a shell command in the container.
+        """Execute a shell command in the container with enhanced retry logic.
 
-        Commands are wrapped in "bash -c" to support shell features like
-        pipes, redirects, and environment variable expansion.
-
-        Retries up to 3 times on connection errors before failing.
+        Commands are wrapped in "sh -c" for portability across different container images.
+        Implements exponential backoff retry with circuit breaker protection.
 
         Args:
             container: Container to execute command in.
@@ -139,42 +211,108 @@ class DockerRuntime:
             Command stdout and stderr as a string (utf-8 decoded).
 
         Raises:
-            docker.errors.NotFound: If container doesn't exist.
-            docker.errors.APIError: If command execution fails.
+            RuntimeConnectionError: If connection to Docker daemon fails after all retries.
+            ContainerNotFoundError: If container doesn't exist (permanent failure).
         """
-        max_retries = 3
-        base_retry_delay = 0.5  # seconds
+        # Circuit breaker check
+        if not self._health.should_attempt():
+            raise RuntimeConnectionError(
+                "Circuit breaker open: Too many recent failures. "
+                "Docker daemon may be down. Please check: docker ps"
+            )
+
+        # Get retry configuration
+        max_retries = getattr(self._config, "max_retries", 5) if self._config else 5
+        base_delay = getattr(self._config, "retry_base_delay", 1.0) if self._config else 1.0
+        max_delay = getattr(self._config, "retry_max_delay", 10.0) if self._config else 10.0
 
         def _exec() -> str:
             for attempt in range(max_retries):
+                # Validate connection before retry (skip on first attempt)
+                if attempt > 0:
+                    self._report_progress(
+                        "Reconnecting to Docker daemon",
+                        attempt + 1,
+                        max_retries,
+                    )
+
+                    if not self._validate_connection():
+                        # Connection still down, try backoff or fail
+                        if attempt < max_retries - 1:
+                            # More retries available, backoff and continue
+                            delay = min(base_delay * (2**attempt), max_delay)
+                            jitter = delay * 0.1 * (2 * time.time() % 1 - 0.5)
+                            time.sleep(delay + jitter)
+                            continue
+                        # Out of retries
+                        self._health.record_failure()
+                        self._logger.error("Docker daemon unreachable after all retries")
+                        raise RuntimeConnectionError(
+                            f"Failed to execute command after {max_retries} attempts. "
+                            "Docker daemon unreachable. Try: docker ps"
+                        )
+
                 try:
-                    # Refresh container connection on each attempt
-                    # This helps with stale Docker API connections
-                    self._client.containers.list()  # Ping the API
+                    # Get fresh container reference
                     sdk_container: DockerSDKContainer = self._client.containers.get(container.id)
-                    # Use sh -c for portability (Alpine and minimal images)
+
+                    # Execute command (use sh for portability)
                     wrapped_cmd = f"sh -c {shlex.quote(command)}"
                     result = sdk_container.exec_run(wrapped_cmd, tty=False, demux=False)
-                    # Decode bytes to string - result.output is bytes
+
+                    # Decode output
                     output: bytes = result.output if result.output else b""
                     decoded = output.decode("utf-8", errors="replace")
 
-                    # Include exit code info if command failed
+                    # Success!
+                    self._health.record_success()
+                    self._logger.debug(f"Command executed successfully: {command[:50]}...")
+
+                    # Include exit code info if command failed with no output
                     if result.exit_code != 0 and not decoded:
                         return f"Command exited with code {result.exit_code}"
-                    return decoded  # noqa: TRY300
-                except (docker.errors.NotFound, docker.errors.APIError):
-                    # Re-raise Docker-specific errors without retrying
-                    raise
-                except Exception as e:
-                    # Connection errors - retry if we have attempts left
+                    return decoded
+
+                except docker.errors.NotFound:
+                    # Container gone - permanent failure, don't retry
+                    self._logger.error(f"Container not found: {container.id}")
+                    raise ContainerNotFoundError(
+                        f"Container {container.name} no longer exists. "
+                        "It may have been stopped or removed."
+                    )
+
+                except (
+                    docker.errors.APIError,
+                    http.client.RemoteDisconnected,
+                    ConnectionResetError,
+                    BrokenPipeError,
+                    OSError,  # Catches socket errors and connection failures
+                ) as e:
+                    # Transient connection errors - retry with backoff
+                    self._logger.warning(
+                        f"Connection error on attempt {attempt + 1}/{max_retries}: {e}"
+                    )
+
                     if attempt < max_retries - 1:
-                        # Exponential backoff: 0.5s, 0.75s, 1.125s
-                        delay = base_retry_delay * (1.5**attempt)
-                        time.sleep(delay)
+                        # Exponential backoff with jitter
+                        delay = min(base_delay * (2**attempt), max_delay)
+                        jitter = delay * 0.1 * (2 * time.time() % 1 - 0.5)
+                        time.sleep(delay + jitter)
                         continue
-                    # Out of retries - return error message
-                    return f"Error executing command after {max_retries} attempts: {e}"
+
+                    # Out of retries
+                    self._health.record_failure()
+                    self._logger.error(f"Failed after {max_retries} attempts: {e}")
+                    raise RuntimeConnectionError(
+                        f"Failed to execute command after {max_retries} attempts. "
+                        "Docker daemon may be unresponsive. Try: docker ps"
+                    ) from e
+
+                except Exception as e:
+                    # Unexpected error
+                    self._logger.error(f"Unexpected error: {e}", exc_info=True)
+                    raise RuntimeError(f"Unexpected error: {e}") from e
+
             return ""  # Should never reach here
 
         return await asyncio.to_thread(_exec)

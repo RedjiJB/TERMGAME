@@ -11,7 +11,7 @@ mission:
     - help
 
 environment:
-  image: "termgame/ubuntu-full:latest"
+  image: "ubuntu:22.04"
   workdir: "/home/learner"
   setup:
     - "mkdir -p /home/learner"
