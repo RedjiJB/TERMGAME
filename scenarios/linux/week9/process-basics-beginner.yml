@@ -1,0 +1,819 @@
+mission:
+  id: "linux/week9/process-basics-beginner"
+  title: "Introduction to Processes"
+  difficulty: beginner
+  description: "Learn process fundamentals including viewing, managing, and controlling Linux processes"
+  estimated_time: 25
+  tags:
+    - linux
+    - processes
+    - ps
+    - beginner
+    - week9
+    - cst8207
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "apt-get update -qq && apt-get install -y -qq procps"
+    - |
+      # Start some background processes for practice
+      sleep 300 &
+      sleep 600 &
+      sleep 900 &
+
+steps:
+  - id: "understand-processes"
+    title: "What are Processes?"
+    description: |
+      **Processes: Running Programs**
+
+      A process is a running instance of a program.
+
+      **Key concepts:**
+      - Every running program is a process
+      - Each process has a unique ID (PID)
+      - Processes have states (running, sleeping, stopped)
+      - Processes have priorities
+      - Processes have owners
+
+      **Process attributes:**
+      - **PID** (Process ID): Unique number
+      - **PPID** (Parent Process ID): Who started it
+      - **User**: Who owns the process
+      - **State**: Running, sleeping, stopped, zombie
+      - **CPU%**: CPU usage
+      - **Memory%**: Memory usage
+      - **Command**: What's running
+
+      **Process lifecycle:**
+      1. Created (forked from parent)
+      2. Running (executing)
+      3. Sleeping (waiting for resources)
+      4. Stopped (paused)
+      5. Terminated (finished or killed)
+
+      **Why manage processes?**
+      - Stop misbehaving programs
+      - Monitor resource usage
+      - Prioritize important tasks
+      - Troubleshoot performance
+      - Automate system management
+
+      **Every shell command creates a process:**
+      - You type: ls
+      - Shell creates: ls process
+      - Process runs: lists files
+      - Process ends: returns to shell
+
+      **Try creating a process:**
+      sleep 10
+      (Waits 10 seconds, then ends)
+
+      That was a process!
+    hint: "Every running program is a process with a unique PID"
+    validation:
+      type: "command-output"
+      command: "echo 'Process created' && sleep 1 && echo 'Process ended'"
+      matcher: "contains"
+      expected: "ended"
+
+  - id: "ps-command"
+    title: "Viewing Processes with ps"
+    description: |
+      **ps: Process Status**
+
+      View running processes with ps command.
+
+      **Basic ps:**
+      ps
+      Shows your processes in current terminal.
+
+      **ps with details:**
+      ps -f
+      Full format with more information.
+
+      Output columns:
+      - UID: User ID
+      - PID: Process ID
+      - PPID: Parent Process ID
+      - C: CPU usage
+      - STIME: Start time
+      - TTY: Terminal
+      - TIME: CPU time used
+      - CMD: Command
+
+      **Show all processes:**
+      ps -e
+      ps -A
+      (Both show every process)
+
+      **Show all processes with details:**
+      ps -ef
+      ps aux
+
+      **Common ps options:**
+      - -e: All processes
+      - -f: Full format
+      - -l: Long format
+      - -u user: Processes by user
+      - -p PID: Specific process
+      - -C name: Processes by name
+
+      **Examples:**
+
+      Your processes:
+      ps -f
+
+      All processes:
+      ps -ef
+
+      Your user's processes:
+      ps -u $USER
+
+      Specific command:
+      ps -C sleep
+
+      **ps aux format:**
+      ps aux
+
+      Columns:
+      - USER: Process owner
+      - PID: Process ID
+      - %CPU: CPU percentage
+      - %MEM: Memory percentage
+      - VSZ: Virtual memory size
+      - RSS: Physical memory size
+      - TTY: Terminal
+      - STAT: Process state
+      - START: Start time
+      - TIME: CPU time
+      - COMMAND: Command
+
+      **Try different ps commands:**
+      ps
+      ps -f
+      ps -ef
+      ps aux
+
+      Notice the differences!
+    hint: "Use ps to view processes, ps -ef for all processes"
+    validation:
+      type: "command-output"
+      command: "ps -ef | head -5"
+      matcher: "contains"
+      expected: "PID"
+
+  - id: "process-states"
+    title: "Understanding Process States"
+    description: |
+      **Process States (STAT column):**
+
+      **Common states:**
+      - **R**: Running (actively executing)
+      - **S**: Sleeping (waiting for event)
+      - **D**: Uninterruptible sleep (I/O wait)
+      - **T**: Stopped (paused)
+      - **Z**: Zombie (finished but not cleaned up)
+
+      **Additional flags:**
+      - **<**: High priority
+      - **N**: Low priority
+      - **L**: Pages locked in memory
+      - **s**: Session leader
+      - **+**: Foreground process
+      - **l**: Multi-threaded
+
+      **Examples:**
+      - **S**: Most processes (waiting)
+      - **R+**: Active foreground process
+      - **Ss**: Background service
+      - **Z**: Zombie (parent didn't wait)
+
+      **View process states:**
+      ps aux | head -20
+
+      Look at STAT column!
+
+      **Filter by state:**
+
+      Running processes:
+      ps aux | grep "^[^ ]* *[^ ]* *R"
+
+      Sleeping processes:
+      ps aux | grep "^[^ ]* *[^ ]* *S"
+
+      **What processes are doing:**
+
+      **Running (R):**
+      - Actively using CPU
+      - Executing instructions
+      - Usually your active programs
+
+      **Sleeping (S):**
+      - Waiting for input/output
+      - Waiting for user input
+      - Waiting for network
+      - Most processes are sleeping!
+
+      **Stopped (T):**
+      - Paused by user (Ctrl+Z)
+      - Debugging
+      - Can be resumed
+
+      **Zombie (Z):**
+      - Process finished
+      - Parent hasn't collected exit status
+      - Usually cleaned up quickly
+
+      **Practice:**
+      ps aux
+      (Look at STAT column for different states)
+
+      ps aux | grep sleep
+      (Should see S state - sleeping processes)
+    hint: "Check STAT column in ps aux for process states"
+    validation:
+      type: "command-output"
+      command: "ps aux | awk 'NR==1 || /sleep/ {print $8}' | head -5"
+      matcher: "contains"
+      expected: "STAT"
+
+  - id: "kill-command"
+    title: "Stopping Processes with kill"
+    description: |
+      **kill: Terminate Processes**
+
+      Stop processes using kill command.
+
+      **Basic syntax:**
+      kill PID
+
+      **How it works:**
+      1. Find process PID
+      2. Send signal to process
+      3. Process terminates (usually)
+
+      **Find and kill example:**
+
+      Start background process:
+      sleep 100 &
+
+      Output shows PID: [1] 12345
+
+      Find it:
+      ps aux | grep sleep
+
+      Kill it:
+      kill 12345
+
+      Verify:
+      ps aux | grep sleep
+      (Process should be gone)
+
+      **Kill signals:**
+
+      Default signal (TERM):
+      kill PID
+      Asks process to terminate gracefully.
+
+      Force kill (KILL):
+      kill -9 PID
+      Immediately terminates (no cleanup).
+
+      **Common signals:**
+      - -15 or -TERM: Terminate gracefully (default)
+      - -9 or -KILL: Force kill
+      - -1 or -HUP: Hang up (restart)
+      - -2 or -INT: Interrupt (like Ctrl+C)
+      - -STOP: Pause process
+      - -CONT: Resume process
+
+      **When to use which:**
+
+      Try gentle first:
+      kill PID
+
+      If that doesn't work:
+      kill -9 PID
+
+      **Kill by name with pkill:**
+      pkill sleep
+      (Kills all sleep processes)
+
+      pkill -u username
+      (Kill all processes by user)
+
+      **Kill by pattern with killall:**
+      killall sleep
+      (Kills all processes named "sleep")
+
+      **Practice:**
+
+      Start process:
+      sleep 200 &
+      echo $!  # Shows PID
+
+      List it:
+      ps aux | grep sleep
+
+      Kill it:
+      kill [PID]
+
+      Verify gone:
+      ps aux | grep sleep
+    hint: "Use kill PID to terminate, kill -9 PID to force"
+    validation:
+      type: "command-output"
+      command: "sleep 5 & PID=$! && sleep 1 && kill $PID 2>/dev/null && sleep 1 && ps -p $PID 2>&1 | grep -q 'No such process' && echo 'killed'"
+      matcher: "contains"
+      expected: "killed"
+
+  - id: "background-foreground"
+    title: "Background and Foreground Processes"
+    description: |
+      **Foreground vs Background:**
+
+      **Foreground:**
+      - Runs in terminal
+      - Blocks prompt
+      - You can't type other commands
+      - Receives keyboard input
+
+      **Background:**
+      - Runs behind scenes
+      - Doesn't block prompt
+      - You can run other commands
+      - Can't receive keyboard input
+
+      **Start in background:**
+      sleep 30 &
+
+      The & puts it in background!
+
+      Output: [1] 12345
+      - [1] = Job number
+      - 12345 = Process ID
+
+      **Start in foreground, move to background:**
+
+      Start:
+      sleep 60
+
+      Pause: Press Ctrl+Z
+      Output: [1]+ Stopped  sleep 60
+
+      Move to background:
+      bg
+
+      Now runs in background!
+
+      **Background to foreground:**
+      fg
+
+      Brings background job to foreground.
+
+      **Multiple background jobs:**
+
+      Start several:
+      sleep 100 &
+      sleep 200 &
+      sleep 300 &
+
+      List them:
+      jobs
+
+      Output:
+      [1]   Running   sleep 100 &
+      [2]-  Running   sleep 200 &
+      [3]+  Running   sleep 300 &
+
+      **Job numbers:**
+      - %1 = Job 1
+      - %2 = Job 2
+      - %+ = Most recent job
+      - %- = Previous job
+
+      **Control specific job:**
+      fg %1    # Bring job 1 to foreground
+      bg %2    # Run job 2 in background
+      kill %3  # Kill job 3
+
+      **Why use background:**
+      - Long-running tasks
+      - Keep terminal responsive
+      - Run multiple things at once
+      - Server processes
+
+      **Practice:**
+
+      Start in foreground:
+      sleep 30
+
+      Pause: Ctrl+Z
+
+      Move to background:
+      bg
+
+      List jobs:
+      jobs
+
+      Bring back:
+      fg
+
+      Kill:
+      Ctrl+C
+    hint: "Use & to start in background, Ctrl+Z then bg to move to background"
+    validation:
+      type: "command-output"
+      command: "sleep 10 & echo $! && jobs | grep sleep"
+      matcher: "contains"
+      expected: "sleep"
+
+  - id: "top-command"
+    title: "Real-Time Monitoring with top"
+    description: |
+      **top: Live Process Monitor**
+
+      Interactive, real-time view of system processes.
+
+      **Start top:**
+      top
+
+      **What you see:**
+
+      **Header section:**
+      - Uptime
+      - Users logged in
+      - Load average
+      - Tasks: total, running, sleeping, stopped, zombie
+      - CPU usage: user, system, idle
+      - Memory: total, used, free
+      - Swap: total, used, free
+
+      **Process list:**
+      - PID: Process ID
+      - USER: Owner
+      - PR: Priority
+      - NI: Nice value
+      - VIRT: Virtual memory
+      - RES: Resident memory
+      - SHR: Shared memory
+      - S: State
+      - %CPU: CPU usage
+      - %MEM: Memory usage
+      - TIME+: CPU time
+      - COMMAND: Command name
+
+      **Interactive commands in top:**
+
+      h or ?  Help
+      q       Quit
+      k       Kill process (prompts for PID)
+      r       Renice (change priority)
+      M       Sort by memory
+      P       Sort by CPU (default)
+      T       Sort by time
+      u       Filter by user
+      c       Show full command
+      1       Show individual CPUs
+      d       Change refresh rate
+
+      **Useful views:**
+
+      Sort by memory:
+      Press M
+
+      Sort by CPU:
+      Press P
+
+      Show full commands:
+      Press c
+
+      Filter by user:
+      Press u, then type username
+
+      **Kill from top:**
+      Press k
+      Enter PID
+      Enter signal (15 for TERM, 9 for KILL)
+
+      **Alternative: htop**
+      (More user-friendly, colorful)
+      htop
+      (If installed)
+
+      **top in batch mode:**
+      top -b -n 1
+      (One iteration, suitable for scripts)
+
+      **Show top 10 CPU users:**
+      top -b -n 1 | head -17
+
+      **Practice:**
+      top
+
+      Try these keys:
+      - M (sort by memory)
+      - P (sort by CPU)
+      - c (toggle command)
+      - q (quit)
+
+      Don't kill anything important!
+    hint: "Use top for real-time monitoring, q to quit"
+    validation:
+      type: "command-output"
+      command: "top -b -n 1 | head -10"
+      matcher: "contains"
+      expected: "PID"
+
+  - id: "process-info"
+    title: "Process Information in /proc"
+    description: |
+      **/proc: Process Information Filesystem**
+
+      Special filesystem with process info.
+
+      **Structure:**
+      /proc/[PID]/
+
+      Each process has a directory!
+
+      **Useful files:**
+
+      /proc/[PID]/cmdline   Command line
+      /proc/[PID]/status    Detailed status
+      /proc/[PID]/cwd       Current directory
+      /proc/[PID]/exe       Executable path
+      /proc/[PID]/environ   Environment variables
+      /proc/[PID]/fd/       Open file descriptors
+
+      **View your shell's PID:**
+      echo $$
+
+      **Explore your process:**
+      ls -la /proc/$$/
+
+      **View command:**
+      cat /proc/$$/cmdline
+
+      (May need strings to read)
+
+      **View status:**
+      cat /proc/$$/status
+
+      Shows:
+      - Name
+      - State
+      - PID, PPID
+      - Memory usage
+      - CPU affinity
+      - And more!
+
+      **Current directory:**
+      ls -l /proc/$$/cwd
+
+      (Symbolic link to current directory)
+
+      **Open files:**
+      ls -l /proc/$$/fd/
+
+      Shows:
+      - 0: stdin
+      - 1: stdout
+      - 2: stderr
+      - Other open files
+
+      **System-wide info:**
+
+      /proc/cpuinfo     CPU information
+      /proc/meminfo     Memory information
+      /proc/version     Kernel version
+      /proc/uptime      System uptime
+      /proc/loadavg     Load average
+
+      **Try these:**
+      cat /proc/cpuinfo | grep "model name"
+      cat /proc/meminfo | grep "MemTotal"
+      cat /proc/version
+      cat /proc/uptime
+
+      **Find process by name:**
+      pgrep sleep
+
+      View its info:
+      PID=$(pgrep sleep | head -1)
+      cat /proc/$PID/status | grep Name
+
+      **Practice:**
+      echo "My shell PID: $$"
+      ls /proc/$$/
+      cat /proc/$$/status | head -10
+      cat /proc/cpuinfo | grep "model name"
+    hint: "Explore /proc/[PID]/ for process information"
+    validation:
+      type: "command-output"
+      command: "ls /proc/$$ | head -5"
+      matcher: "contains"
+      expected: ""
+
+  - id: "useful-commands"
+    title: "Useful Process Commands"
+    description: |
+      **More Process Commands:**
+
+      **pgrep: Find processes by name**
+      pgrep sleep
+      pgrep -u username
+      pgrep -l sleep  # Show name and PID
+
+      **pidof: Get PID of program**
+      pidof sleep
+
+      **pstree: Show process tree**
+      pstree
+      pstree -p  # Show PIDs
+      pstree $$  # Your shell's tree
+
+      **lsof: List open files**
+      lsof
+      lsof -p PID
+      lsof -u username
+
+      **uptime: System uptime and load**
+      uptime
+
+      Output: 10:30:15 up 5 days, 2:30, 3 users, load average: 0.50, 0.40, 0.35
+
+      Load average: 1min, 5min, 15min
+
+      **free: Memory usage**
+      free
+      free -h  # Human readable
+
+      Shows:
+      - Total memory
+      - Used memory
+      - Free memory
+      - Buffers/cache
+      - Swap usage
+
+      **vmstat: Virtual memory stats**
+      vmstat
+      vmstat 5  # Update every 5 seconds
+
+      **iostat: I/O statistics**
+      iostat
+      (If sysstat package installed)
+
+      **w: Who is logged in**
+      w
+
+      Shows:
+      - Users
+      - Terminals
+      - Login time
+      - What they're running
+
+      **who: Logged in users**
+      who
+      who -a  # All information
+
+      **Combining commands:**
+
+      Find and kill:
+      kill $(pgrep sleep)
+
+      Count processes:
+      ps aux | wc -l
+
+      Top memory users:
+      ps aux --sort=-%mem | head -10
+
+      Top CPU users:
+      ps aux --sort=-%cpu | head -10
+
+      **Practice:**
+      pgrep sleep
+      pstree | less
+      uptime
+      free -h
+      w
+      ps aux --sort=-%mem | head -5
+    hint: "Use pgrep to find, pstree to visualize, uptime for load"
+    validation:
+      type: "command-output"
+      command: "pgrep -l sleep && uptime"
+      matcher: "contains"
+      expected: ""
+
+completion:
+  message: |
+    🎉 PROCESS BASICS MASTERED! 🎉
+
+    You've learned the fundamentals of Linux process management!
+
+    **What You've Learned:**
+
+    ✓ Process concepts and lifecycle
+    ✓ Viewing processes with ps
+    ✓ Understanding process states
+    ✓ Stopping processes with kill
+    ✓ Background and foreground jobs
+    ✓ Real-time monitoring with top
+    ✓ Process information in /proc
+    ✓ Useful process utilities
+
+    **Quick Reference:**
+
+    **View Processes:**
+    ps                  Your processes
+    ps -ef              All processes (full)
+    ps aux              All processes (BSD style)
+    ps -u username      User's processes
+    ps -C command       By command name
+
+    **Process Control:**
+    kill PID            Terminate process
+    kill -9 PID         Force kill
+    pkill name          Kill by name
+    killall name        Kill all by name
+
+    **Background/Foreground:**
+    command &           Start in background
+    Ctrl+Z              Pause foreground process
+    bg                  Resume in background
+    fg                  Bring to foreground
+    jobs                List background jobs
+
+    **Monitoring:**
+    top                 Interactive monitor
+    top -b -n 1         Batch mode
+    uptime              System load
+    free -h             Memory usage
+    w                   Who's logged in
+
+    **Find Processes:**
+    pgrep name          Find PID by name
+    pidof program       Get PID
+    pstree              Process tree
+    ps aux | grep name  Search processes
+
+    **Process States:**
+    R    Running
+    S    Sleeping
+    D    Uninterruptible sleep
+    T    Stopped
+    Z    Zombie
+
+    **Signals:**
+    -15 (TERM)    Graceful termination
+    -9 (KILL)     Force kill
+    -1 (HUP)      Hangup/restart
+    -STOP         Pause
+    -CONT         Continue
+
+    **Best Practices:**
+
+    ☑ Try gentle kill before -9
+    ☑ Check process before killing
+    ☑ Use background for long tasks
+    ☑ Monitor resource usage
+    ☑ Clean up zombie processes
+    ☑ Use top to find resource hogs
+    ☑ Check /proc for detailed info
+    ☑ Use pgrep for scripting
+
+    **Common Tasks:**
+
+    Find resource hog:
+    top
+    Press M (memory) or P (CPU)
+
+    Kill misbehaving process:
+    ps aux | grep program
+    kill PID
+    kill -9 PID  # If needed
+
+    Run task in background:
+    long_command &
+    disown  # Detach from shell
+
+    Monitor specific process:
+    watch -n 1 'ps -p PID -o pid,user,%cpu,%mem,cmd'
+
+    **Next Steps:**
+    - Process priorities (nice/renice)
+    - Process scheduling
+    - Signal handling
+    - systemd services
+    - cgroups and resource limits
+
+    You now have essential process management skills!
+
+    GREAT WORK!
+  xp: 200
+  unlocks:
+    - "linux/week9/job-control-intermediate"
+    - "linux/week9/process-management-advanced"

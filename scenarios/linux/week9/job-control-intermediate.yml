@@ -1,0 +1,799 @@
+mission:
+  id: "linux/week9/job-control-intermediate"
+  title: "Job Control and Process Management"
+  difficulty: intermediate
+  description: "Master job control, process priorities, signals, and advanced process management techniques"
+  estimated_time: 35
+  tags:
+    - linux
+    - processes
+    - job-control
+    - signals
+    - intermediate
+    - week9
+    - cst8207
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "apt-get update -qq && apt-get install -y -qq procps bc"
+    - "mkdir -p /home/learner/scripts"
+
+steps:
+  - id: "job-control-basics"
+    title: "Advanced Job Control"
+    description: |
+      **Job Control: Managing Multiple Tasks**
+
+      Job control lets you run multiple programs from one terminal.
+
+      **Job vs Process:**
+      - **Process**: Any running program (system-wide)
+      - **Job**: Process started from your shell
+
+      Every job is a process, but not every process is a job!
+
+      **Job states:**
+      - **Running**: Actively executing
+      - **Stopped**: Paused (Ctrl+Z)
+      - **Done**: Finished
+
+      **Job control commands:**
+      jobs      List jobs
+      fg [%n]   Foreground job n
+      bg [%n]   Background job n
+      Ctrl+Z    Stop current job
+      Ctrl+C    Kill current job
+
+      **Job numbers:**
+      %1        Job 1
+      %2        Job 2
+      %+        Current job
+      %-        Previous job
+      %%        Current job (same as %+)
+
+      **Example workflow:**
+
+      Start job:
+      sleep 100
+
+      Pause: Ctrl+Z
+      [1]+ Stopped  sleep 100
+
+      Continue in background:
+      bg %1
+      [1]+ sleep 100 &
+
+      List jobs:
+      jobs
+      [1]+ Running  sleep 100 &
+
+      Bring to foreground:
+      fg %1
+
+      Kill: Ctrl+C
+
+      **Multiple jobs:**
+
+      sleep 100 &
+      [1] 12345
+
+      sleep 200 &
+      [2] 12346
+
+      sleep 300 &
+      [3] 12347
+
+      jobs
+      [1]   Running   sleep 100 &
+      [2]-  Running   sleep 200 &
+      [3]+  Running   sleep 300 &
+
+      +  = current (most recent)
+      -  = previous
+
+      **Control specific jobs:**
+      fg %1     # Foreground job 1
+      bg %2     # Background job 2
+      kill %3   # Kill job 3
+
+      **Detach job from terminal:**
+      disown %1
+
+      Now job continues even if you close terminal!
+
+      **Practice:**
+      sleep 60 &
+      sleep 120 &
+      jobs
+      fg %1
+      Ctrl+Z
+      bg
+      jobs
+      kill %1 %2
+    hint: "Use jobs to list, fg/bg to control, Ctrl+Z to pause"
+    validation:
+      type: "command-output"
+      command: "sleep 10 & sleep 20 & jobs | wc -l"
+      matcher: "regex"
+      expected: "[1-9]"
+
+  - id: "process-signals"
+    title: "Understanding Signals"
+    description: |
+      **Signals: Inter-Process Communication**
+
+      Signals are notifications sent to processes.
+
+      **Common signals:**
+
+      | Signal | Number | Meaning | Can Catch? |
+      |--------|--------|---------|------------|
+      | SIGHUP | 1 | Hangup (terminal closed) | Yes |
+      | SIGINT | 2 | Interrupt (Ctrl+C) | Yes |
+      | SIGQUIT | 3 | Quit (Ctrl+\\) | Yes |
+      | SIGKILL | 9 | Kill (force) | No |
+      | SIGTERM | 15 | Terminate (graceful) | Yes |
+      | SIGSTOP | 19 | Stop (pause) | No |
+      | SIGCONT | 18 | Continue (resume) | Yes |
+      | SIGUSR1 | 10 | User-defined | Yes |
+      | SIGUSR2 | 12 | User-defined | Yes |
+
+      **Sending signals:**
+
+      By number:
+      kill -9 PID      # SIGKILL
+      kill -15 PID     # SIGTERM
+
+      By name:
+      kill -KILL PID   # SIGKILL
+      kill -TERM PID   # SIGTERM
+      kill -HUP PID    # SIGHUP
+
+      **Signal meanings:**
+
+      **SIGTERM (15) - Graceful shutdown:**
+      - Default signal
+      - Process can catch and cleanup
+      - Saves data, closes files
+      - Preferred method
+
+      **SIGKILL (9) - Force kill:**
+      - Cannot be caught or ignored
+      - Immediate termination
+      - No cleanup
+      - Last resort only!
+
+      **SIGINT (2) - Interrupt:**
+      - Sent by Ctrl+C
+      - Like SIGTERM but from keyboard
+      - Process can catch
+
+      **SIGHUP (1) - Hangup:**
+      - Originally: terminal disconnected
+      - Now: reload configuration
+      - Example: nginx -s reload
+
+      **SIGSTOP/SIGCONT - Pause/Resume:**
+      - SIGSTOP: Pause process
+      - SIGCONT: Resume process
+      - Like Ctrl+Z and bg/fg
+
+      **Proper kill procedure:**
+
+      1. Try SIGTERM first:
+         kill PID
+         wait...
+
+      2. If not responding:
+         kill -TERM PID
+         wait longer...
+
+      3. Last resort:
+         kill -9 PID
+
+      **Signal to all processes by name:**
+      killall -TERM firefox
+      pkill -HUP nginx
+
+      **Practice:**
+
+      Start process:
+      sleep 100 &
+      PID=$!
+
+      Send SIGSTOP (pause):
+      kill -STOP $PID
+
+      Check (should show T state):
+      ps -p $PID -o pid,stat,cmd
+
+      Send SIGCONT (resume):
+      kill -CONT $PID
+
+      Check (should show S state):
+      ps -p $PID -o pid,stat,cmd
+
+      Kill gracefully:
+      kill -TERM $PID
+    hint: "Use kill -SIGNAL PID, try TERM before KILL"
+    validation:
+      type: "command-output"
+      command: "kill -l | grep -E 'TERM|KILL|INT' | wc -l"
+      matcher: "regex"
+      expected: "[3-9]"
+
+  - id: "process-priorities"
+    title: "Process Priorities and Nice Values"
+    description: |
+      **Process Priority: Who Gets CPU First?**
+
+      **Nice value:**
+      - Range: -20 (highest priority) to 19 (lowest)
+      - Default: 0
+      - Lower number = higher priority
+      - Higher number = "nicer" to other processes
+
+      **Who can set priorities:**
+      - Any user: Increase nice (lower priority)
+      - Root only: Decrease nice (higher priority)
+
+      **View priorities:**
+      ps -el | head
+      ps -eo pid,ni,comm
+
+      NI column shows nice value.
+
+      **Start with nice value:**
+      nice -n 10 command
+
+      Example:
+      nice -n 10 sleep 100 &
+
+      Very low priority:
+      nice -n 19 ./cpu_intensive_task &
+
+      High priority (requires root):
+      nice -n -10 ./important_task &
+
+      **Change nice value (renice):**
+
+      Lower priority (anyone):
+      renice +5 PID
+
+      Raise priority (root only):
+      sudo renice -5 PID
+
+      By user:
+      sudo renice +10 -u username
+
+      By group:
+      sudo renice +10 -g groupname
+
+      **Use cases:**
+
+      **Low priority (high nice):**
+      - Backup jobs
+      - Log processing
+      - Maintenance tasks
+      - Batch processing
+
+      Example:
+      nice -n 19 tar -czf backup.tar.gz /data/ &
+
+      **High priority (low nice):**
+      - Interactive applications
+      - Real-time processing
+      - Critical services
+      - Database servers
+
+      **CPU scheduling:**
+
+      Nice affects CPU scheduling:
+      - Nice 0: Normal share
+      - Nice 19: Gets CPU when idle
+      - Nice -20: Gets CPU frequently
+
+      **Practice:**
+
+      Start low priority task:
+      nice -n 15 sleep 100 &
+      PID=$!
+
+      Check nice value:
+      ps -o pid,ni,comm -p $PID
+
+      Increase priority (lower nice):
+      renice 10 $PID
+
+      Check again:
+      ps -o pid,ni,comm -p $PID
+
+      **CPU-bound script for testing:**
+
+      cat > scripts/cpu_test.sh << 'EOF'
+      #!/bin/bash
+      # CPU-intensive task
+      i=0
+      while [ $i -lt 1000000 ]; do
+        result=$(echo "scale=10; $i * 3.14159" | bc)
+        i=$((i + 1))
+      done
+      EOF
+
+      chmod +x scripts/cpu_test.sh
+
+      Run with different priorities:
+      nice -n 0 ./scripts/cpu_test.sh &
+      nice -n 19 ./scripts/cpu_test.sh &
+
+      Monitor with top:
+      top
+      (Press M to sort by CPU, see NI column)
+    hint: "Use nice -n VALUE command, renice VALUE PID to adjust"
+    validation:
+      type: "command-output"
+      command: "nice -n 10 sleep 10 & PID=$! && ps -o pid,ni,comm -p $PID | grep sleep"
+      matcher: "contains"
+      expected: "10"
+
+  - id: "nohup-screen"
+    title: "Persistent Processes with nohup"
+    description: |
+      **nohup: Run After Logout**
+
+      Problem: Jobs die when you close terminal.
+
+      Solution: nohup (no hangup)
+
+      **Basic usage:**
+      nohup command &
+
+      **What nohup does:**
+      - Ignores SIGHUP signal
+      - Redirects output to nohup.out
+      - Process continues after logout
+
+      **Example:**
+      nohup sleep 300 &
+      [1] 12345
+      nohup: ignoring input and appending output to 'nohup.out'
+
+      Close terminal, process still runs!
+
+      **Custom output file:**
+      nohup command > output.log 2>&1 &
+
+      **Practical examples:**
+
+      Long-running script:
+      nohup ./long_script.sh > script.log 2>&1 &
+
+      Background server:
+      nohup python3 server.py > server.log 2>&1 &
+
+      Download:
+      nohup wget large_file.zip > download.log 2>&1 &
+
+      **Combining nohup and nice:**
+      nohup nice -n 10 ./backup.sh > backup.log 2>&1 &
+
+      **View output:**
+      tail -f nohup.out
+
+      **Find nohup processes:**
+      ps aux | grep [n]ohup
+
+      **Alternative: disown**
+
+      Start process:
+      sleep 300 &
+
+      Detach from shell:
+      disown %1
+
+      Now immune to SIGHUP!
+
+      **Difference:**
+      - nohup: Set before starting
+      - disown: Set after starting
+
+      **Practice:**
+
+      Start with nohup:
+      nohup sleep 200 > /tmp/nohup_test.log 2>&1 &
+      echo $!
+
+      Verify running:
+      ps aux | grep sleep
+
+      Check output:
+      cat /tmp/nohup_test.log
+
+      **Long-running task simulation:**
+
+      cat > scripts/long_task.sh << 'EOF'
+      #!/bin/bash
+      for i in {1..60}; do
+        echo "Progress: $i/60 at $(date)"
+        sleep 1
+      done
+      echo "Task complete!"
+      EOF
+
+      chmod +x scripts/long_task.sh
+
+      Run with nohup:
+      nohup ./scripts/long_task.sh > task.log 2>&1 &
+
+      Monitor:
+      tail -f task.log
+      (Ctrl+C to stop watching, process continues)
+    hint: "Use nohup command & to run immune to hangup"
+    validation:
+      type: "command-output"
+      command: "nohup sleep 10 > /tmp/nohup_test.log 2>&1 & sleep 1 && ps aux | grep '[n]ohup'"
+      matcher: "contains"
+      expected: ""
+
+  - id: "process-monitoring"
+    title: "Advanced Process Monitoring"
+    description: |
+      **watch: Continuous Monitoring**
+
+      Run command repeatedly, show output.
+
+      **Basic usage:**
+      watch command
+
+      Update every 2 seconds (default).
+
+      **Custom interval:**
+      watch -n 5 command
+      (Update every 5 seconds)
+
+      **Highlight changes:**
+      watch -d command
+
+      **Examples:**
+
+      Monitor processes:
+      watch 'ps aux | grep python'
+
+      Monitor disk space:
+      watch -n 10 df -h
+
+      Monitor memory:
+      watch free -h
+
+      Monitor jobs:
+      watch jobs
+
+      Monitor specific process:
+      watch -n 1 'ps -p PID -o pid,stat,%cpu,%mem,cmd'
+
+      **pgrep with monitoring:**
+
+      Watch for process:
+      watch -n 1 'pgrep -l firefox'
+
+      Count processes:
+      watch -n 1 'ps aux | wc -l'
+
+      **Custom monitoring script:**
+
+      cat > scripts/monitor_cpu.sh << 'EOF'
+      #!/bin/bash
+      echo "=== Top CPU Users ==="
+      ps aux --sort=-%cpu | head -6
+      echo ""
+      echo "=== Top Memory Users ==="
+      ps aux --sort=-%mem | head -6
+      echo ""
+      echo "=== System Load ==="
+      uptime
+      EOF
+
+      chmod +x scripts/monitor_cpu.sh
+
+      Watch it:
+      watch -n 2 ./scripts/monitor_cpu.sh
+
+      **Process tree monitoring:**
+      watch -n 1 'pstree -p $$'
+
+      **pidstat: Per-process statistics**
+      (If sysstat installed)
+      pidstat 1
+      pidstat -p PID 1
+
+      **strace: Trace system calls**
+
+      Debug what process is doing:
+      strace -p PID
+
+      Trace new process:
+      strace command
+
+      **lsof: Open files**
+
+      Files opened by process:
+      lsof -p PID
+
+      Processes using file:
+      lsof /path/to/file
+
+      Network connections:
+      lsof -i
+
+      **/proc filesystem monitoring:**
+
+      CPU usage:
+      cat /proc/PID/stat
+
+      Memory info:
+      cat /proc/PID/status | grep -i mem
+
+      Open files:
+      ls -l /proc/PID/fd/
+
+      **Practice:**
+
+      Start background process:
+      sleep 300 &
+      PID=$!
+
+      Monitor it:
+      watch -n 1 "ps -p $PID -o pid,stat,%cpu,%mem,cmd"
+
+      (Ctrl+C to exit)
+
+      View its /proc info:
+      cat /proc/$PID/status | head -20
+      ls -l /proc/$PID/fd/
+    hint: "Use watch for continuous monitoring, /proc for detailed info"
+    validation:
+      type: "command-output"
+      command: "watch -n 1 'ps aux | head -5' & sleep 2 && jobs | grep watch && kill %1"
+      matcher: "contains"
+      expected: "watch"
+
+  - id: "practical-scenarios"
+    title: "Practical Process Management Scenarios"
+    description: |
+      **Real-World Process Management:**
+
+      **Scenario 1: Find and kill resource hog**
+
+      Find CPU hog:
+      ps aux --sort=-%cpu | head -5
+
+      Kill it:
+      kill [PID]
+
+      Or one-liner:
+      kill $(ps aux --sort=-%cpu | awk 'NR==2 {print $2}')
+
+      **Scenario 2: Restart hung service**
+
+      Find process:
+      pgrep nginx
+
+      Try graceful:
+      kill -HUP [PID]
+
+      If stuck:
+      kill -TERM [PID]
+
+      Last resort:
+      kill -9 [PID]
+
+      Restart:
+      service nginx start
+
+      **Scenario 3: Run maintenance task**
+
+      Low priority, immune to logout:
+      nohup nice -n 19 ./maintenance.sh > maint.log 2>&1 &
+
+      Monitor progress:
+      tail -f maint.log
+
+      **Scenario 4: Kill all user processes**
+
+      pkill -u username
+      killall -u username
+
+      **Scenario 5: Find processes using file**
+
+      lsof /var/log/app.log
+      fuser /var/log/app.log
+
+      Kill them:
+      fuser -k /var/log/app.log
+
+      **Scenario 6: Monitor suspect process**
+
+      watch -n 1 'ps -p PID -o pid,stat,%cpu,%mem,cmd'
+
+      Or:
+      top -p PID
+
+      **Scenario 7: Clean up zombies**
+
+      Find zombies:
+      ps aux | grep Z
+
+      Find parent:
+      ps -ef | grep [PPID]
+
+      Kill parent (zombies will be cleaned):
+      kill -TERM [PPID]
+
+      **Scenario 8: Batch job control**
+
+      Start multiple jobs:
+      for i in {1..5}; do
+        nice -n 15 ./job$i.sh > job$i.log 2>&1 &
+      done
+
+      Monitor all:
+      watch jobs
+
+      Kill all:
+      jobs -p | xargs kill
+
+      **Create test scenario:**
+
+      cat > scripts/resource_test.sh << 'EOF'
+      #!/bin/bash
+      # Simulated resource-intensive task
+      echo "Starting task at $(date)"
+      i=0
+      while [ $i -lt 100 ]; do
+        # CPU work
+        result=$(echo "scale=5; $i * 3.14159" | bc 2>/dev/null)
+        echo "Progress: $i% at $(date)"
+        sleep 1
+        i=$((i + 1))
+      done
+      echo "Task complete at $(date)"
+      EOF
+
+      chmod +x scripts/resource_test.sh
+
+      Run it:
+      nohup nice -n 10 ./scripts/resource_test.sh > resource.log 2>&1 &
+      PID=$!
+
+      Monitor:
+      watch -n 2 "ps -p $PID -o pid,ni,stat,%cpu,cmd && tail -3 resource.log"
+
+      Practice finding and managing it!
+    hint: "Combine ps, kill, nice, nohup for real-world scenarios"
+    validation:
+      type: "file-exists"
+      path: "/home/learner/scripts/resource_test.sh"
+
+completion:
+  message: |
+    🎉 JOB CONTROL MASTERED! 🎉
+
+    You've mastered intermediate process and job management!
+
+    **What You've Learned:**
+
+    ✓ Advanced job control techniques
+    ✓ Process signals and communication
+    ✓ Process priorities (nice/renice)
+    ✓ Persistent processes (nohup)
+    ✓ Advanced monitoring techniques
+    ✓ Real-world management scenarios
+
+    **Quick Reference:**
+
+    **Job Control:**
+    jobs                List jobs
+    fg [%n]             Foreground job
+    bg [%n]             Background job
+    disown [%n]         Detach job
+    Ctrl+Z              Pause job
+    Ctrl+C              Kill job
+
+    **Signals:**
+    kill PID            Send SIGTERM (15)
+    kill -9 PID         Send SIGKILL (force)
+    kill -HUP PID       Send SIGHUP (reload)
+    kill -STOP PID      Pause process
+    kill -CONT PID      Resume process
+    killall name        Kill all by name
+    pkill pattern       Kill by pattern
+
+    **Priority:**
+    nice -n 10 cmd      Start with nice 10
+    nice -n -5 cmd      High priority (root)
+    renice 5 PID        Change to nice 5
+    renice -5 PID       Higher priority (root)
+
+    **Persistent:**
+    nohup cmd &         Immune to hangup
+    nohup cmd > log 2>&1 &   With output
+    disown %1           Detach existing job
+
+    **Monitoring:**
+    watch cmd           Repeat command
+    watch -n 5 cmd      Every 5 seconds
+    watch -d cmd        Highlight changes
+    top -p PID          Monitor process
+    lsof -p PID         Open files
+    strace -p PID       Trace syscalls
+
+    **Signal Numbers:**
+    1  SIGHUP     Hangup
+    2  SIGINT     Interrupt (Ctrl+C)
+    9  SIGKILL    Force kill
+    15 SIGTERM    Terminate (graceful)
+    18 SIGCONT    Continue
+    19 SIGSTOP    Stop
+
+    **Nice Values:**
+    -20    Highest priority (root only)
+    -10    High priority (root only)
+    0      Default priority
+    10     Lower priority
+    19     Lowest priority
+
+    **Best Practices:**
+
+    ☑ Use SIGTERM before SIGKILL
+    ☑ Use nohup for long-running tasks
+    ☑ Use nice for CPU-intensive jobs
+    ☑ Monitor resource usage regularly
+    ☑ Clean up finished jobs
+    ☑ Use disown or nohup for persistent tasks
+    ☑ Check process state before killing
+    ☑ Use appropriate signals
+
+    **Common Patterns:**
+
+    Background task with low priority:
+    nohup nice -n 15 ./task.sh > task.log 2>&1 &
+
+    Monitor specific process:
+    watch -n 1 'ps -p PID -o pid,%cpu,%mem,stat,cmd'
+
+    Find and kill gracefully:
+    kill $(pgrep process_name)
+    sleep 5
+    kill -9 $(pgrep process_name)  # If still alive
+
+    Run batch jobs:
+    for script in *.sh; do
+      nohup nice -n 10 ./$script > $script.log 2>&1 &
+    done
+
+    **Troubleshooting:**
+
+    Process won't die:
+    1. Check if it's catching signals
+    2. Try SIGTERM first
+    3. Wait a moment
+    4. Try SIGKILL if necessary
+
+    Zombie processes:
+    1. Find parent (PPID)
+    2. Kill parent process
+    3. init will clean up zombies
+
+    High CPU usage:
+    1. Identify with top/ps
+    2. Check if legitimate
+    3. Renice or kill if needed
+
+    You now have professional process management skills!
+
+    EXCELLENT WORK!
+  xp: 300
+  unlocks:
+    - "linux/week9/process-management-advanced"
