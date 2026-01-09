@@ -1,0 +1,304 @@
+mission:
+  id: "advanced-text-processing"
+  title: "Advanced Text Processing and Data Manipulation"
+  difficulty: "advanced"
+  description: |
+    Master advanced text processing with sed, awk, and complex pipelines. Learn
+    to transform, analyze, and manipulate data efficiently from the command line.
+
+    Unlock the full power of Unix text processing tools!
+  estimated_time: "50 minutes"
+  xp_reward: 550
+  tags:
+    - "text-processing"
+    - "sed"
+    - "awk"
+    - "advanced"
+    - "week4"
+
+environment:
+  runtime: "docker"
+  base_image: "ubuntu:22.04"
+  setup: |
+    apt-get update && apt-get install -y \
+      sed \
+      gawk \
+      coreutils
+
+steps:
+  - id: "sed-basics"
+    description: |
+      **Stream Editor (sed)**
+
+      sed edits text streams without opening files.
+
+      **Basic operations:**
+      ```bash
+      sed 's/old/new/' file        # Substitute first occurrence
+      sed 's/old/new/g' file       # Substitute all (global)
+      sed -i 's/old/new/g' file    # In-place edit
+      sed '/pattern/d' file        # Delete lines matching pattern
+      sed -n '5,10p' file          # Print lines 5-10 only
+      ```
+
+      **Task:** Practice sed.
+
+      ```bash
+      mkdir -p ~/text_processing
+      cd ~/text_processing
+
+      cat > data.txt << 'EOF'
+      Hello World
+      Hello Universe
+      Goodbye World
+      Hello Everyone
+      EOF
+
+      echo "sed Stream Editor" > sed_demo.txt
+      echo "=================" >> sed_demo.txt
+      echo "" >> sed_demo.txt
+
+      echo "Original:" >> sed_demo.txt
+      cat data.txt >> sed_demo.txt
+
+      echo "" >> sed_demo.txt
+      echo "Replace Hello with Hi:" >> sed_demo.txt
+      sed 's/Hello/Hi/' data.txt >> sed_demo.txt
+
+      echo "" >> sed_demo.txt
+      echo "Delete lines with World:" >> sed_demo.txt
+      sed '/World/d' data.txt >> sed_demo.txt
+
+      cat sed_demo.txt
+      ```
+    hint: |
+      sed syntax: s/pattern/replacement/flags. Use g for global, i for in-place,
+      d to delete, p to print. Default is first match per line.
+    validation:
+      - type: "file-exists"
+        path: "~/text_processing/sed_demo.txt"
+
+  - id: "awk-fundamentals"
+    description: |
+      **AWK Programming**
+
+      awk is a powerful text processing language.
+
+      **Basic syntax:**
+      ```bash
+      awk '{print $1}' file          # Print first field
+      awk '{print $1, $3}' file      # Print fields 1 and 3
+      awk '/pattern/ {print}' file   # Print matching lines
+      awk '{sum+=$1} END {print sum}' file  # Sum first column
+      ```
+
+      **Field separators:**
+      ```bash
+      awk -F: '{print $1}' /etc/passwd    # Use : as separator
+      awk -F, '{print $2}' file.csv       # CSV processing
+      ```
+
+      **Task:** Practice awk.
+
+      ```bash
+      cat > scores.txt << 'EOF'
+      Alice 85 92 78
+      Bob 90 88 95
+      Carol 78 85 82
+      Dave 92 90 88
+      EOF
+
+      echo "AWK Text Processing" > awk_demo.txt
+      echo "===================" >> awk_demo.txt
+      echo "" >> awk_demo.txt
+
+      echo "Names only (field 1):" >> awk_demo.txt
+      awk '{print $1}' scores.txt >> awk_demo.txt
+
+      echo "" >> awk_demo.txt
+      echo "Name and average score:" >> awk_demo.txt
+      awk '{avg=($2+$3+$4)/3; print $1, avg}' scores.txt >> awk_demo.txt
+
+      echo "" >> awk_demo.txt
+      echo "Students with score > 85 in test 1:" >> awk_demo.txt
+      awk '$2 > 85 {print $1, $2}' scores.txt >> awk_demo.txt
+
+      cat awk_demo.txt
+      ```
+    hint: |
+      awk splits lines into fields. $1 is first field, $2 second, etc. $0 is
+      entire line. Use BEGIN/END blocks for setup/summary.
+    validation:
+      - type: "file-exists"
+        path: "~/text_processing/awk_demo.txt"
+
+  - id: "advanced-pipelines"
+    description: |
+      **Building Complex Pipelines**
+
+      **Real-world examples:**
+      ```bash
+      # Log analysis
+      cat access.log | awk '{print $1}' | sort | uniq -c | sort -rn | head
+
+      # CSV processing
+      cat data.csv | cut -d, -f1,3 | grep "pattern" | sort
+
+      # Text transformation
+      cat file | tr '[:lower:]' '[:upper:]' | sed 's/ /-/g'
+      ```
+
+      **Task:** Build analysis pipelines.
+
+      ```bash
+      cat > server.log << 'EOF'
+      2024-01-01 10:00:00 192.168.1.100 GET /index.html 200
+      2024-01-01 10:01:00 192.168.1.101 GET /about.html 200
+      2024-01-01 10:02:00 192.168.1.100 POST /login 401
+      2024-01-01 10:03:00 192.168.1.102 GET /index.html 200
+      2024-01-01 10:04:00 192.168.1.100 GET /profile 200
+      2024-01-01 10:05:00 192.168.1.101 GET /admin 403
+      EOF
+
+      echo "Complex Pipeline Analysis" > pipeline_demo.txt
+      echo "==========================" >> pipeline_demo.txt
+      echo "" >> pipeline_demo.txt
+
+      echo "Most common IPs:" >> pipeline_demo.txt
+      awk '{print $3}' server.log | sort | uniq -c | sort -rn >> pipeline_demo.txt
+
+      echo "" >> pipeline_demo.txt
+      echo "HTTP status codes:" >> pipeline_demo.txt
+      awk '{print $6}' server.log | sort | uniq -c >> pipeline_demo.txt
+
+      echo "" >> pipeline_demo.txt
+      echo "Failed requests (4xx, 5xx):" >> pipeline_demo.txt
+      awk '$6 >= 400 {print $0}' server.log >> pipeline_demo.txt
+
+      cat pipeline_demo.txt
+      ```
+    hint: |
+      Build pipelines incrementally. Test each stage separately before adding
+      next command. Use awk for fields, sort|uniq for grouping.
+    validation:
+      - type: "file-exists"
+        path: "~/text_processing/pipeline_demo.txt"
+
+  - id: "data-transformation"
+    description: |
+      **Data Transformation Techniques**
+
+      **tr (translate):**
+      ```bash
+      tr '[:lower:]' '[:upper:]'    # Uppercase
+      tr -d ' '                      # Delete spaces
+      tr -s ' '                      # Squeeze repeated spaces
+      ```
+
+      **paste (merge files):**
+      ```bash
+      paste file1 file2              # Side-by-side
+      paste -d, file1 file2          # With delimiter
+      ```
+
+      **Task:** Transform data.
+
+      ```bash
+      cat > names.txt << 'EOF'
+      alice
+      bob
+      carol
+      EOF
+
+      cat > ages.txt << 'EOF'
+      25
+      30
+      28
+      EOF
+
+      echo "Data Transformation" > transform_demo.txt
+      echo "===================" >> transform_demo.txt
+      echo "" >> transform_demo.txt
+
+      echo "Uppercase names:" >> transform_demo.txt
+      cat names.txt | tr '[:lower:]' '[:upper:]' >> transform_demo.txt
+
+      echo "" >> transform_demo.txt
+      echo "Combine names and ages:" >> transform_demo.txt
+      paste -d, names.txt ages.txt >> transform_demo.txt
+
+      echo "" >> transform_demo.txt
+      echo "Format as table:" >> transform_demo.txt
+      paste names.txt ages.txt | awk '{printf "%-10s %s\n", $1, $2}' >> transform_demo.txt
+
+      cat transform_demo.txt
+      ```
+    hint: |
+      tr transforms characters. paste combines files column-wise. Use awk printf
+      for formatted output.
+    validation:
+      - type: "file-exists"
+        path: "~/text_processing/transform_demo.txt"
+
+  - id: "real-world-scenarios"
+    description: |
+      **Real-World Text Processing**
+
+      **Scenarios:**
+      - Log analysis and reporting
+      - CSV/TSV data manipulation
+      - Configuration file updates
+      - Report generation
+
+      **Task:** Solve real scenarios.
+
+      ```bash
+      cat > access.csv << 'EOF'
+      IP,Time,Page,Status
+      192.168.1.100,10:00,/home,200
+      192.168.1.101,10:01,/about,200
+      192.168.1.100,10:02,/login,401
+      192.168.1.102,10:03,/home,200
+      192.168.1.100,10:04,/profile,200
+      EOF
+
+      echo "Real-World Processing" > scenarios.txt
+      echo "=====================" >> scenarios.txt
+      echo "" >> scenarios.txt
+
+      echo "Report: Unique visitors" >> scenarios.txt
+      tail -n +2 access.csv | cut -d, -f1 | sort -u | wc -l >> scenarios.txt
+
+      echo "" >> scenarios.txt
+      echo "Report: Failed requests" >> scenarios.txt
+      tail -n +2 access.csv | awk -F, '$4 >= 400 {print $1, $3, $4}' >> scenarios.txt
+
+      echo "" >> scenarios.txt
+      echo "Report: Most visited pages" >> scenarios.txt
+      tail -n +2 access.csv | cut -d, -f3 | sort | uniq -c | sort -rn >> scenarios.txt
+
+      cat scenarios.txt
+      ```
+
+      **Congratulations!** You've mastered advanced text processing!
+
+      **You learned:**
+      - sed for stream editing
+      - awk for data processing
+      - Complex pipeline construction
+      - Data transformation techniques
+      - Real-world analysis scenarios
+
+      **Power techniques:**
+      - sed s/// for substitution
+      - awk for field-based processing
+      - Pipeline composition
+      - tr for character transformation
+
+      You can now process any text data efficiently!
+    hint: |
+      For CSV: skip header with tail -n +2. Use awk -F, for comma separation.
+      Build reports with sort|uniq -c|sort -rn pattern.
+    validation:
+      - type: "file-exists"
+        path: "~/text_processing/scenarios.txt"
