@@ -1,0 +1,525 @@
+mission:
+  id: "command-line-mastery-advanced"
+  title: "Command-Line Argument Processing and Tools"
+  difficulty: "advanced"
+  description: |
+    Master advanced command-line techniques including argument parsing, xargs,
+    parallel execution, and building sophisticated command pipelines. Essential
+    skills for automation and system administration.
+
+    Learn to harness the full power of the Unix command line!
+  estimated_time: "50 minutes"
+  xp_reward: 550
+  tags:
+    - "command-line"
+    - "xargs"
+    - "arguments"
+    - "automation"
+    - "advanced"
+    - "week2"
+
+environment:
+  runtime: "docker"
+  base_image: "ubuntu:22.04"
+  setup: |
+    apt-get update && apt-get install -y \
+      coreutils \
+      findutils \
+      parallel \
+      bc
+
+steps:
+  - id: "xargs-introduction"
+    description: |
+      **Understanding xargs**
+
+      `xargs` converts input into arguments for another command. It solves the
+      problem of "how do I use output of one command as arguments to another?"
+
+      **The problem it solves:**
+      ```bash
+      # This doesn't work:
+      find . -name "*.txt" | rm        # rm expects args, not stdin!
+
+      # This works:
+      find . -name "*.txt" | xargs rm  # xargs converts stdin to args
+      ```
+
+      **Basic usage:**
+      ```bash
+      echo "file1 file2 file3" | xargs touch    # Creates 3 files
+      find . -name "*.log" | xargs gzip         # Compress all .log files
+      ```
+
+      **Task:** Practice xargs basics.
+
+      ```bash
+      mkdir -p ~/cmdline
+      cd ~/cmdline
+
+      # Create test files
+      mkdir testfiles
+      echo "apple banana cherry" | xargs -n1 -I {} touch testfiles/{}.txt
+
+      # Document xargs usage
+      echo "xargs Introduction" > xargs_demo.txt
+      echo "==================" >> xargs_demo.txt
+      echo "" >> xargs_demo.txt
+
+      echo "Files created:" >> xargs_demo.txt
+      ls testfiles/ >> xargs_demo.txt
+
+      echo "" >> xargs_demo.txt
+      echo "Using xargs to process files:" >> xargs_demo.txt
+      find testfiles -name "*.txt" | xargs -I {} echo "Found: {}" >> xargs_demo.txt
+
+      cat xargs_demo.txt
+      ```
+    hint: |
+      xargs takes input from stdin and converts it to command-line arguments.
+      Use -I {} to specify a placeholder for the input in the command.
+    validation:
+      - type: "file-exists"
+        path: "~/cmdline/xargs_demo.txt"
+
+  - id: "xargs-options"
+    description: |
+      **Advanced xargs Options**
+
+      **Controlling execution:**
+      ```bash
+      xargs -n N        # Pass N arguments at a time
+      xargs -L N        # Pass N lines at a time
+      xargs -I {}       # Replace-string (placeholder)
+      xargs -P N        # Run N processes in parallel
+      xargs -t          # Print command before executing (verbose)
+      xargs -p          # Prompt before executing (interactive)
+      ```
+
+      **Examples:**
+      ```bash
+      # Process one at a time
+      echo "1 2 3 4" | xargs -n1 echo "Number:"
+
+      # Parallel execution
+      find . -name "*.jpg" | xargs -P 4 -I {} convert {} {}.png
+
+      # Prompt for confirmation
+      find . -name "*.bak" | xargs -p rm
+      ```
+
+      **Handling special characters:**
+      ```bash
+      # Files with spaces or special chars
+      find . -name "*.txt" -print0 | xargs -0 rm
+      # -print0 uses null separator, -0 expects null separator
+      ```
+
+      **Task:** Explore xargs options.
+
+      ```bash
+      cd ~/cmdline
+
+      # Create more test files
+      mkdir xargs_test
+      for i in {1..10}; do
+        echo "Data $i" > xargs_test/file$i.txt
+      done
+
+      # Document xargs options
+      echo "Advanced xargs Options" > xargs_advanced.txt
+      echo "======================" >> xargs_advanced.txt
+      echo "" >> xargs_advanced.txt
+
+      echo "Process files one at a time (-n1):" >> xargs_advanced.txt
+      ls xargs_test/*.txt | head -3 | xargs -n1 echo "Processing:" >> xargs_advanced.txt
+
+      echo "" >> xargs_advanced.txt
+      echo "Using placeholder (-I {}):" >> xargs_advanced.txt
+      ls xargs_test/*.txt | head -3 | xargs -I {} echo "File: {} Size: $(stat -f%z {} 2>/dev/null || stat -c%s {})" >> xargs_advanced.txt
+
+      echo "" >> xargs_advanced.txt
+      echo "Verbose mode (-t) shows commands:" >> xargs_advanced.txt
+      echo "file1 file2" | xargs -t echo "Processing:" >> xargs_advanced.txt 2>&1 | head -2
+
+      cat xargs_advanced.txt
+      ```
+    hint: |
+      -n controls how many arguments per execution, -I {} lets you place the
+      argument anywhere in the command. -P enables parallel execution.
+    validation:
+      - type: "file-exists"
+        path: "~/cmdline/xargs_advanced.txt"
+
+  - id: "parallel-execution"
+    description: |
+      **Parallel Command Execution**
+
+      **Using xargs -P:**
+      ```bash
+      # Run 4 processes in parallel
+      find . -name "*.jpg" | xargs -P 4 -I {} convert {} {}.thumbnail.jpg
+
+      # CPU-intensive tasks
+      seq 1 100 | xargs -P $(nproc) -I {} sh -c 'echo "Processing {}"'
+      ```
+
+      **Using GNU parallel (if available):**
+      ```bash
+      # More powerful than xargs -P
+      parallel echo "Processing {}" ::: file1 file2 file3
+
+      # With multiple CPUs
+      parallel -j 4 gzip ::: *.log
+
+      # Progress bar
+      parallel --progress gzip ::: *.log
+      ```
+
+      **Task:** Practice parallel execution.
+
+      ```bash
+      cd ~/cmdline
+
+      # Create work files
+      mkdir parallel_test
+      for i in {1..8}; do
+        echo "Task $i data" > parallel_test/task$i.txt
+      done
+
+      # Document parallel execution
+      echo "Parallel Execution" > parallel_demo.txt
+      echo "==================" >> parallel_demo.txt
+      echo "" >> parallel_demo.txt
+
+      echo "Sequential processing (one at a time):" >> parallel_demo.txt
+      time_start=$(date +%s)
+      ls parallel_test/*.txt | xargs -n1 -I {} sh -c 'sleep 0.1; echo "Done: {}"' > /dev/null
+      time_end=$(date +%s)
+      echo "  Time: $((time_end - time_start)) seconds" >> parallel_demo.txt
+
+      echo "" >> parallel_demo.txt
+      echo "Parallel processing (4 at a time with xargs -P):" >> parallel_demo.txt
+      time_start=$(date +%s)
+      ls parallel_test/*.txt | xargs -P 4 -I {} sh -c 'sleep 0.1; echo "Done: {}"' > /dev/null
+      time_end=$(date +%s)
+      echo "  Time: $((time_end - time_start)) seconds (faster!)" >> parallel_demo.txt
+
+      echo "" >> parallel_demo.txt
+      echo "Benefits of parallel execution:" >> parallel_demo.txt
+      echo "- Faster processing of independent tasks" >> parallel_demo.txt
+      echo "- Better CPU utilization" >> parallel_demo.txt
+      echo "- Useful for batch operations (compression, image processing, etc.)" >> parallel_demo.txt
+
+      cat parallel_demo.txt
+      ```
+    hint: |
+      Use -P to run multiple commands in parallel. Set it to the number of CPU
+      cores (use 'nproc' to get count) for optimal performance.
+    validation:
+      - type: "file-exists"
+        path: "~/cmdline/parallel_demo.txt"
+
+  - id: "complex-pipelines"
+    description: |
+      **Building Complex Command Pipelines**
+
+      **Combining multiple commands:**
+      ```bash
+      # Find large files, sort, show top 10
+      find /var/log -type f -exec du -h {} \; | sort -rh | head -10
+
+      # Find and process
+      find . -name "*.log" |
+        xargs grep "ERROR" |
+        cut -d: -f1 |
+        sort -u |
+        xargs -I {} echo "Error found in: {}"
+      ```
+
+      **Using tee for branching:**
+      ```bash
+      # Save and display simultaneously
+      command | tee output.txt | grep "pattern"
+
+      # Multiple outputs
+      command | tee file1.txt | grep "error" | tee file2.txt
+      ```
+
+      **Process substitution:**
+      ```bash
+      # Compare outputs of two commands
+      diff <(command1) <(command2)
+
+      # Use command output as file
+      while read line; do echo "$line"; done < <(find . -name "*.txt")
+      ```
+
+      **Task:** Build complex pipelines.
+
+      ```bash
+      cd ~/cmdline
+
+      # Create log files with various content
+      mkdir logs
+      echo "INFO: Application started" > logs/app1.log
+      echo "ERROR: Connection failed" >> logs/app1.log
+      echo "INFO: Processing request" > logs/app2.log
+      echo "ERROR: Database timeout" >> logs/app2.log
+      echo "ERROR: Invalid input" >> logs/app2.log
+      echo "INFO: Request completed" > logs/app3.log
+
+      # Complex pipeline examples
+      echo "Complex Command Pipelines" > pipelines.txt
+      echo "=========================" >> pipelines.txt
+      echo "" >> pipelines.txt
+
+      echo "Example 1: Find ERROR lines, extract files, count:" >> pipelines.txt
+      find logs -name "*.log" -exec grep -l "ERROR" {} \; |
+        tee -a pipelines.txt |
+        xargs -I {} echo "  {}" >> pipelines.txt
+
+      echo "" >> pipelines.txt
+      echo "Example 2: Count errors per file:" >> pipelines.txt
+      find logs -name "*.log" |
+        xargs -I {} sh -c 'echo "{}: $(grep -c ERROR {})"' >> pipelines.txt
+
+      echo "" >> pipelines.txt
+      echo "Example 3: Extract and summarize all ERROR messages:" >> pipelines.txt
+      find logs -name "*.log" -exec grep "ERROR" {} \; |
+        cut -d: -f2- |
+        sort |
+        uniq -c |
+        sort -rn >> pipelines.txt
+
+      cat pipelines.txt
+      ```
+    hint: |
+      Chain commands with | (pipe). Use tee to save intermediate results.
+      Process substitution <(command) treats command output as a file.
+    validation:
+      - type: "file-exists"
+        path: "~/cmdline/pipelines.txt"
+
+  - id: "argument-parsing-scripts"
+    description: |
+      **Parsing Arguments in Shell Scripts**
+
+      **Basic argument handling:**
+      ```bash
+      #!/bin/bash
+      # $0 = script name
+      # $1, $2, ... = arguments
+      # $# = number of arguments
+      # $@ = all arguments
+      # $* = all arguments as single string
+
+      echo "Script: $0"
+      echo "First arg: $1"
+      echo "All args: $@"
+      echo "Count: $#"
+      ```
+
+      **Using getopts for options:**
+      ```bash
+      #!/bin/bash
+      while getopts "f:v" opt; do
+        case $opt in
+          f) file="$OPTARG" ;;
+          v) verbose=true ;;
+          \?) echo "Invalid option" ;;
+        esac
+      done
+
+      # Usage: script.sh -f filename -v
+      ```
+
+      **Task:** Create argument parsing script.
+
+      ```bash
+      cd ~/cmdline
+
+      # Create argument parsing script
+      cat > parse_args.sh << 'EOF'
+      #!/bin/bash
+      # Argument parsing demonstration
+
+      # Default values
+      verbose=false
+      output_file=""
+      action="help"
+
+      # Parse options
+      while getopts "vho:a:" opt; do
+        case $opt in
+          v)
+            verbose=true
+            ;;
+          h)
+            echo "Usage: $0 [-v] [-o output] [-a action]"
+            echo "  -v          Verbose mode"
+            echo "  -o FILE     Output file"
+            echo "  -a ACTION   Action to perform"
+            exit 0
+            ;;
+          o)
+            output_file="$OPTARG"
+            ;;
+          a)
+            action="$OPTARG"
+            ;;
+          \?)
+            echo "Invalid option: -$OPTARG"
+            exit 1
+            ;;
+        esac
+      done
+
+      # Show parsed values
+      echo "Parsed Arguments:"
+      echo "  Verbose: $verbose"
+      echo "  Output: ${output_file:-none}"
+      echo "  Action: $action"
+      echo "  Remaining args: ${@:$OPTIND}"
+      EOF
+
+      chmod +x parse_args.sh
+
+      # Test the script
+      echo "Argument Parsing Scripts" > arg_parsing.txt
+      echo "========================" >> arg_parsing.txt
+      echo "" >> arg_parsing.txt
+
+      echo "Test 1: ./parse_args.sh -v -o output.txt -a process" >> arg_parsing.txt
+      ./parse_args.sh -v -o output.txt -a process >> arg_parsing.txt
+
+      echo "" >> arg_parsing.txt
+      echo "Test 2: ./parse_args.sh -h" >> arg_parsing.txt
+      ./parse_args.sh -h >> arg_parsing.txt 2>&1 | head -5
+
+      cat arg_parsing.txt
+      ```
+    hint: |
+      getopts processes options one at a time. Use a case statement to handle
+      each option. $OPTARG contains the option's value.
+    validation:
+      - type: "file-exists"
+        path: "~/cmdline/arg_parsing.txt"
+
+  - id: "real-world-automation"
+    description: |
+      **Real-World Automation Examples**
+
+      **Batch file processing:**
+      ```bash
+      # Convert all JPG to PNG in parallel
+      find . -name "*.jpg" | xargs -P 4 -I {} bash -c '
+        convert "{}" "${{}%.jpg}.png"
+        echo "Converted: {}"
+      '
+      ```
+
+      **Log analysis:**
+      ```bash
+      # Find most common errors
+      find /var/log -name "*.log" |
+        xargs grep "ERROR" |
+        cut -d: -f3- |
+        sort |
+        uniq -c |
+        sort -rn |
+        head -10
+      ```
+
+      **Batch renaming:**
+      ```bash
+      # Rename files to lowercase
+      find . -name "*.TXT" |
+        xargs -I {} bash -c '
+          mv "{}" "$(echo {} | tr A-Z a-z)"
+        '
+      ```
+
+      **Task:** Create automation examples.
+
+      ```bash
+      cd ~/cmdline
+
+      # Create automation scenarios
+      mkdir automation
+      cd automation
+
+      # Scenario 1: Batch file organization
+      mkdir -p {images,documents,archives}
+      touch file1.jpg file2.png file3.txt file4.pdf file5.zip
+
+      # Create organization script
+      cat > organize.sh << 'EOF'
+      #!/bin/bash
+      # Organize files by type
+
+      echo "Organizing files..."
+
+      # Move images
+      find . -maxdepth 1 -type f \( -name "*.jpg" -o -name "*.png" \) |
+        xargs -I {} mv {} images/ 2>/dev/null
+
+      # Move documents
+      find . -maxdepth 1 -type f \( -name "*.txt" -o -name "*.pdf" \) |
+        xargs -I {} mv {} documents/ 2>/dev/null
+
+      # Move archives
+      find . -maxdepth 1 -type f -name "*.zip" |
+        xargs -I {} mv {} archives/ 2>/dev/null
+
+      echo "Organization complete!"
+      ls -R
+      EOF
+
+      chmod +x organize.sh
+
+      # Document automation
+      cd ~/cmdline
+      echo "Real-World Automation" > automation_demo.txt
+      echo "=====================" >> automation_demo.txt
+      echo "" >> automation_demo.txt
+
+      echo "File organization script created" >> automation_demo.txt
+      echo "Running organization..." >> automation_demo.txt
+      cd automation && ./organize.sh >> ~/cmdline/automation_demo.txt 2>&1
+
+      cd ~/cmdline
+      cat automation_demo.txt
+      ```
+
+      **Congratulations!** You've mastered command-line automation!
+
+      **You learned:**
+      - xargs for converting stdin to arguments
+      - Advanced xargs options (-n, -I, -P)
+      - Parallel command execution
+      - Building complex command pipelines
+      - Argument parsing with getopts
+      - Real-world automation patterns
+
+      **Key techniques:**
+      - Use xargs to bridge commands
+      - Parallelize for performance (-P flag)
+      - Chain commands with pipes
+      - Parse arguments professionally with getopts
+      - Automate repetitive tasks with scripts
+
+      **Best practices:**
+      - Test commands before adding to scripts
+      - Use -print0 and -0 for files with spaces
+      - Add error handling to production scripts
+      - Document complex pipelines
+      - Use parallel processing for CPU-intensive tasks
+
+      You can now build sophisticated command-line automation!
+    hint: |
+      Combine find, xargs, and shell scripting for powerful automation.
+      Always test with a small dataset first before processing everything.
+    validation:
+      - type: "file-exists"
+        path: "~/cmdline/automation_demo.txt"
