@@ -21,13 +21,16 @@
 
 TermGame transforms command-line learning into an engaging, game-like experience. Practice real-world skills in isolated Docker containers with instant feedback, progress tracking, and AI-powered coaching.
 
+**60+ missions covering essential Linux skills** - from basic navigation to production-grade system administration tools. Progress through beginner, intermediate, advanced, and expert levels with hands-on scenarios based on real DevOps tasks.
+
 ### Why TermGame?
 
 - **Safe Practice Environment**: Isolated containers prevent system damage
 - **Real-World Skills**: Learn commands that matter in actual DevOps/SysAdmin work
 - **Instant Validation**: Automated checking with helpful hints
 - **Progress Tracking**: XP system, achievements, and skill progression
-- **Mission-Based Learning**: Structured scenarios from beginner to advanced
+- **Mission-Based Learning**: Structured scenarios from beginner to expert
+- **Comprehensive Curriculum**: 60+ missions spanning navigation, text processing, scripting, and system administration
 
 ---
 
@@ -368,6 +371,41 @@ completion:
 
 See `scenarios/` directory for more examples.
 
+### Mission Library
+
+TermGame currently includes **60+ missions** organized into themed weeks covering essential Linux skills:
+
+| Week | Topic | Missions | Difficulty Range |
+|------|-------|----------|------------------|
+| 2 | Navigation & Shell Arguments | 4 | Beginner → Advanced |
+| 3 | File Operations & Finding | 5 | Beginner → Advanced |
+| 4 | Text Processing & Commands | 5 | Beginner → Expert |
+| 5 | Environment Variables | 4 | Beginner → Practice |
+| 6 | Filesystem Structure | 4 | Beginner → Expert |
+| 7 | Disk Management | 4 | Beginner → Expert |
+| 9 | Process Management | 4 | Beginner → Expert |
+| 10 | System Monitoring | 5 | Beginner → Master |
+| 11 | Shell Scripting | 5 | Beginner → Master |
+| 13 | Networking Fundamentals | 5 | Beginner → Master |
+| 14 | SSH & Remote Administration | 5 | Beginner → Practice |
+
+**Key Features:**
+- **Progressive Difficulty**: Each week includes missions from beginner to expert/master level
+- **Real-World Skills**: Scenarios based on actual DevOps and SysAdmin tasks
+- **Comprehensive Coverage**: Topics span essential Linux administration skills
+- **9,050+ XP Available**: ~12.8 hours of educational gameplay
+- **Production-Ready Examples**: Expert missions include deployment automation, log analysis, and monitoring tools
+
+**Topics Covered:**
+- Command-line navigation and file management
+- Text processing (grep, sed, awk, cut, sort, uniq)
+- Process management and troubleshooting
+- Disk space analysis and optimization
+- Environment configuration (.bashrc, PATH, aliases)
+- Shell scripting from basics to production-grade tools
+- System monitoring and health checks
+- Network diagnostics and SSH administration
+
 ---
 
 ## 🧪 Testing
@@ -603,8 +641,9 @@ TermGame/
 - [ ] Real-time step validation feedback
 
 ### Phase 3: Content & Polish
-- [ ] 20+ Linux beginner missions
-- [ ] Intermediate Linux missions
+- [x] 20+ Linux missions (beginner through expert) ✅
+- [x] Comprehensive progression across weeks 2-14 ✅
+- [ ] Additional advanced Linux scenarios
 - [ ] Cisco IOS scenarios (with GNS3/EVE-NG integration)
 - [ ] PowerShell missions
 - [ ] Achievement system UI

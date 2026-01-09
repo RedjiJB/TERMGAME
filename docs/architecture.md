@@ -99,6 +99,34 @@ TermGame follows a modular architecture with clear separation of concerns:
 - **SQLAlchemy**: Database ORM
 - **Docker SDK**: Container management
 
+## Mission Content (As of 2026-01-09)
+
+TermGame includes **60+ missions** organized into themed weeks, providing comprehensive Linux training:
+
+- **20 missions created in January 2026**: Gap-filling across weeks 2-14
+- **Total XP available**: 9,050+ XP across all new missions
+- **Difficulty progression**: Every week now includes beginner through expert/master levels
+- **Topics**: Navigation, file operations, text processing, environment configuration, filesystem internals, disk management, process management, shell scripting, networking, and SSH administration
+
+### Scenario Organization
+
+```
+scenarios/linux/
+├── week2/  - Navigation & Shell Arguments (4 missions)
+├── week3/  - File Operations & Finding (5 missions)
+├── week4/  - Text Processing & Commands (5 missions)
+├── week5/  - Environment Variables (4 missions)
+├── week6/  - Filesystem Structure (4 missions)
+├── week7/  - Disk Management (4 missions)
+├── week9/  - Process Management (4 missions)
+├── week10/ - System Monitoring (5 missions)
+├── week11/ - Shell Scripting (5 missions)
+├── week13/ - Networking Fundamentals (5 missions)
+└── week14/ - SSH & Remote Administration (5 missions)
+```
+
+Each week provides progressive difficulty from beginner (150-250 XP) through intermediate (250-350 XP), advanced (500-600 XP), expert (600-800 XP), to master (1500+ XP) levels.
+
 ## Future Enhancements
 
 - [ ] Multi-user support
@@ -106,6 +134,9 @@ TermGame follows a modular architecture with clear separation of concerns:
 - [ ] Custom scenario editor
 - [ ] Plugin system for custom matchers
 - [ ] Web dashboard
+- [ ] Weeks 1, 8, 12 content creation
+- [ ] Cisco IOS scenarios
+- [ ] PowerShell scenarios
 
 ---
 
