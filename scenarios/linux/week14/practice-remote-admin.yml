@@ -1,0 +1,960 @@
+mission:
+  id: "linux/week14/practice-remote-admin"
+  title: "Remote Server Administration Challenge"
+  difficulty: expert
+  description: "Complete realistic remote administration tasks using SSH, tunneling, and secure file transfers"
+  estimated_time: 60
+  tags:
+    - linux
+    - practice
+    - ssh
+    - remote-admin
+    - expert
+    - week14
+    - cst8207
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/opt/admin"
+  setup:
+    - "apt-get update -qq && apt-get install -y -qq openssh-client openssh-server python3 netcat-openbsd curl"
+    - "service ssh start"
+    - |
+      # Create simulated infrastructure
+      useradd -m -s /bin/bash jumpbox
+      useradd -m -s /bin/bash webserver
+      useradd -m -s /bin/bash database
+      useradd -m -s /bin/bash monitoring
+      for user in jumpbox webserver database monitoring; do
+        echo "$user:pass$user" | chpasswd
+      done
+    - "mkdir -p /opt/admin/{keys,scripts,reports,backups}"
+    - |
+      # Setup SSH keys
+      ssh-keygen -t ed25519 -N '' -f /opt/admin/keys/admin_key -C 'admin@company'
+      for user in jumpbox webserver database monitoring; do
+        mkdir -p /home/$user/.ssh
+        cat /opt/admin/keys/admin_key.pub > /home/$user/.ssh/authorized_keys
+        chmod 700 /home/$user/.ssh
+        chmod 600 /home/$user/.ssh/authorized_keys
+        chown -R $user:$user /home/$user/.ssh
+      done
+    - |
+      # Create simulated web application
+      mkdir -p /var/www/app
+      cat > /var/www/app/index.html << 'EOF'
+      <html><body><h1>Production Web Application</h1></body></html>
+      EOF
+      cat > /var/www/app/config.php << 'EOF'
+      <?php
+      $db_host = "localhost";
+      $db_name = "production";
+      $db_user = "webapp";
+      $db_password = "oldpassword123";
+      ?>
+      EOF
+      chown -R webserver:webserver /var/www/app
+    - |
+      # Simulate database
+      mkdir -p /var/lib/database
+      echo "Database data here" > /var/lib/database/data.db
+      chown -R database:database /var/lib/database
+    - |
+      # Create monitoring data
+      mkdir -p /var/log/monitoring
+      for i in {1..50}; do
+        echo "$(date) - Server metric: CPU $(( RANDOM % 100 ))%, Memory $(( RANDOM % 100 ))%" >> /var/log/monitoring/metrics.log
+      done
+      chown -R monitoring:monitoring /var/log/monitoring
+    - |
+      # Simulated services
+      cd /var/www/app && python3 -m http.server 8080 > /dev/null 2>&1 &
+      echo "8080" > /tmp/webserver_port.txt
+
+steps:
+  - id: "understand-infrastructure"
+    title: "Analyze Infrastructure"
+    description: |
+      **SCENARIO: Remote Infrastructure Management**
+
+      You're a DevOps engineer managing a multi-tier application infrastructure.
+
+      **Infrastructure Layout:**
+
+      ```
+      Your Workstation (localhost)
+              ↓
+      [Jumpbox/Bastion] (jumpbox@localhost)
+              ↓
+      ├─ [Web Server] (webserver@localhost)
+      │   - HTTP service on port 8080
+      │   - Application files in /var/www/app
+      │
+      ├─ [Database Server] (database@localhost)
+      │   - Database data in /var/lib/database
+      │   - Not directly accessible
+      │
+      └─ [Monitoring Server] (monitoring@localhost)
+          - Metrics in /var/log/monitoring
+          - Dashboard on port 9090 (simulated)
+      ```
+
+      **Your Tasks:**
+
+      1. **Access Management**
+         - Configure SSH for jump-based access
+         - Set up key authentication
+         - Create efficient SSH config
+
+      2. **Tunnel Management**
+         - Access internal web application
+         - Connect to database securely
+         - Access monitoring dashboard
+
+      3. **File Management**
+         - Deploy updated application files
+         - Download database backups
+         - Sync logs to local system
+
+      4. **Automation**
+         - Create connection scripts
+         - Automate backup procedures
+         - Generate infrastructure reports
+
+      5. **Security**
+         - Rotate passwords in config files
+         - Audit SSH access
+         - Harden configurations
+
+      **Available credentials:**
+      All passwords: pass[username] (e.g., passjumpbox, passwebserver)
+      SSH keys: /opt/admin/keys/admin_key
+
+      **Deliverables:**
+      - SSH configuration for infrastructure
+      - Tunneling setup scripts
+      - Deployment automation
+      - Backup procedures
+      - Security audit report
+
+      **Explore the setup:**
+      ls -la /opt/admin/
+      cat /opt/admin/keys/admin_key.pub
+
+      **No step-by-step guidance!**
+      This is real-world infrastructure management. Plan and execute your solution.
+    hint: "Analyze the infrastructure and plan your approach"
+    validation:
+      type: "command-output"
+      command: "ls /opt/admin/keys/admin_key && echo 'keys'"
+      matcher: "contains"
+      expected: "key"
+
+  - id: "configure-ssh-access"
+    title: "Configure Secure SSH Access"
+    description: |
+      **Task: Create SSH configuration for infrastructure access**
+
+      Create: /opt/admin/.ssh/config
+
+      **Requirements:**
+
+      ✓ Configure jump/bastion host access
+      ✓ Set up ProxyJump for internal servers
+      ✓ Use admin SSH key for authentication
+      ✓ Enable connection reuse (ControlMaster)
+      ✓ Configure keep-alive settings
+      ✓ Set up local port forwards for services
+      ✓ Disable strict host checking for lab
+      ✓ Organize by environment/function
+
+      **Configuration structure:**
+      ```
+      # Global settings
+      Host *
+          IdentityFile /opt/admin/keys/admin_key
+          ServerAliveInterval 60
+          ServerAliveCountMax 3
+          ControlMaster auto
+          ControlPath /tmp/ssh-%r@%h:%p
+          ControlPersist 10m
+          StrictHostKeyChecking no
+          UserKnownHostsFile /dev/null
+
+      # Bastion/Jump host
+      Host jumpbox
+          HostName localhost
+          User jumpbox
+          Port 22
+
+      # Web server (via jumpbox)
+      Host webserver
+          HostName localhost
+          User webserver
+          ProxyJump jumpbox
+          LocalForward 8888 localhost:8080
+
+      # Database server (via jumpbox)
+      Host database
+          HostName localhost
+          User database
+          ProxyJump jumpbox
+          LocalForward 5432 localhost:5432
+
+      # Monitoring (via jumpbox)
+      Host monitoring
+          HostName localhost
+          User monitoring
+          ProxyJump jumpbox
+          LocalForward 9090 localhost:9090
+      ```
+
+      **Test each connection:**
+      mkdir -p /opt/admin/.ssh
+      chmod 700 /opt/admin/.ssh
+
+      # Create config
+      cat > /opt/admin/.ssh/config << 'EOF'
+      [your configuration here]
+      EOF
+
+      chmod 600 /opt/admin/.ssh/config
+
+      **Verify access:**
+      ssh -F /opt/admin/.ssh/config jumpbox 'hostname'
+      ssh -F /opt/admin/.ssh/config webserver 'whoami'
+      ssh -F /opt/admin/.ssh/config database 'pwd'
+
+      **Success criteria:**
+      - All hosts accessible
+      - ProxyJump working
+      - Key authentication successful
+      - Port forwards configured
+      - Connection reuse enabled
+    hint: "Create complete SSH config with jump hosts and port forwards"
+    validation:
+      type: "file-exists"
+      path: "/opt/admin/.ssh/config"
+
+  - id: "deploy-application"
+    title: "Deploy Updated Application"
+    description: |
+      **Task: Update web application securely**
+
+      Create: /opt/admin/scripts/deploy.sh
+
+      **Requirements:**
+
+      ✓ Connect to web server through jumpbox
+      ✓ Backup current application
+      ✓ Upload new application files
+      ✓ Update configuration securely
+      ✓ Rotate database password
+      ✓ Verify deployment
+      ✓ Create deployment report
+      ✓ Handle errors gracefully
+
+      **Steps to implement:**
+
+      1. Create new application version locally
+      2. Backup current remote application
+      3. Upload new files via SCP through jump
+      4. Update config.php with new password
+      5. Verify web service still running
+      6. Generate deployment report
+
+      **Script structure:**
+      ```bash
+      #!/bin/bash
+
+      set -euo pipefail
+
+      # Configuration
+      SSH_CONFIG="/opt/admin/.ssh/config"
+      BACKUP_DIR="/opt/admin/backups"
+      APP_DIR="/var/www/app"
+      TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+      echo "=== Application Deployment ==="
+      echo "Timestamp: $TIMESTAMP"
+
+      # 1. Backup current application
+      echo "[1/5] Backing up current application..."
+      ssh -F "$SSH_CONFIG" webserver \
+        "tar czf /tmp/app_backup_$TIMESTAMP.tar.gz $APP_DIR"
+
+      scp -F "$SSH_CONFIG" \
+        webserver:/tmp/app_backup_$TIMESTAMP.tar.gz \
+        "$BACKUP_DIR/"
+
+      # 2. Create new application version
+      echo "[2/5] Preparing new version..."
+      mkdir -p /tmp/new_app
+      echo "<html><body><h1>Updated Application v2.0</h1></body></html>" \
+        > /tmp/new_app/index.html
+
+      # 3. Update config with new password
+      NEW_PASSWORD="newpass$(date +%s)"
+      cat > /tmp/new_app/config.php << EOF
+      <?php
+      \$db_host = "localhost";
+      \$db_name = "production";
+      \$db_user = "webapp";
+      \$db_password = "$NEW_PASSWORD";
+      ?>
+      EOF
+
+      # 4. Deploy new files
+      echo "[3/5] Deploying new application..."
+      scp -F "$SSH_CONFIG" -r /tmp/new_app/* \
+        webserver:$APP_DIR/
+
+      # 5. Verify deployment
+      echo "[4/5] Verifying deployment..."
+      ssh -F "$SSH_CONFIG" webserver \
+        "ls -la $APP_DIR/ && cat $APP_DIR/index.html"
+
+      # 6. Generate report
+      echo "[5/5] Generating deployment report..."
+      cat > /opt/admin/reports/deployment_$TIMESTAMP.txt << EOF
+      Deployment Report
+      =================
+      Timestamp: $TIMESTAMP
+      Target: webserver
+      Backup: $BACKUP_DIR/app_backup_$TIMESTAMP.tar.gz
+      New Password: $NEW_PASSWORD
+      Status: SUCCESS
+      EOF
+
+      echo "Deployment complete!"
+      ```
+
+      **Make executable:**
+      chmod +x /opt/admin/scripts/deploy.sh
+
+      **Run deployment:**
+      /opt/admin/scripts/deploy.sh
+
+      **Success criteria:**
+      - Backup created
+      - New files deployed
+      - Config updated
+      - Deployment report generated
+      - No errors in execution
+    hint: "Create automated deployment with backup, upload, and verification"
+    validation:
+      type: "file-exists"
+      path: "/opt/admin/scripts/deploy.sh"
+
+  - id: "database-backup"
+    title: "Automate Database Backup"
+    description: |
+      **Task: Create automated database backup system**
+
+      Create: /opt/admin/scripts/backup_database.sh
+
+      **Requirements:**
+
+      ✓ Access database through SSH tunnel
+      ✓ Create compressed backup
+      ✓ Download to local backup directory
+      ✓ Rotate old backups (keep last 7)
+      ✓ Verify backup integrity
+      ✓ Generate backup report
+      ✓ Alert on failures
+
+      **Implementation:**
+      ```bash
+      #!/bin/bash
+
+      set -euo pipefail
+
+      # Configuration
+      SSH_CONFIG="/opt/admin/.ssh/config"
+      BACKUP_DIR="/opt/admin/backups/database"
+      TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+      KEEP_BACKUPS=7
+
+      mkdir -p "$BACKUP_DIR"
+
+      echo "=== Database Backup ==="
+      echo "Timestamp: $TIMESTAMP"
+
+      # 1. Create remote backup
+      echo "[1/4] Creating database backup on server..."
+      ssh -F "$SSH_CONFIG" database \
+        "tar czf /tmp/db_backup_$TIMESTAMP.tar.gz /var/lib/database/"
+
+      # 2. Download backup
+      echo "[2/4] Downloading backup..."
+      scp -F "$SSH_CONFIG" \
+        database:/tmp/db_backup_$TIMESTAMP.tar.gz \
+        "$BACKUP_DIR/"
+
+      # 3. Verify backup
+      echo "[3/4] Verifying backup integrity..."
+      if tar -tzf "$BACKUP_DIR/db_backup_$TIMESTAMP.tar.gz" > /dev/null 2>&1; then
+        echo "✓ Backup integrity verified"
+        INTEGRITY="VALID"
+      else
+        echo "✗ Backup corrupted!"
+        INTEGRITY="CORRUPTED"
+        exit 1
+      fi
+
+      # 4. Rotate old backups
+      echo "[4/4] Rotating old backups (keep last $KEEP_BACKUPS)..."
+      cd "$BACKUP_DIR"
+      OLD_BACKUPS=$(ls -t db_backup_*.tar.gz 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)))
+      if [ -n "$OLD_BACKUPS" ]; then
+        echo "$OLD_BACKUPS" | xargs rm -f
+        echo "Removed: $OLD_BACKUPS"
+      fi
+
+      # 5. Generate report
+      BACKUP_SIZE=$(du -h "$BACKUP_DIR/db_backup_$TIMESTAMP.tar.gz" | cut -f1)
+      BACKUP_COUNT=$(ls -1 db_backup_*.tar.gz 2>/dev/null | wc -l)
+
+      cat > /opt/admin/reports/backup_$TIMESTAMP.txt << EOF
+      Database Backup Report
+      ======================
+      Timestamp: $TIMESTAMP
+      Server: database
+      Backup File: db_backup_$TIMESTAMP.tar.gz
+      Size: $BACKUP_SIZE
+      Integrity: $INTEGRITY
+      Total Backups: $BACKUP_COUNT
+      Retention: Last $KEEP_BACKUPS backups
+      Status: SUCCESS
+      EOF
+
+      echo "Backup complete: $BACKUP_SIZE"
+      cat /opt/admin/reports/backup_$TIMESTAMP.txt
+      ```
+
+      **Create and execute:**
+      chmod +x /opt/admin/scripts/backup_database.sh
+      /opt/admin/scripts/backup_database.sh
+
+      **Schedule with cron:**
+      echo "0 2 * * * /opt/admin/scripts/backup_database.sh" >> /tmp/admin_crontab
+
+      **Test backup restoration:**
+      Create separate script to restore from backup.
+
+      **Success criteria:**
+      - Remote backup created
+      - Downloaded successfully
+      - Integrity verified
+      - Old backups rotated
+      - Report generated
+    hint: "Create backup script with download, verification, and rotation"
+    validation:
+      type: "file-exists"
+      path: "/opt/admin/scripts/backup_database.sh"
+
+  - id: "monitoring-dashboard"
+    title: "Access Monitoring Dashboard"
+    description: |
+      **Task: Set up secure access to monitoring system**
+
+      Create: /opt/admin/scripts/open_monitoring.sh
+
+      **Requirements:**
+
+      ✓ Create SSH tunnel to monitoring server
+      ✓ Forward monitoring dashboard port
+      ✓ Run tunnel in background
+      ✓ Provide access instructions
+      ✓ Create helper to check/kill tunnel
+      ✓ Download logs for analysis
+
+      **Implementation:**
+      ```bash
+      #!/bin/bash
+
+      SSH_CONFIG="/opt/admin/.ssh/config"
+      LOCAL_PORT=9999
+      REMOTE_PORT=9090
+
+      # Check if tunnel already exists
+      if pgrep -f "ssh.*monitoring.*$LOCAL_PORT" > /dev/null; then
+        echo "Monitoring tunnel already running"
+        echo "Access at: http://localhost:$LOCAL_PORT"
+        exit 0
+      fi
+
+      # Create tunnel
+      echo "Opening SSH tunnel to monitoring server..."
+      ssh -F "$SSH_CONFIG" \
+        -f -N \
+        -L $LOCAL_PORT:localhost:$REMOTE_PORT \
+        monitoring
+
+      # Wait for tunnel to establish
+      sleep 2
+
+      # Verify tunnel
+      if pgrep -f "ssh.*monitoring.*$LOCAL_PORT" > /dev/null; then
+        echo "✓ Monitoring tunnel established"
+        echo ""
+        echo "Dashboard access:"
+        echo "  URL: http://localhost:$LOCAL_PORT"
+        echo ""
+        echo "To close tunnel:"
+        echo "  pkill -f 'ssh.*monitoring.*$LOCAL_PORT'"
+      else
+        echo "✗ Failed to create tunnel"
+        exit 1
+      fi
+      ```
+
+      **Create helper script:**
+      cat > /opt/admin/scripts/close_monitoring.sh << 'EOF'
+      #!/bin/bash
+      pkill -f 'ssh.*monitoring.*9999'
+      echo "Monitoring tunnel closed"
+      EOF
+
+      chmod +x /opt/admin/scripts/close_monitoring.sh
+
+      **Download monitoring logs:**
+      cat > /opt/admin/scripts/fetch_metrics.sh << 'EOF'
+      #!/bin/bash
+
+      SSH_CONFIG="/opt/admin/.ssh/config"
+      LOGS_DIR="/opt/admin/logs"
+
+      mkdir -p "$LOGS_DIR"
+
+      echo "Downloading monitoring metrics..."
+      scp -F "$SSH_CONFIG" \
+        monitoring:/var/log/monitoring/metrics.log \
+        "$LOGS_DIR/metrics_$(date +%Y%m%d).log"
+
+      echo "Analyzing metrics..."
+      tail -20 "$LOGS_DIR/metrics_$(date +%Y%m%d).log"
+      EOF
+
+      chmod +x /opt/admin/scripts/fetch_metrics.sh
+
+      **Test monitoring access:**
+      /opt/admin/scripts/open_monitoring.sh
+      /opt/admin/scripts/fetch_metrics.sh
+      /opt/admin/scripts/close_monitoring.sh
+
+      **Success criteria:**
+      - Tunnel established successfully
+      - Port forwarding working
+      - Logs downloaded
+      - Helper scripts functional
+    hint: "Create tunnel scripts for monitoring access"
+    validation:
+      type: "file-exists"
+      path: "/opt/admin/scripts/open_monitoring.sh"
+
+  - id: "security-audit"
+    title: "Conduct Security Audit"
+    description: |
+      **Task: Generate comprehensive security audit report**
+
+      Create: /opt/admin/scripts/security_audit.sh
+
+      **Requirements:**
+
+      ✓ Check SSH key authentication
+      ✓ Audit file permissions
+      ✓ Verify password rotations
+      ✓ Check exposed services
+      ✓ Review SSH configurations
+      ✓ Identify security issues
+      ✓ Recommend improvements
+
+      **Implementation:**
+      ```bash
+      #!/bin/bash
+
+      SSH_CONFIG="/opt/admin/.ssh/config"
+      REPORT="/opt/admin/reports/security_audit_$(date +%Y%m%d).txt"
+
+      cat > "$REPORT" << 'HEADER'
+      ============================================
+      INFRASTRUCTURE SECURITY AUDIT REPORT
+      ============================================
+      HEADER
+
+      echo "Date: $(date)" >> "$REPORT"
+      echo "" >> "$REPORT"
+
+      # 1. SSH Key Authentication
+      echo "=== SSH KEY AUTHENTICATION ===" >> "$REPORT"
+      echo "Checking SSH keys..." >> "$REPORT"
+
+      for host in jumpbox webserver database monitoring; do
+        if ssh -F "$SSH_CONFIG" -o BatchMode=yes $host 'echo OK' 2>/dev/null | grep -q OK; then
+          echo "✓ $host: Key authentication working" >> "$REPORT"
+        else
+          echo "✗ $host: Key authentication FAILED" >> "$REPORT"
+        fi
+      done
+
+      echo "" >> "$REPORT"
+
+      # 2. File Permissions Audit
+      echo "=== FILE PERMISSIONS ===" >> "$REPORT"
+
+      ssh -F "$SSH_CONFIG" webserver \
+        "ls -la /var/www/app/" >> "$REPORT" 2>&1
+
+      echo "" >> "$REPORT"
+
+      # 3. Configuration Security
+      echo "=== CONFIGURATION SECURITY ===" >> "$REPORT"
+
+      # Check for default passwords
+      if ssh -F "$SSH_CONFIG" webserver \
+        "grep -i 'oldpassword' /var/www/app/config.php" 2>/dev/null; then
+        echo "✗ WARNING: Default password found in config" >> "$REPORT"
+      else
+        echo "✓ No default passwords in config" >> "$REPORT"
+      fi
+
+      echo "" >> "$REPORT"
+
+      # 4. Exposed Services
+      echo "=== EXPOSED SERVICES ===" >> "$REPORT"
+
+      for host in webserver database monitoring; do
+        echo "Checking $host..." >> "$REPORT"
+        ssh -F "$SSH_CONFIG" $host \
+          "ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null" \
+          >> "$REPORT" 2>&1
+      done
+
+      echo "" >> "$REPORT"
+
+      # 5. Recommendations
+      echo "=== SECURITY RECOMMENDATIONS ===" >> "$REPORT"
+      cat >> "$REPORT" << 'RECOMMENDATIONS'
+
+      1. Password Management:
+         - Rotate application passwords regularly
+         - Use strong password policy
+         - Consider secrets management (Vault)
+
+      2. SSH Hardening:
+         - Disable root login
+         - Disable password authentication
+         - Change default SSH port
+         - Use fail2ban
+
+      3. Access Control:
+         - Limit SSH access by IP
+         - Use bastion/jump host (✓ implemented)
+         - Regular access audits
+         - Remove unused keys
+
+      4. Monitoring:
+         - Enable SSH logging
+         - Monitor failed login attempts
+         - Set up alerts for anomalies
+         - Regular log reviews
+
+      5. Network Security:
+         - Use firewall rules
+         - Limit exposed ports
+         - Encrypt all communications
+         - Regular vulnerability scans
+
+      6. Application Security:
+         - Keep software updated
+         - Regular security patches
+         - Input validation
+         - Secure configurations
+
+      RECOMMENDATIONS
+
+      echo "" >> "$REPORT"
+      echo "Audit complete: $REPORT"
+      cat "$REPORT"
+      ```
+
+      **Execute audit:**
+      chmod +x /opt/admin/scripts/security_audit.sh
+      /opt/admin/scripts/security_audit.sh
+
+      **Review report:**
+      cat /opt/admin/reports/security_audit_*.txt
+
+      **Success criteria:**
+      - All hosts audited
+      - Security issues identified
+      - Recommendations provided
+      - Report well-formatted
+      - Actionable insights
+    hint: "Create comprehensive security audit with checks and recommendations"
+    validation:
+      type: "file-exists"
+      path: "/opt/admin/scripts/security_audit.sh"
+
+  - id: "infrastructure-report"
+    title: "Generate Infrastructure Dashboard"
+    description: |
+      **Task: Create infrastructure status dashboard**
+
+      Create: /opt/admin/scripts/infrastructure_status.sh
+
+      **Requirements:**
+
+      ✓ Check connectivity to all servers
+      ✓ Gather system information
+      ✓ Check disk usage
+      ✓ Monitor service status
+      ✓ Generate formatted dashboard
+      ✓ Export as HTML report
+
+      **Implementation:**
+      ```bash
+      #!/bin/bash
+
+      SSH_CONFIG="/opt/admin/.ssh/config"
+      REPORT="/opt/admin/reports/infrastructure_$(date +%Y%m%d_%H%M%S).txt"
+
+      cat > "$REPORT" << 'EOF'
+      ╔══════════════════════════════════════════════════╗
+      ║     INFRASTRUCTURE STATUS DASHBOARD              ║
+      ╚══════════════════════════════════════════════════╝
+      EOF
+
+      echo "" >> "$REPORT"
+      echo "Generated: $(date)" >> "$REPORT"
+      echo "" >> "$REPORT"
+
+      # Function to check host
+      check_host() {
+        local host=$1
+        echo "┌─────────────────────────────────────────────┐" >> "$REPORT"
+        echo "│ Server: $host" >> "$REPORT"
+        echo "├─────────────────────────────────────────────┤" >> "$REPORT"
+
+        # Connectivity
+        if ssh -F "$SSH_CONFIG" -o BatchMode=yes -o ConnectTimeout=5 $host 'echo OK' 2>/dev/null | grep -q OK; then
+          echo "│ Status: ✓ ONLINE" >> "$REPORT"
+
+          # System info
+          UPTIME=$(ssh -F "$SSH_CONFIG" $host 'uptime -p' 2>/dev/null || echo "N/A")
+          HOSTNAME=$(ssh -F "$SSH_CONFIG" $host 'hostname' 2>/dev/null || echo "N/A")
+          DISK=$(ssh -F "$SSH_CONFIG" $host "df -h / | tail -1 | awk '{print \$5}'" 2>/dev/null || echo "N/A")
+
+          echo "│ Hostname: $HOSTNAME" >> "$REPORT"
+          echo "│ Uptime: $UPTIME" >> "$REPORT"
+          echo "│ Disk Usage: $DISK" >> "$REPORT"
+        else
+          echo "│ Status: ✗ OFFLINE" >> "$REPORT"
+        fi
+
+        echo "└─────────────────────────────────────────────┘" >> "$REPORT"
+        echo "" >> "$REPORT"
+      }
+
+      # Check all hosts
+      for host in jumpbox webserver database monitoring; do
+        check_host "$host"
+      done
+
+      # Backup status
+      echo "┌─────────────────────────────────────────────┐" >> "$REPORT"
+      echo "│ Backup Status" >> "$REPORT"
+      echo "├─────────────────────────────────────────────┤" >> "$REPORT"
+
+      if [ -d "/opt/admin/backups" ]; then
+        BACKUP_COUNT=$(find /opt/admin/backups -type f -name "*.tar.gz" 2>/dev/null | wc -l)
+        LATEST_BACKUP=$(ls -t /opt/admin/backups/*.tar.gz 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "None")
+        TOTAL_SIZE=$(du -sh /opt/admin/backups 2>/dev/null | cut -f1 || echo "N/A")
+
+        echo "│ Total Backups: $BACKUP_COUNT" >> "$REPORT"
+        echo "│ Latest: $LATEST_BACKUP" >> "$REPORT"
+        echo "│ Total Size: $TOTAL_SIZE" >> "$REPORT"
+      else
+        echo "│ No backups found" >> "$REPORT"
+      fi
+
+      echo "└─────────────────────────────────────────────┘" >> "$REPORT"
+      echo "" >> "$REPORT"
+
+      # Summary
+      echo "┌─────────────────────────────────────────────┐" >> "$REPORT"
+      echo "│ Summary" >> "$REPORT"
+      echo "├─────────────────────────────────────────────┤" >> "$REPORT"
+      echo "│ All systems operational" >> "$REPORT"
+      echo "│ SSH key authentication: ✓" >> "$REPORT"
+      echo "│ Jump host connectivity: ✓" >> "$REPORT"
+      echo "│ Backups configured: ✓" >> "$REPORT"
+      echo "│ Monitoring access: ✓" >> "$REPORT"
+      echo "└─────────────────────────────────────────────┘" >> "$REPORT"
+
+      echo "" >> "$REPORT"
+      cat "$REPORT"
+      ```
+
+      **Execute:**
+      chmod +x /opt/admin/scripts/infrastructure_status.sh
+      /opt/admin/scripts/infrastructure_status.sh
+
+      **View dashboard:**
+      cat /opt/admin/reports/infrastructure_*.txt
+
+      **Success criteria:**
+      - All servers checked
+      - Status clearly displayed
+      - Formatted dashboard
+      - Summary provided
+      - Report saved
+    hint: "Create status dashboard checking all infrastructure components"
+    validation:
+      type: "file-exists"
+      path: "/opt/admin/scripts/infrastructure_status.sh"
+
+completion:
+  message: |
+    🎉 REMOTE ADMINISTRATION MASTERY! 🎉
+
+    Outstanding work! You've demonstrated professional remote infrastructure management skills!
+
+    **What You've Accomplished:**
+
+    ✓ Multi-tier infrastructure access configuration
+    ✓ SSH jump host setup with ProxyJump
+    ✓ Automated application deployment
+    ✓ Database backup automation with rotation
+    ✓ Secure monitoring access via tunnels
+    ✓ Comprehensive security audit
+    ✓ Infrastructure status dashboard
+
+    **Professional Deliverables Created:**
+
+    1. **SSH Configuration**
+       - Jump-based access architecture
+       - Connection reuse optimization
+       - Port forwarding automation
+       - Security hardening
+
+    2. **Deployment Automation**
+       - Backup before deployment
+       - Secure file transfer
+       - Configuration management
+       - Verification procedures
+
+    3. **Backup System**
+       - Automated database backups
+       - Integrity verification
+       - Retention policy
+       - Rotation management
+
+    4. **Monitoring Access**
+       - Secure tunnel creation
+       - Dashboard accessibility
+       - Metrics collection
+       - Helper scripts
+
+    5. **Security Audit**
+       - Key authentication checks
+       - Permission audits
+       - Configuration reviews
+       - Recommendations
+
+    6. **Infrastructure Dashboard**
+       - Real-time status checks
+       - System metrics
+       - Backup status
+       - Formatted reporting
+
+    **Skills Demonstrated:**
+
+    **SSH Mastery:**
+    ✓ ProxyJump for multi-hop access
+    ✓ SSH key management
+    ✓ Connection multiplexing
+    ✓ Port forwarding (local/remote)
+    ✓ Background tunnels
+
+    **File Management:**
+    ✓ SCP through jump hosts
+    ✓ Secure file transfers
+    ✓ Backup procedures
+    ✓ Archive management
+
+    **Automation:**
+    ✓ Bash scripting
+    ✓ Error handling
+    ✓ Report generation
+    ✓ Scheduled tasks
+
+    **Security:**
+    ✓ Key-based authentication
+    ✓ Password rotation
+    ✓ Access auditing
+    ✓ Configuration hardening
+
+    **Real-World Applications:**
+
+    This challenge mirrors actual DevOps/SRE responsibilities:
+    - Managing production infrastructure
+    - Secure remote access
+    - Automated deployments
+    - Backup procedures
+    - Security compliance
+    - Incident response
+
+    **Best Practices Applied:**
+
+    ☑ Bastion/jump host architecture
+    ☑ Key-based authentication only
+    ☑ Connection reuse for efficiency
+    ☑ Automated backup with retention
+    ☑ Verification of operations
+    ☑ Comprehensive logging
+    ☑ Security-first approach
+    ☑ Documentation and reporting
+
+    **Professional Workflow:**
+
+    1. **Access**: SSH config → Jump host → Target
+    2. **Deploy**: Backup → Upload → Verify → Report
+    3. **Backup**: Create → Download → Verify → Rotate
+    4. **Monitor**: Tunnel → Access → Analyze → Report
+    5. **Audit**: Check → Document → Recommend → Improve
+
+    **Infrastructure as Code:**
+
+    Your scripts are reusable and maintainable:
+    - Version control ready
+    - Team shareable
+    - Environment adaptable
+    - Production suitable
+
+    **Next Level Skills:**
+
+    - Ansible/Terraform automation
+    - Container orchestration (Docker/Kubernetes)
+    - CI/CD pipeline integration
+    - Infrastructure monitoring (Prometheus/Grafana)
+    - Configuration management
+    - Secret management (Vault)
+
+    **Career Relevance:**
+
+    These skills are essential for:
+    - DevOps Engineers
+    - Site Reliability Engineers (SRE)
+    - System Administrators
+    - Platform Engineers
+    - Security Engineers
+    - Cloud Engineers
+
+    You've demonstrated enterprise-level remote infrastructure management capabilities!
+
+    EXCEPTIONAL WORK! 🚀
+  xp: 800
+  unlocks:
+    - "linux/week11/shell-scripting-beginner"
