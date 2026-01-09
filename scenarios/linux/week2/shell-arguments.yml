@@ -1,0 +1,95 @@
+mission:
+  id: "linux/week2/shell-arguments"
+  title: "Understanding Shell Arguments and Options"
+  difficulty: beginner
+  description: "Learn how commands use arguments and options to modify their behavior"
+  estimated_time: 15
+  tags:
+    - linux
+    - shell
+    - arguments
+    - week2
+    - cst8207
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner/practice"
+    - "touch /home/learner/practice/file1.txt"
+    - "touch /home/learner/practice/file2.txt"
+    - "echo 'Hello World' > /home/learner/practice/file1.txt"
+
+steps:
+  - id: "simple-argument"
+    title: "Pass an Argument to a Command"
+    description: |
+      Commands take arguments to specify what they should operate on.
+      Use 'cat file1.txt' to display the contents of file1.txt in the practice directory.
+
+      First, navigate to the practice directory: cd practice
+      Then use cat with the filename as an argument.
+    hint: "Run: cd practice && cat file1.txt"
+    validation:
+      type: "command-output"
+      command: "cat /home/learner/practice/file1.txt"
+      matcher: "contains"
+      expected: "Hello World"
+
+  - id: "option-long-format"
+    title: "Use Options with Commands"
+    description: |
+      Options modify how commands behave. They usually start with - (dash).
+      Use 'ls -l' to list files in long format showing detailed information.
+
+      Options can be combined: -l for long format, -a for all files (including hidden).
+    hint: "Type: ls -l"
+    validation:
+      type: "command-output"
+      command: "ls -l /home/learner/practice | grep file1"
+      matcher: "contains"
+      expected: "file1.txt"
+
+  - id: "multiple-options"
+    title: "Combine Multiple Options"
+    description: |
+      Multiple options can be combined in two ways:
+      - Separate: ls -l -a
+      - Combined: ls -la
+
+      Use 'ls -lh' to show files in long format with human-readable sizes.
+      The -h option makes file sizes easier to read (KB, MB instead of bytes).
+    hint: "Type: ls -lh /home/learner/practice"
+    validation:
+      type: "command-output"
+      command: "ls -lh /home/learner/practice | wc -l"
+      matcher: "contains"
+      expected: "3"
+
+  - id: "option-with-value"
+    title: "Options That Take Values"
+    description: |
+      Some options require a value. For example, 'head -n 5' shows first 5 lines.
+
+      Create a test file and use head -n 1 to show just the first line.
+      Run: echo -e "Line1\nLine2\nLine3" > test.txt
+      Then: head -n 1 test.txt
+    hint: "Run the echo command first, then: head -n 1 test.txt"
+    validation:
+      type: "command-output"
+      command: "echo -e 'Line1\nLine2\nLine3' > /tmp/test.txt && head -n 1 /tmp/test.txt"
+      matcher: "exact"
+      expected: "Line1"
+
+completion:
+  message: |
+    Excellent! You now understand:
+    - Arguments specify what commands operate on
+    - Options modify command behavior
+    - Options can be combined (-la is same as -l -a)
+    - Some options take values (-n 5)
+
+    These fundamentals are essential for using any Linux command effectively!
+  xp: 150
+  unlocks:
+    - "linux/week2/filesystem-navigation"
