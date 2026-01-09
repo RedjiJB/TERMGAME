@@ -1,0 +1,453 @@
+mission:
+  id: "shell-scripting-intermediate"
+  title: "Shell Scripting: Control Flow and Functions"
+  difficulty: "intermediate"
+  description: |
+    Build on your shell scripting basics with control flow, functions, and error
+    handling. Learn to write robust, maintainable scripts with proper structure.
+
+    Take your bash scripting to the next level!
+  estimated_time: "40 minutes"
+  xp_reward: 350
+  tags:
+    - "shell-scripting"
+    - "bash"
+    - "functions"
+    - "control-flow"
+    - "week11"
+
+environment:
+  runtime: "docker"
+  base_image: "ubuntu:22.04"
+  setup: |
+    apt-get update && apt-get install -y \
+      bash \
+      coreutils
+
+steps:
+  - id: "if-else-conditions"
+    description: |
+      **Advanced Conditionals**
+
+      **If-elif-else:**
+      ```bash
+      if [ condition ]; then
+        # commands
+      elif [ condition2 ]; then
+        # commands
+      else
+        # commands
+      fi
+      ```
+
+      **Test operators:**
+      ```bash
+      # File tests
+      [ -f file ]   # File exists and is regular file
+      [ -d dir ]    # Directory exists
+      [ -r file ]   # File is readable
+      [ -w file ]   # File is writable
+      [ -x file ]   # File is executable
+
+      # String tests
+      [ -z "$var" ] # String is empty
+      [ -n "$var" ] # String is not empty
+      [ "$a" = "$b" ]  # Strings equal
+
+      # Numeric tests
+      [ $a -eq $b ] # Equal
+      [ $a -ne $b ] # Not equal
+      [ $a -lt $b ] # Less than
+      [ $a -gt $b ] # Greater than
+      ```
+
+      **Task:** Create conditional script.
+
+      ```bash
+      mkdir -p ~/shell_intermediate
+      cd ~/shell_intermediate
+
+      cat > check_file.sh << 'EOF'
+      #!/bin/bash
+      # File checker script
+
+      if [ $# -eq 0 ]; then
+        echo "Usage: $0 <filename>"
+        exit 1
+      fi
+
+      file="$1"
+
+      if [ ! -e "$file" ]; then
+        echo "Error: File '$file' does not exist"
+        exit 1
+      fi
+
+      if [ -f "$file" ]; then
+        echo "✓ Regular file"
+      elif [ -d "$file" ]; then
+        echo "✓ Directory"
+      else
+        echo "✓ Special file"
+      fi
+
+      if [ -r "$file" ]; then
+        echo "✓ Readable"
+      fi
+
+      if [ -w "$file" ]; then
+        echo "✓ Writable"
+      fi
+
+      if [ -x "$file" ]; then
+        echo "✓ Executable"
+      fi
+      EOF
+
+      chmod +x check_file.sh
+
+      # Test it
+      touch testfile.txt
+      echo "Conditional Script Output" > conditionals.txt
+      echo "==========================" >> conditionals.txt
+      ./check_file.sh testfile.txt >> conditionals.txt
+
+      cat conditionals.txt
+      ```
+    hint: |
+      Use [ ] for test conditions. Use -f for files, -d for directories, -z for
+      empty strings. Always quote variables: "$var"
+    validation:
+      - type: "file-exists"
+        path: "~/shell_intermediate/conditionals.txt"
+
+  - id: "case-statements"
+    description: |
+      **Case Statements**
+
+      Better than multiple if-elif for pattern matching:
+
+      ```bash
+      case "$variable" in
+        pattern1)
+          commands
+          ;;
+        pattern2|pattern3)
+          commands
+          ;;
+        *)
+          default commands
+          ;;
+      esac
+      ```
+
+      **Task:** Create case statement script.
+
+      ```bash
+      cat > menu.sh << 'EOF'
+      #!/bin/bash
+      # Menu system with case
+
+      echo "Select operation:"
+      echo "1) List files"
+      echo "2) Show date"
+      echo "3) Show disk usage"
+      echo "4) Exit"
+      read -p "Choice: " choice
+
+      case $choice in
+        1)
+          echo "Files:"
+          ls -l
+          ;;
+        2)
+          echo "Current date:"
+          date
+          ;;
+        3)
+          echo "Disk usage:"
+          df -h .
+          ;;
+        4)
+          echo "Goodbye!"
+          exit 0
+          ;;
+        *)
+          echo "Invalid choice"
+          exit 1
+          ;;
+      esac
+      EOF
+
+      chmod +x menu.sh
+
+      echo "Case Statement Demo" > case_demo.txt
+      echo "===================" >> case_demo.txt
+      echo "Script created: menu.sh" >> case_demo.txt
+      echo "Usage: ./menu.sh and select option" >> case_demo.txt
+
+      cat case_demo.txt
+      ```
+    hint: |
+      case is cleaner than multiple if-elif. Use | for multiple patterns, *
+      for default. Always end each case with ;;
+    validation:
+      - type: "file-exists"
+        path: "~/shell_intermediate/case_demo.txt"
+
+  - id: "functions"
+    description: |
+      **Functions in Bash**
+
+      **Defining functions:**
+      ```bash
+      function_name() {
+        # Function body
+        # $1, $2, ... are function arguments
+        return 0  # Optional return code
+      }
+
+      # Or
+      function function_name {
+        # Function body
+      }
+      ```
+
+      **Task:** Create script with functions.
+
+      ```bash
+      cat > utils.sh << 'EOF'
+      #!/bin/bash
+      # Utility functions
+
+      # Check if file exists
+      file_exists() {
+        if [ -f "$1" ]; then
+          return 0
+        else
+          return 1
+        fi
+      }
+
+      # Print with timestamp
+      log() {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+      }
+
+      # Calculate average
+      average() {
+        local sum=0
+        local count=$#
+        for num in "$@"; do
+          sum=$((sum + num))
+        done
+        echo $((sum / count))
+      }
+
+      # Main script
+      log "Starting script"
+
+      if file_exists "testfile.txt"; then
+        log "File exists"
+      else
+        log "Creating test file"
+        touch testfile.txt
+      fi
+
+      result=$(average 10 20 30 40)
+      log "Average of 10,20,30,40 is: $result"
+
+      log "Script complete"
+      EOF
+
+      chmod +x utils.sh
+
+      echo "Functions Output" > functions.txt
+      echo "================" >> functions.txt
+      ./utils.sh >> functions.txt
+
+      cat functions.txt
+      ```
+    hint: |
+      Functions make code reusable. Use $1, $2 for arguments. Use 'local' for
+      variables inside functions. Return values via echo or return code.
+    validation:
+      - type: "file-exists"
+        path: "~/shell_intermediate/functions.txt"
+
+  - id: "error-handling"
+    description: |
+      **Error Handling**
+
+      **Exit codes:**
+      ```bash
+      command
+      if [ $? -eq 0 ]; then
+        echo "Success"
+      else
+        echo "Failed"
+        exit 1
+      fi
+      ```
+
+      **Set options:**
+      ```bash
+      set -e  # Exit on error
+      set -u  # Exit on undefined variable
+      set -o pipefail  # Pipeline fails if any command fails
+      ```
+
+      **Task:** Create robust script.
+
+      ```bash
+      cat > robust.sh << 'EOF'
+      #!/bin/bash
+      # Robust script with error handling
+
+      set -euo pipefail
+
+      # Error handler
+      error_exit() {
+        echo "Error: $1" >&2
+        exit 1
+      }
+
+      # Check dependencies
+      command -v date >/dev/null || error_exit "date command not found"
+
+      # Validate arguments
+      if [ $# -lt 1 ]; then
+        error_exit "Usage: $0 <filename>"
+      fi
+
+      filename="$1"
+
+      # Check file
+      [ -f "$filename" ] || error_exit "File not found: $filename"
+
+      echo "Processing $filename..."
+      wc -l "$filename" || error_exit "Failed to count lines"
+
+      echo "Success!"
+      EOF
+
+      chmod +x robust.sh
+
+      touch datafile.txt
+      echo "line 1" >> datafile.txt
+
+      echo "Error Handling Demo" > error_demo.txt
+      echo "===================" >> error_demo.txt
+      ./robust.sh datafile.txt >> error_demo.txt 2>&1
+
+      cat error_demo.txt
+      ```
+    hint: |
+      Use 'set -e' to exit on errors, 'set -u' for undefined variables. Check
+      exit codes with $?. Always validate inputs!
+    validation:
+      - type: "file-exists"
+        path: "~/shell_intermediate/error_demo.txt"
+
+  - id: "practical-script"
+    description: |
+      **Practical Script: Backup Tool**
+
+      **Task:** Build a complete backup script.
+
+      ```bash
+      cat > backup.sh << 'EOF'
+      #!/bin/bash
+      # Simple backup script
+
+      set -euo pipefail
+
+      # Configuration
+      BACKUP_DIR="$HOME/backups"
+      DATE=$(date +%Y%m%d_%H%M%S)
+
+      # Functions
+      log() {
+        echo "[$(date '+%H:%M:%S')] $*"
+      }
+
+      create_backup() {
+        local source="$1"
+        local backup_name=$(basename "$source")_$DATE.tar.gz
+
+        log "Backing up: $source"
+
+        if [ ! -e "$source" ]; then
+          log "Error: Source not found"
+          return 1
+        fi
+
+        tar -czf "$BACKUP_DIR/$backup_name" "$source" 2>/dev/null
+
+        if [ $? -eq 0 ]; then
+          log "Success: $backup_name"
+          return 0
+        else
+          log "Failed to create backup"
+          return 1
+        fi
+      }
+
+      # Main
+      log "Starting backup process"
+
+      mkdir -p "$BACKUP_DIR"
+
+      if [ $# -eq 0 ]; then
+        log "Usage: $0 <file_or_directory>"
+        exit 1
+      fi
+
+      for item in "$@"; do
+        create_backup "$item"
+      done
+
+      log "Backup complete"
+      log "Backups stored in: $BACKUP_DIR"
+      EOF
+
+      chmod +x backup.sh
+
+      # Test it
+      mkdir -p test_data
+      echo "important" > test_data/file.txt
+
+      echo "Backup Script Demo" > backup_demo.txt
+      echo "==================" >> backup_demo.txt
+      ./backup.sh test_data >> backup_demo.txt 2>&1
+
+      echo "" >> backup_demo.txt
+      echo "Backups created:" >> backup_demo.txt
+      ls -lh ~/backups/ >> backup_demo.txt 2>&1 || echo "No backups yet" >> backup_demo.txt
+
+      cat backup_demo.txt
+      ```
+
+      **Congratulations!** You've mastered intermediate shell scripting!
+
+      **You learned:**
+      - Advanced conditionals (if-elif-else)
+      - Case statements for pattern matching
+      - Functions for code reuse
+      - Error handling and validation
+      - Building practical scripts
+
+      **Best practices:**
+      - Use set -euo pipefail
+      - Validate all inputs
+      - Create functions for reusable code
+      - Add logging for visibility
+      - Handle errors gracefully
+
+      You can now write maintainable, robust scripts!
+    hint: |
+      Structure scripts: configuration, functions, main logic. Use functions
+      for reusable code. Always validate inputs and handle errors.
+    validation:
+      - type: "file-exists"
+        path: "~/shell_intermediate/backup_demo.txt"
