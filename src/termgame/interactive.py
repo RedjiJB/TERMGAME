@@ -9,10 +9,12 @@ import logging
 import sys
 from typing import Any
 
+from prompt_toolkit import PromptSession
+from prompt_toolkit.formatted_text import HTML
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
-from rich.prompt import Prompt
+from rich.prompt import Confirm
 from rich.table import Table
 
 from termgame import __author__, __version__
@@ -25,6 +27,7 @@ from termgame.runtimes.exceptions import (
 from termgame.runtimes.exceptions import (
     ContainerNotFoundError,
 )
+from termgame.ui.completer import SlashCommandCompleter
 from termgame.ui.progress import OperationProgress
 
 
@@ -44,6 +47,14 @@ class InteractiveCLI:
         self.loader = ScenarioLoader(self.config.scenarios_dir)
         self.running = True
         self._logger = logging.getLogger(__name__)
+
+        # Setup command completer and prompt session
+        self.completer = SlashCommandCompleter(in_mission=False)
+        self.prompt_session: PromptSession[str] = PromptSession(
+            completer=self.completer,
+            complete_while_typing=True,
+            mouse_support=True,
+        )
 
     async def initialize(self) -> None:
         """Initialize the mission engine."""
@@ -276,6 +287,7 @@ class InteractiveCLI:
                 return
 
             self.current_mission = mission_id
+            self.completer.set_mission_mode(True)
             self._display_step(step_info)
 
             # Show helpful tip for first-time users
@@ -334,6 +346,7 @@ class InteractiveCLI:
                     self.console.print("[bold green]" + "=" * 50 + "[/bold green]\n")
                     self.console.print("[dim]Type 'list' to start another mission[/dim]\n")
                     self.current_mission = None
+                    self.completer.set_mission_mode(False)
             else:
                 self.console.print("[bold red]✗ Validation Failed[/bold red]\n")
                 self.console.print("[bold white]What to do:[/bold white]")
@@ -388,6 +401,7 @@ class InteractiveCLI:
             mission_id = self.current_mission
             await self.engine.abandon_mission(mission_id)
             self.current_mission = None
+            self.completer.set_mission_mode(False)
             self.console.print(
                 f"[yellow]Mission '{mission_id}' abandoned[/yellow] - Progress saved\n"
             )
@@ -460,8 +474,6 @@ class InteractiveCLI:
         self.console.print("  • All mission progress\n")
 
         # Ask for confirmation
-        from rich.prompt import Confirm
-
         confirmed = Confirm.ask(
             "[bold]Are you sure you want to reset everything?[/bold]", default=False
         )
@@ -641,12 +653,13 @@ class InteractiveCLI:
             try:
                 # Show prompt with mission indicator
                 if self.current_mission:
-                    prompt_text = f"[cyan]{self.current_mission}[/cyan] > "
+                    prompt_text = HTML(f"<cyan>{self.current_mission}</cyan> > ")
                 else:
-                    prompt_text = "[cyan]termgame[/cyan] > "
+                    prompt_text = HTML("<cyan>termgame</cyan> > ")
 
-                user_input = Prompt.ask(prompt_text, console=self.console)
-                await self.handle_command(user_input)
+                # Use prompt_toolkit for input with autocomplete
+                user_input = await self.prompt_session.prompt_async(prompt_text)
+                await self.handle_command(user_input.strip())
 
             except KeyboardInterrupt:
                 self.console.print("\n[dim]Use 'quit' to exit[/dim]")

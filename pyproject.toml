@@ -33,6 +33,7 @@ dependencies = [
     "rich>=13.8.0",              # Rich text formatting
     "python-dotenv>=1.0.1",      # Environment variable management
     "click>=8.1.7",              # CLI utilities (typer dependency)
+    "prompt-toolkit>=3.0.0",     # Advanced input with autocomplete
 ]
 
 [project.optional-dependencies]
