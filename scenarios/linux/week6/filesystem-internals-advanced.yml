@@ -1,0 +1,753 @@
+mission:
+  id: "linux/week6/filesystem-internals-advanced"
+  title: "Deep Dive: Filesystem Internals, Inodes, and Links"
+  difficulty: advanced
+  description: "Understand how the Linux filesystem really works - inodes, hard links, symbolic links, and disk structures"
+  estimated_time: 70
+  tags:
+    - linux
+    - filesystem
+    - inodes
+    - links
+    - advanced
+    - week6
+    - week7
+    - cst8207
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "mkdir -p /home/learner/data /home/learner/backup /home/learner/shared"
+    - "echo 'Original content in file1' > /home/learner/data/file1.txt"
+    - "echo 'Important data' > /home/learner/data/important.txt"
+    - "mkdir -p /home/learner/projects/web /home/learner/projects/api"
+    - "echo 'Web project files' > /home/learner/projects/web/index.html"
+    - "echo 'API code' > /home/learner/projects/api/server.js"
+
+steps:
+  - id: "understand-inodes"
+    title: "Understand Inodes - The Filesystem's Index"
+    description: |
+      **What is an Inode?**
+
+      An inode (index node) is a data structure that stores metadata about a file:
+      - File size
+      - Ownership (user/group)
+      - Permissions
+      - Timestamps (created, modified, accessed)
+      - Number of hard links
+      - Location of data blocks on disk
+
+      **Important:** The filename is NOT stored in the inode!
+      Filenames are stored in directory entries that point to inodes.
+
+      **View Inode Information:**
+
+      Use ls -i to see inode numbers:
+      ls -i data/file1.txt
+
+      Use stat for detailed inode information:
+      stat data/file1.txt
+
+      The stat command shows:
+      - Inode number
+      - Number of links
+      - Size
+      - Block allocation
+      - All timestamps
+      - Permissions in octal
+
+      Try both commands and observe the output.
+    hint: "Type: ls -i data/file1.txt and stat data/file1.txt"
+    validation:
+      type: "command-output"
+      command: "stat /home/learner/data/file1.txt | grep Inode"
+      matcher: "contains"
+      expected: "Inode"
+
+  - id: "inode-vs-filename"
+    title: "Separate Concept: Inode vs Filename"
+    description: |
+      **Key Concept:** Files are accessed through inodes, not names.
+
+      The filesystem works like this:
+      1. You ask for "file1.txt"
+      2. Directory finds inode number for "file1.txt"
+      3. System reads inode to get file metadata
+      4. System reads data blocks pointed to by inode
+
+      **Demonstration:**
+
+      Get the inode number:
+      ls -i data/file1.txt
+
+      Find all filenames pointing to that inode:
+      find ~ -inum INODE_NUMBER
+
+      (Replace INODE_NUMBER with the actual number)
+
+      This reveals that multiple filenames can point to the same inode
+      (same file, different names). This is called HARD LINKING.
+
+      Try it:
+      inode=$(ls -i data/file1.txt | awk '{print $1}')
+      echo "Inode number: $inode"
+      find ~ -inum $inode
+    hint: "Get inode with: ls -i file | awk '{print $1}', then use find -inum"
+    validation:
+      type: "command-output"
+      command: "ls -i /home/learner/data/file1.txt | awk '{print $1}' | grep -E '^[0-9]+$'"
+      matcher: "contains"
+      expected: ""
+
+  - id: "create-hard-link"
+    title: "Create Hard Links - Multiple Names, Same File"
+    description: |
+      **Hard Links Explained:**
+
+      A hard link creates another name (directory entry) pointing to the
+      same inode. Both names are equals - there's no "original."
+
+      **Create a Hard Link:**
+      ln data/file1.txt data/file1_link.txt
+
+      (Note: No -s flag means hard link)
+
+      **What Just Happened:**
+      - New directory entry "file1_link.txt" created
+      - Points to SAME inode as "file1.txt"
+      - Link count in inode increased by 1
+      - Both names access the SAME data blocks
+
+      **Verify:**
+      ls -li data/file1*.txt
+
+      You should see:
+      - Same inode number for both files
+      - Same file size
+      - Link count = 2
+
+      stat data/file1.txt | grep Links
+      stat data/file1_link.txt | grep Links
+
+      Both show "Links: 2"
+
+      **Test the link:**
+      echo "Modified via hard link" >> data/file1_link.txt
+      cat data/file1.txt
+
+      The change appears in both because they're the same file!
+    hint: "Type: ln data/file1.txt data/file1_link.txt then ls -li data/"
+    validation:
+      type: "command-output"
+      command: "ln /home/learner/data/file1.txt /tmp/hardlink && ls -i /home/learner/data/file1.txt /tmp/hardlink | awk '{print $1}' | sort -u | wc -l"
+      matcher: "contains"
+      expected: "1"
+
+  - id: "hard-link-properties"
+    title: "Understand Hard Link Properties and Limitations"
+    description: |
+      **Hard Link Properties:**
+
+      1. **Same inode number** - Both names point to same inode
+      2. **Share all attributes** - Permissions, ownership, size
+      3. **Changes visible everywhere** - Edit one, see in all
+      4. **Independent deletion** - Delete one name, others remain
+      5. **Inode deleted only when link count = 0**
+
+      **Hard Link Limitations:**
+
+      ❌ Cannot span filesystems/partitions
+         (Different partitions have different inode spaces)
+
+      ❌ Cannot link to directories
+         (Would create circular references)
+
+      ❌ Only for files on same partition
+
+      **Experiment:**
+
+      Create multiple hard links:
+      ln data/file1.txt backup/file1_backup1.txt
+      ln data/file1.txt backup/file1_backup2.txt
+
+      Check link count:
+      stat data/file1.txt | grep Links
+
+      Should show "Links: 4" (original + 3 links)
+
+      Delete the original:
+      rm data/file1.txt
+
+      The file still exists! Check:
+      cat backup/file1_backup1.txt
+
+      The inode and data remain because link count > 0.
+      Data is only deleted when ALL hard links are removed.
+    hint: "Create multiple hard links with ln, check link count with stat"
+    validation:
+      type: "command-output"
+      command: |
+        touch /tmp/test_hard && ln /tmp/test_hard /tmp/test_hard_link && \
+        stat /tmp/test_hard | grep -o 'Links: [0-9]*'
+      matcher: "contains"
+      expected: "Links: 2"
+
+  - id: "symbolic-links-intro"
+    title: "Symbolic Links - Pointers to Files"
+    description: |
+      **Symbolic Links (Symlinks) Explained:**
+
+      A symbolic link is a SPECIAL FILE that contains a path to another file.
+      It's like a shortcut or reference.
+
+      **Key Differences from Hard Links:**
+      - Has its own inode number
+      - Contains the path to target file (as text)
+      - Can link to directories
+      - Can span filesystems
+      - Can point to non-existent files (broken link)
+      - Is a separate file type (shown as 'l' in ls -l)
+
+      **Create a Symbolic Link:**
+      ln -s data/important.txt data/important_symlink.txt
+
+      The -s flag means "symbolic"
+
+      **Examine the Link:**
+      ls -l data/important_symlink.txt
+
+      Output shows:
+      lrwxrwxrwx ... important_symlink.txt -> data/important.txt
+
+      - 'l' = link type
+      - '-> data/important.txt' = target path
+
+      Compare inode numbers:
+      ls -i data/important.txt data/important_symlink.txt
+
+      Different inode numbers! They're separate files.
+
+      **Read through symlink:**
+      cat data/important_symlink.txt
+
+      The kernel automatically follows the link to the target file.
+    hint: "Type: ln -s data/important.txt symlink.txt then ls -l symlink.txt"
+    validation:
+      type: "command-output"
+      command: "ln -s /home/learner/data/file1.txt /tmp/symlink && ls -l /tmp/symlink | grep '->'"
+      matcher: "contains"
+      expected: "->"
+
+  - id: "symlink-vs-hardlink"
+    title: "Compare Symbolic Links and Hard Links"
+    description: |
+      **Side-by-Side Comparison:**
+
+      Create both types of links to the same file:
+
+      echo "Test content" > test_original.txt
+
+      # Hard link
+      ln test_original.txt test_hard.txt
+
+      # Symbolic link
+      ln -s test_original.txt test_sym.txt
+
+      **Compare them:**
+      ls -li test_*
+
+      Observations:
+      - test_original and test_hard: Same inode, same size
+      - test_sym: Different inode, small size (path length)
+
+      **Test behavior:**
+
+      1. Modify original:
+         echo "Added line" >> test_original.txt
+         cat test_hard.txt   # Shows added line
+         cat test_sym.txt    # Shows added line
+
+      2. Delete original:
+         rm test_original.txt
+         cat test_hard.txt   # Still works! Data still exists
+         cat test_sym.txt    # BROKEN! "No such file"
+
+      This demonstrates the key difference:
+      - Hard link: Direct connection to data (via shared inode)
+      - Symlink: Path pointer (breaks if target removed)
+
+      **When to use each:**
+
+      Hard links:
+      - Backup without duplicating data
+      - Multiple names for same file
+      - Prevent accidental deletion
+      - Must be on same filesystem
+
+      Symbolic links:
+      - Link to directories
+      - Link across filesystems
+      - Point to relative or absolute paths
+      - Clear indication it's a link
+      - Can be updated by changing target
+    hint: "Create both types, compare with ls -li, test deletion behavior"
+    validation:
+      type: "command-output"
+      command: |
+        echo "test" > /tmp/orig && ln /tmp/orig /tmp/hard && ln -s /tmp/orig /tmp/sym && \
+        rm /tmp/orig && cat /tmp/hard 2>/dev/null && echo "hard_ok" || echo "hard_fail"
+      matcher: "contains"
+      expected: "hard_ok"
+
+  - id: "broken-symlinks"
+    title: "Handle Broken Symbolic Links"
+    description: |
+      **What is a Broken Symlink?**
+
+      When a symlink points to a non-existent target, it's "broken" or "dangling."
+
+      **Create a broken symlink:**
+
+      touch target.txt
+      ln -s target.txt link.txt
+      rm target.txt
+
+      Now link.txt is broken!
+
+      **Detecting Broken Symlinks:**
+
+      1. ls shows them in red (with colors):
+         ls -l link.txt
+
+      2. test -e returns false:
+         test -e link.txt && echo "exists" || echo "broken"
+
+      3. find command can locate them:
+         find ~ -type l -xtype l
+
+         -type l = symbolic links
+         -xtype l = links whose target is a link (broken)
+
+      **Find All Broken Symlinks:**
+      find /home/learner -type l ! -exec test -e {} \; -print
+
+      This finds all symlinks (-type l) where the target doesn't exist.
+
+      **Fixing Broken Symlinks:**
+
+      Option 1: Remove them
+      find ~ -type l -xtype l -delete
+
+      Option 2: Update to new target
+      ln -sf new_target.txt link.txt
+
+      -f forces overwrite of existing link
+
+      **Practice:**
+      Create several symlinks, delete some targets, then find and fix broken links.
+    hint: "Create symlink, delete target, use: find -type l ! -exec test -e {} \\; -print"
+    validation:
+      type: "command-output"
+      command: |
+        touch /tmp/t1 && ln -s /tmp/t1 /tmp/l1 && rm /tmp/t1 && \
+        find /tmp -name l1 -type l ! -exec test -e {} \; -print | wc -l
+      matcher: "contains"
+      expected: "1"
+
+  - id: "relative-vs-absolute-symlinks"
+    title: "Relative vs Absolute Symlinks"
+    description: |
+      **Two Ways to Create Symlinks:**
+
+      1. **Absolute Path** - Full path from root
+         ln -s /home/learner/data/file.txt /tmp/link.txt
+
+      2. **Relative Path** - Path relative to link location
+         cd /tmp
+         ln -s ../home/learner/data/file.txt link.txt
+
+      **Which to Use?**
+
+      **Absolute symlinks:**
+      ✓ Always work regardless of current directory
+      ✓ Clear where they point
+      ✗ Break if files are moved as a group
+      ✗ Not portable (hard-coded paths)
+
+      **Relative symlinks:**
+      ✓ Portable - work if entire directory moved
+      ✓ Better for version control
+      ✗ Can be confusing (relative to link, not cwd)
+      ✗ Break if link moved without target
+
+      **Best Practice:**
+
+      For system-wide configs: Use absolute paths
+      ln -s /etc/nginx/sites-available/mysite /etc/nginx/sites-enabled/
+
+      For project directories: Use relative paths
+      cd project/
+      ln -s ../shared/config.json config.json
+
+      **View Link Target:**
+      readlink link.txt          # Shows exact path in link
+      readlink -f link.txt       # Shows canonical absolute path
+
+      **Practice:**
+      Create both types and compare with readlink:
+
+      # Absolute
+      ln -s /home/learner/data/file1.txt abs_link.txt
+      readlink abs_link.txt
+
+      # Relative
+      ln -s data/file1.txt rel_link.txt
+      readlink rel_link.txt
+
+      Move the directory containing links and see which still works!
+    hint: "Create with ln -s /full/path (absolute) or ln -s ../relative/path (relative)"
+    validation:
+      type: "command-output"
+      command: |
+        touch /tmp/target && ln -s /tmp/target /tmp/abs && \
+        readlink /tmp/abs
+      matcher: "contains"
+      expected: "/tmp/target"
+
+  - id: "directory-symlinks"
+    title: "Link to Directories - Only with Symlinks"
+    description: |
+      **Directory Links:**
+
+      Hard links to directories are NOT allowed (would create loops).
+      Only symbolic links can point to directories.
+
+      **Create Directory Symlink:**
+
+      ln -s /home/learner/projects /home/learner/proj
+
+      Now you can:
+      ls proj/web/         # Lists /home/learner/projects/web/
+      cd proj/api/         # Changes to /home/learner/projects/api/
+
+      **Common Use Cases:**
+
+      1. **Version management:**
+         ln -s /opt/app-1.2.0 /opt/app-current
+         # Update by changing symlink, not moving files
+
+      2. **Shared directories:**
+         ln -s /mnt/storage/shared ~/shared
+
+      3. **Simplified paths:**
+         ln -s /var/www/html/site/public /var/www/site
+
+      **Important Behavior:**
+
+      When you cd into a symlinked directory:
+      cd proj/web/
+      pwd          # Shows /home/learner/proj/web (symlink path)
+      pwd -P       # Shows /home/learner/projects/web (real path)
+
+      -P = physical (follows symlinks)
+
+      **Deleting Directory Symlinks:**
+
+      ⚠️ CAREFUL:
+      rm symlink_to_dir/     # Tries to delete directory contents!
+      rm symlink_to_dir      # Removes only the symlink ✓
+
+      Never add trailing slash when removing directory symlinks!
+
+      **Practice:**
+      Create a symlink to projects/, navigate using it, check with pwd and pwd -P.
+    hint: "Create: ln -s projects/ proj, then cd proj && pwd && pwd -P"
+    validation:
+      type: "command-output"
+      command: |
+        mkdir -p /tmp/realdir && ln -s /tmp/realdir /tmp/linkdir && \
+        test -L /tmp/linkdir && echo "is_symlink" || echo "not_symlink"
+      matcher: "contains"
+      expected: "is_symlink"
+
+  - id: "disk-usage-du"
+    title: "Analyze Disk Usage with du"
+    description: |
+      **The du Command - Disk Usage:**
+
+      du estimates file space usage.
+
+      **Basic Usage:**
+      du -h data/              # Human-readable sizes
+      du -sh data/             # Summary only (-s)
+      du -ah data/             # All files, not just directories
+
+      **Find Large Directories:**
+
+      Sort by size to find space hogs:
+      du -h data/ | sort -rh | head -n 10
+
+      -rh = reverse, human-readable sort
+
+      **Options:**
+
+      -c  : Show grand total
+      -s  : Summary only (don't show subdirectories)
+      -h  : Human-readable (KB, MB, GB)
+      -d N: Max depth N levels
+      -a  : Include files, not just directories
+
+      **Find Largest Items:**
+
+      Top 10 largest directories in home:
+      du -h ~ | sort -rh | head -n 10
+
+      Specific depth only:
+      du -h --max-depth=1 ~ | sort -rh
+
+      **Disk Usage vs File Size:**
+
+      du shows DISK USAGE (blocks allocated)
+      ls -l shows FILE SIZE (actual content)
+
+      These differ due to:
+      - Block size (minimum allocation unit)
+      - Sparse files (holes)
+      - Compression
+
+      **Hard Links and du:**
+
+      Hard links count only ONCE:
+      echo "data" > file1.txt
+      ln file1.txt file2.txt
+      du -sh file*.txt
+      # Shows size once, not twice!
+
+      **Practice:**
+      Find the largest directories in your home directory using du + sort.
+    hint: "Use: du -h ~ | sort -rh | head -n 10"
+    validation:
+      type: "command-output"
+      command: "du -sh /home/learner 2>/dev/null | awk '{print $1}' | grep -E '[0-9]+[KMG]'"
+      matcher: "contains"
+      expected: ""
+
+  - id: "disk-space-df"
+    title: "Check Filesystem Space with df"
+    description: |
+      **The df Command - Disk Free:**
+
+      df reports filesystem disk space usage (mounted filesystems).
+
+      **Basic Usage:**
+      df -h              # All filesystems, human-readable
+      df -h /home        # Specific mount point
+      df -i              # Show inode usage instead of blocks
+
+      **Output Columns:**
+      Filesystem   Size  Used  Avail  Use%  Mounted on
+      /dev/sda1    50G   30G   18G    63%   /
+
+      **Key Differences: df vs du**
+
+      df:
+      - Shows filesystem level (partitions/mounts)
+      - Fast (reads superblock only)
+      - Shows total, used, available space
+      - Shows mount points
+
+      du:
+      - Shows directory/file level
+      - Slow (traverses all files)
+      - Shows usage of specific paths
+      - More detailed
+
+      **Inode Usage:**
+
+      Filesystems have limited inodes (file metadata slots).
+      Can run out of inodes even with free space!
+
+      df -i         # Check inode usage
+
+      IUse% column shows inode usage percentage.
+
+      **Find Filesystem for a File:**
+      df -h /home/learner/data/file1.txt
+
+      Shows which filesystem contains that file.
+
+      **Practical Monitoring:**
+
+      Check if running out of space:
+      df -h | grep -vE 'tmpfs|udev' | awk '$5 > 80 {print $0}'
+
+      This shows filesystems over 80% full.
+
+      **Practice:**
+      Check all filesystem space, identify which filesystem your home is on.
+    hint: "Use: df -h | grep /home or df -h ~"
+    validation:
+      type: "command-output"
+      command: "df -h / | tail -n 1 | awk '{print $5}' | grep -E '[0-9]+%'"
+      matcher: "contains"
+      expected: "%"
+
+  - id: "practical-scenarios"
+    title: "Apply Knowledge to Real Scenarios"
+    description: |
+      **Scenario 1: Safe Backup with Hard Links**
+
+      Incremental backup without duplicating unchanged files:
+
+      # Full backup
+      cp -al /source/dir /backup/backup-2026-01-01
+
+      # Next day - changed files only
+      rsync -a --link-dest=/backup/backup-2026-01-01 \
+            /source/dir /backup/backup-2026-01-02
+
+      Unchanged files are hard-linked (save space).
+      Changed files are copied.
+
+      **Scenario 2: Version Management with Symlinks**
+
+      Managing application versions:
+
+      /opt/myapp-1.0/
+      /opt/myapp-1.1/
+      /opt/myapp-1.2/
+      /opt/myapp -> myapp-1.2    # Current version symlink
+
+      To update:
+      ln -sfn myapp-1.2 /opt/myapp
+
+      All scripts use /opt/myapp (never changes).
+
+      **Scenario 3: Shared Libraries**
+
+      System libraries use symlinks:
+
+      libpython3.10.so.1.0       # Actual file
+      libpython3.10.so.1 -> libpython3.10.so.1.0
+      libpython3.so -> libpython3.10.so.1
+
+      Multiple symlinks for compatibility.
+
+      **Scenario 4: Disk Space Investigation**
+
+      Find what's using space:
+
+      # Large directories
+      du -sh /* 2>/dev/null | sort -rh | head -n 10
+
+      # Large files
+      find / -type f -size +100M -exec ls -lh {} \; 2>/dev/null
+
+      # Old log files
+      find /var/log -type f -mtime +30 -ls
+
+      **Scenario 5: Broken Symlink Cleanup**
+
+      Clean up broken links in a project:
+
+      find ~/projects -type l -xtype l -delete
+
+      Or find and review first:
+      find ~/projects -type l -xtype l -ls
+
+      **Practice:**
+      Implement one of these scenarios in your environment!
+    hint: "Try creating version symlinks or finding large files with find + du"
+    validation:
+      type: "command-output"
+      command: |
+        mkdir -p /tmp/v1 /tmp/v2 && ln -sfn v2 /tmp/current && \
+        readlink /tmp/current
+      matcher: "contains"
+      expected: "v2"
+
+completion:
+  message: |
+    🎓 FILESYSTEM INTERNALS MASTERED! 🎓
+
+    You've completed an advanced deep-dive into Linux filesystem internals!
+
+    **Concepts Mastered:**
+
+    ✓ **Inodes** - The filesystem's metadata structures
+      - Inode numbers identify files
+      - Filenames are separate from inodes
+      - Multiple names can point to same inode
+
+    ✓ **Hard Links** - Multiple names, same file
+      - Share the same inode
+      - All names are equals
+      - File deleted only when all links removed
+      - Cannot span filesystems
+      - Cannot link to directories
+
+    ✓ **Symbolic Links** - Pointers to paths
+      - Have their own inodes
+      - Contain path to target file
+      - Can link to directories
+      - Can span filesystems
+      - Can be broken if target deleted
+      - Relative vs absolute paths
+
+    ✓ **Disk Usage Analysis**
+      - du: Directory/file level usage
+      - df: Filesystem level usage
+      - Finding large files and directories
+      - Inode usage monitoring
+
+    **Practical Skills:**
+
+    ☑ Create and manage hard links
+    ☑ Create and manage symbolic links
+    ☑ Find and fix broken symlinks
+    ☑ Analyze disk usage patterns
+    ☑ Implement versioning with symlinks
+    ☑ Space-efficient backups with hard links
+    ☑ Debugging filesystem issues
+
+    **Real-World Applications:**
+
+    - Incremental backups (rsync + hard links)
+    - Application version management
+    - Shared library systems
+    - Disk space optimization
+    - Configuration management
+    - Development environment setup
+
+    **Commands You've Mastered:**
+
+    - ls -i, ls -l (view inodes and links)
+    - stat (detailed file information)
+    - ln (create hard links)
+    - ln -s (create symbolic links)
+    - readlink (show link targets)
+    - find -type l (find symlinks)
+    - du (disk usage)
+    - df (filesystem space)
+
+    You now understand how Linux filesystems work at a deep level!
+    This knowledge is essential for:
+    - System administration
+    - DevOps automation
+    - Storage management
+    - Performance optimization
+    - Backup strategies
+
+    **Next Steps:**
+    - Learn about advanced filesystem features (quotas, ACLs)
+    - Explore filesystem types (ext4, xfs, btrfs)
+    - Study RAID and LVM
+    - Practice with production scenarios
+
+    EXCELLENT WORK on completing this advanced mission!
+  xp: 600
+  unlocks:
+    - "linux/week7/practice-disk-optimization"
+    - "linux/week9/process-management-advanced"

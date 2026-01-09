@@ -1,0 +1,667 @@
+mission:
+  id: "linux/week7/practice-disk-optimization"
+  title: "Practice: Disk Space Crisis Management"
+  difficulty: expert
+  description: "A production server is critically low on disk space. Find and fix the issues using your filesystem knowledge."
+  estimated_time: 55
+  tags:
+    - linux
+    - practice
+    - disk
+    - expert
+    - week7
+    - cst8207
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    # Create realistic disk usage scenario
+    - "mkdir -p /var/log/application /var/log/archive /var/cache/downloads"
+    - "mkdir -p /home/learner/projects/{old,current,archive}"
+    - "mkdir -p /tmp/build_artifacts"
+
+    # Create large log files (simulated)
+    - "for i in {1..10}; do dd if=/dev/zero of=/var/log/application/app.log.$i bs=1M count=10 2>/dev/null; done"
+    - "for i in {1..5}; do dd if=/dev/zero of=/var/log/archive/old-$i.log bs=1M count=15 2>/dev/null; done"
+
+    # Create duplicated files
+    - "dd if=/dev/zero of=/home/learner/projects/current/largefile.dat bs=1M count=20 2>/dev/null"
+    - "cp /home/learner/projects/current/largefile.dat /home/learner/projects/old/"
+    - "cp /home/learner/projects/current/largefile.dat /home/learner/projects/archive/"
+    - "cp /home/learner/projects/current/largefile.dat /tmp/build_artifacts/"
+
+    # Create broken symlinks
+    - "touch /tmp/target1 /tmp/target2 /tmp/target3"
+    - "ln -s /tmp/target1 /home/learner/broken_link1"
+    - "ln -s /tmp/target2 /home/learner/broken_link2"
+    - "ln -s /tmp/target3 /home/learner/projects/broken_link3"
+    - "rm /tmp/target1 /tmp/target2 /tmp/target3"
+
+    # Create cache files
+    - "for i in {1..8}; do dd if=/dev/zero of=/var/cache/downloads/package-$i.deb bs=1M count=12 2>/dev/null; done"
+
+    # Create compressed archives
+    - "apt-get update -qq && apt-get install -y -qq gzip bzip2"
+    - "dd if=/dev/zero of=/tmp/data.txt bs=1M count=30 2>/dev/null"
+    - "gzip -c /tmp/data.txt > /home/learner/data.txt.gz"
+    - "rm /tmp/data.txt"
+
+    # Create requirements document
+    - |
+      cat > /home/learner/DISK_CRISIS_BRIEF.txt << 'EOF'
+      ═══════════════════════════════════════════════════
+                    URGENT: DISK SPACE CRISIS
+      ═══════════════════════════════════════════════════
+
+      SITUATION:
+      Production server has critically low disk space.
+      Services are beginning to fail. You have 1 hour to
+      reclaim space without breaking anything.
+
+      CURRENT STATUS:
+      - Server running Ubuntu 22.04
+      - Multiple applications writing logs
+      - Build system creating artifacts
+      - Old project archives exist
+      - Cache files accumulating
+
+      YOUR MISSION:
+      Identify and reclaim wasted disk space safely.
+
+      REQUIRED ACTIONS (create reports):
+
+      1. disk_analysis.txt
+         - Total disk usage (df -h /)
+         - Top 10 largest directories (du + sort)
+         - Top 10 largest files (find + sort)
+         - Identify the biggest space consumers
+
+      2. optimization_plan.txt
+         - List all optimization opportunities found:
+           * Duplicated files (same content, different locations)
+           * Old log files that can be compressed/removed
+           * Unnecessary cache files
+           * Broken symlinks
+           * Empty directories
+           * Large files that can be compressed
+         - For each, specify: location, size, action to take
+
+      3. space_reclaimed.txt
+         - Execute your optimization plan
+         - Document each action taken
+         - Show space before and after each action
+         - Calculate total space reclaimed
+
+      4. hard_link_strategy.txt
+         - Identify duplicate files that can be hard-linked
+         - Show inode numbers before hard-linking
+         - Create hard links to eliminate duplication
+         - Verify hard links work correctly
+         - Calculate space saved
+
+      5. cleanup_script.sh (BONUS)
+         - Create a reusable maintenance script
+         - Automate finding and fixing common issues
+         - Include safety checks (don't delete if in use)
+         - Make it run safely via cron
+
+      CONSTRAINTS:
+      ❌ DO NOT delete files blindly
+      ❌ DO NOT break running applications
+      ❌ DO NOT remove system files
+      ❌ DO verify all changes are safe
+
+      ✓ DO compress old logs
+      ✓ DO use hard links for duplicates
+      ✓ DO remove genuinely unused files
+      ✓ DO clean up broken symlinks
+      ✓ DO document every action
+
+      EVALUATION CRITERIA:
+      - Space reclaimed (target: >150MB)
+      - No files incorrectly deleted
+      - All duplicates hard-linked
+      - Broken symlinks removed
+      - Old logs compressed
+      - Documentation quality
+
+      TOOLS AT YOUR DISPOSAL:
+      - du, df (disk usage)
+      - find (locate files)
+      - ln (hard links)
+      - gzip, bzip2 (compression)
+      - stat (file information)
+      - ls -i (inodes)
+      - readlink (check links)
+      - wc, awk, sort (analysis)
+
+      TIME LIMIT: Complete within 1 hour
+
+      GOOD LUCK! The production team is counting on you.
+      EOF
+
+steps:
+  - id: "assess-situation"
+    title: "Initial Situation Assessment"
+    description: |
+      **EXPERT PRACTICE SCENARIO - NO HAND-HOLDING**
+
+      You're the on-call sysadmin. The production server is critically
+      low on disk space and you need to fix it FAST.
+
+      **Read the brief:**
+      cat ~/DISK_CRISIS_BRIEF.txt
+
+      **Start your analysis:**
+
+      This is a realistic production scenario. There's no single "right"
+      answer - you must analyze, plan, and execute safely.
+
+      **Recommended Approach:**
+      1. Understand the current situation (df, du)
+      2. Find the space hogs
+      3. Identify safe optimization opportunities
+      4. Plan your actions (don't rush!)
+      5. Execute carefully
+      6. Verify results
+      7. Document everything
+
+      When ready, start creating your reports!
+    hint: "Read DISK_CRISIS_BRIEF.txt, run df -h, then du -sh /* to start analyzing"
+    validation:
+      type: "command-output"
+      command: "test -f /home/learner/DISK_CRISIS_BRIEF.txt && echo 'briefing_exists'"
+      matcher: "contains"
+      expected: "briefing_exists"
+
+  - id: "disk-analysis-report"
+    title: "Report 1: Comprehensive Disk Analysis"
+    description: |
+      Create disk_analysis.txt with complete disk usage analysis.
+
+      **Required Information:**
+
+      1. Overall filesystem usage (df -h /)
+      2. Top 10 largest directories
+      3. Top 10 largest individual files
+      4. Inode usage statistics
+      5. Key findings and concerns
+
+      **Analysis Commands:**
+
+      Top directories:
+      du -h / 2>/dev/null | sort -rh | head -n 10
+
+      Top files:
+      find / -type f -exec du -h {} \; 2>/dev/null | sort -rh | head -n 10
+
+      Or faster:
+      find / -type f -printf '%s %p\n' 2>/dev/null | sort -rn | head -n 10
+
+      Inode usage:
+      df -i /
+
+      **Save everything to disk_analysis.txt**
+
+      Be thorough - you need data to make decisions!
+    hint: "Use df, du, and find to gather data. Redirect output with > or >>"
+    validation:
+      type: "command-output"
+      command: "du -sh /var/log /var/cache /home/learner 2>/dev/null | sort -rh | head -n 1"
+      matcher: "contains"
+      expected: "/"
+
+  - id: "find-duplicates"
+    title: "Report 2: Identify Duplicate Files"
+    description: |
+      **Challenge: Find Duplicate Files**
+
+      Duplicate files waste space. Find files with identical content.
+
+      **Approach 1: Compare by size and checksum**
+
+      Find files over 10MB:
+      find ~ -type f -size +10M
+
+      For each large file, calculate checksum:
+      md5sum file1
+      md5sum file2
+
+      Same checksum = identical content
+
+      **Approach 2: Automated with find + md5sum**
+
+      find ~ -type f -size +5M -exec md5sum {} \; | \
+        sort | uniq -w32 -D
+
+      This shows files with duplicate checksums.
+
+      **For largefile.dat copies:**
+
+      You should find multiple copies in:
+      - /home/learner/projects/current/
+      - /home/learner/projects/old/
+      - /home/learner/projects/archive/
+      - /tmp/build_artifacts/
+
+      These are perfect candidates for hard linking!
+
+      Document findings in optimization_plan.txt
+    hint: "Use find + md5sum to identify duplicates, or manually check largefile.dat locations"
+    validation:
+      type: "command-output"
+      command: "find /home/learner/projects -name 'largefile.dat' -type f | wc -l"
+      matcher: "contains"
+      expected: "3"
+
+  - id: "compress-old-logs"
+    title: "Report 3: Compress Old Log Files"
+    description: |
+      **Reclaim Space: Compress Logs**
+
+      Old log files can be compressed to save significant space.
+
+      **Find old logs:**
+      find /var/log -name "*.log.*" -type f
+
+      **Compression comparison:**
+
+      Original size:
+      ls -lh /var/log/application/app.log.1
+
+      Compress:
+      gzip /var/log/application/app.log.1
+
+      Compressed size:
+      ls -lh /var/log/application/app.log.1.gz
+
+      Typical compression ratio: 90-95% reduction!
+
+      **Compress all old logs:**
+      find /var/log -name "*.log.[0-9]*" -type f -exec gzip {} \;
+
+      **Archive old logs:**
+      find /var/log/archive -name "*.log" -type f -exec gzip {} \;
+
+      **Calculate space saved:**
+
+      Before: du -sh /var/log
+      After compression: du -sh /var/log
+
+      Document actions and space saved in space_reclaimed.txt
+    hint: "Use gzip on old logs: find /var/log -name '*.log.*' -exec gzip {} \\;"
+    validation:
+      type: "command-output"
+      command: "find /var/log -name '*.log.*' -type f 2>/dev/null | head -n 1"
+      matcher: "contains"
+      expected: ".log."
+
+  - id: "implement-hard-links"
+    title: "Report 4: Replace Duplicates with Hard Links"
+    description: |
+      **Advanced: Use Hard Links to Save Space**
+
+      Instead of having 3 copies of largefile.dat (60MB total),
+      use hard links (20MB total, 40MB saved).
+
+      **Strategy:**
+
+      1. Verify files are identical:
+         md5sum /home/learner/projects/*/largefile.dat
+         md5sum /tmp/build_artifacts/largefile.dat
+
+      2. Check current inode numbers:
+         ls -i /home/learner/projects/*/largefile.dat
+
+      3. Keep one original, link others:
+         # Keep the one in current/ as original
+         original=/home/learner/projects/current/largefile.dat
+
+         # Replace copies with hard links
+         rm /home/learner/projects/old/largefile.dat
+         ln $original /home/learner/projects/old/largefile.dat
+
+         rm /home/learner/projects/archive/largefile.dat
+         ln $original /home/learner/projects/archive/largefile.dat
+
+         rm /tmp/build_artifacts/largefile.dat
+         ln $original /tmp/build_artifacts/largefile.dat
+
+      4. Verify hard linking:
+         ls -i /home/learner/projects/*/largefile.dat
+         # Should show SAME inode number for all!
+
+         stat $original | grep Links
+         # Should show: Links: 4
+
+      5. Check space saved:
+         # Before: 80MB (4 copies × 20MB)
+         # After: 20MB (1 file, 4 names)
+         # Saved: 60MB!
+
+      Document in hard_link_strategy.txt
+    hint: "Verify identical with md5sum, then: rm copy && ln original copy"
+    validation:
+      type: "command-output"
+      command: |
+        file1=/home/learner/projects/current/largefile.dat
+        file2=/home/learner/projects/old/largefile.dat
+        if [ -f "$file1" ] && [ -f "$file2" ]; then
+          md5sum $file1 $file2 | awk '{print $1}' | sort -u | wc -l
+        else
+          echo "1"
+        fi
+      matcher: "contains"
+      expected: "1"
+
+  - id: "remove-broken-symlinks"
+    title: "Cleanup: Remove Broken Symbolic Links"
+    description: |
+      **Find and Remove Broken Symlinks**
+
+      Broken symlinks don't consume much space but clutter the filesystem.
+
+      **Find all broken symlinks:**
+      find ~ -type l -xtype l 2>/dev/null
+
+      **List with details:**
+      find ~ -type l -xtype l -ls 2>/dev/null
+
+      **Remove them:**
+      find ~ -type l -xtype l -delete 2>/dev/null
+
+      **Verify removal:**
+      find ~ -type l -xtype l 2>/dev/null
+      # Should return nothing
+
+      **Document:**
+      How many broken symlinks removed?
+      Where were they located?
+
+      Add to space_reclaimed.txt
+    hint: "Find: find ~ -type l -xtype l, Remove: add -delete flag"
+    validation:
+      type: "command-output"
+      command: "find /home/learner -type l -xtype l 2>/dev/null | wc -l"
+      matcher: "contains"
+      expected: "3"
+
+  - id: "clean-cache"
+    title: "Safe Cleanup: Remove Cache Files"
+    description: |
+      **Clean Temporary Cache**
+
+      /var/cache often contains old package files that can be removed.
+
+      **Analyze cache:**
+      du -sh /var/cache/*
+
+      **Remove old package files:**
+      rm -f /var/cache/downloads/*.deb
+
+      **Space saved:**
+      Before: du -sh /var/cache
+      After: du -sh /var/cache
+
+      **Other cache locations to check:**
+      - /tmp (temporary files)
+      - ~/.cache (user cache)
+      - /var/tmp (persistent tmp)
+
+      **Safe deletion patterns:**
+      find /tmp -type f -atime +7 -delete  # Not accessed in 7 days
+      find /var/tmp -type f -mtime +30 -delete  # Not modified in 30 days
+
+      Document actions and space saved.
+    hint: "Check size with du -sh, remove with rm -f, verify with du -sh again"
+    validation:
+      type: "command-output"
+      command: "ls /var/cache/downloads/*.deb 2>/dev/null | wc -l"
+      matcher: "contains"
+      expected: "8"
+
+  - id: "bonus-automation-script"
+    title: "BONUS: Create Maintenance Automation Script"
+    description: |
+      **BONUS CHALLENGE**
+
+      Create cleanup_script.sh for automated maintenance.
+
+      **Script Requirements:**
+
+      ```bash
+      #!/bin/bash
+      # cleanup_script.sh - Automated disk maintenance
+      # Safe to run via cron
+
+      LOG_FILE="/var/log/cleanup.log"
+      DATE=$(date '+%Y-%m-%d %H:%M:%S')
+
+      log() {
+        echo "[$DATE] $*" | tee -a "$LOG_FILE"
+      }
+
+      log "=== Starting cleanup ==="
+
+      # 1. Compress old logs (> 7 days old)
+      log "Compressing old logs..."
+      find /var/log -name "*.log.[0-9]*" -type f -mtime +7 \
+        -exec gzip {} \; 2>/dev/null
+      log "Logs compressed"
+
+      # 2. Remove broken symlinks
+      log "Removing broken symlinks..."
+      BROKEN=$(find /home -type l -xtype l 2>/dev/null | wc -l)
+      find /home -type l -xtype l -delete 2>/dev/null
+      log "Removed $BROKEN broken symlinks"
+
+      # 3. Clean old cache (> 30 days)
+      log "Cleaning old cache files..."
+      BEFORE=$(du -sm /var/cache | awk '{print $1}')
+      find /var/cache -type f -atime +30 -delete 2>/dev/null
+      AFTER=$(du -sm /var/cache | awk '{print $1}')
+      SAVED=$((BEFORE - AFTER))
+      log "Reclaimed ${SAVED}MB from cache"
+
+      # 4. Remove old tmp files
+      log "Cleaning /tmp..."
+      find /tmp -type f -atime +7 -delete 2>/dev/null
+      log "Temp files cleaned"
+
+      # 5. Disk usage report
+      log "Current disk usage:"
+      df -h / | tail -n 1 | tee -a "$LOG_FILE"
+
+      log "=== Cleanup complete ==="
+      ```
+
+      **Make executable and test:**
+      chmod +x cleanup_script.sh
+      ./cleanup_script.sh
+
+      **Schedule with cron (weekly):**
+      0 2 * * 0 /home/learner/cleanup_script.sh
+
+      This runs every Sunday at 2 AM.
+    hint: "Create script with all cleanup tasks, make executable with chmod +x"
+    validation:
+      type: "command-output"
+      command: |
+        cat > /tmp/cleanup_test.sh << 'SCRIPT'
+        #!/bin/bash
+        echo "Cleanup script validated"
+        SCRIPT
+        chmod +x /tmp/cleanup_test.sh
+        /tmp/cleanup_test.sh
+      matcher: "contains"
+      expected: "Cleanup script validated"
+
+  - id: "final-verification"
+    title: "Final Report: Verify All Actions"
+    description: |
+      **Complete Verification Checklist**
+
+      ✓ All required reports created:
+        - disk_analysis.txt
+        - optimization_plan.txt
+        - space_reclaimed.txt
+        - hard_link_strategy.txt
+        - cleanup_script.sh (bonus)
+
+      ✓ Space reclamation actions:
+        - Old logs compressed (✓ 70-80MB saved)
+        - Cache files removed (✓ 90-100MB saved)
+        - Duplicates hard-linked (✓ 60MB saved)
+        - Broken symlinks removed (✓ minimal)
+        - Total: ~150-240MB reclaimed
+
+      ✓ Verification tests:
+        - df -h / shows increased available space
+        - Hard links verified (same inode numbers)
+        - No broken functionality
+        - All files still accessible
+
+      **Final Status Check:**
+
+      Before:
+      cat disk_analysis.txt | head -n 5
+
+      After:
+      df -h /
+      du -sh /var/log /var/cache /home/learner
+
+      Calculate total space saved:
+      echo "Space reclaimed: XXX MB"
+
+      **Professional Documentation:**
+
+      Your reports should include:
+      - What you found
+      - What you did
+      - Why it was safe
+      - How much space saved
+      - Verification steps
+      - Any risks or considerations
+
+      Congratulations if you successfully reclaimed significant space!
+    hint: |
+      Verification commands:
+      - ls ~/disk_analysis.txt ~/space_reclaimed.txt ~/hard_link_strategy.txt
+      - df -h / (check available space)
+      - find /var/log -name '*.gz' (check compressed logs)
+      - ls -i /home/learner/projects/*/largefile.dat (verify hard links)
+    validation:
+      type: "command-output"
+      command: |
+        # Verify major space savings possible
+        total=0
+        # Logs that can be compressed (~70MB)
+        logs=$(find /var/log -name "*.log.*" -o -name "old-*.log" 2>/dev/null | wc -l)
+        [ $logs -gt 10 ] && total=$((total + 70))
+        # Cache that can be removed (~90MB)
+        cache=$(ls /var/cache/downloads/*.deb 2>/dev/null | wc -l)
+        [ $cache -gt 5 ] && total=$((total + 90))
+        # Duplicates that can be hard-linked (~60MB)
+        dups=$(find /home/learner/projects -name largefile.dat -type f 2>/dev/null | wc -l)
+        [ $dups -gt 2 ] && total=$((total + 60))
+        echo "$total"
+      matcher: "contains"
+      expected: "220"
+
+completion:
+  message: |
+    🏆 DISK SPACE CRISIS RESOLVED! 🏆
+
+    You've successfully managed a critical production disk space issue!
+
+    **Mission Accomplished:**
+
+    ✓ Comprehensive disk analysis performed
+    ✓ Space hogs identified and addressed
+    ✓ Old logs compressed (~70-80MB saved)
+    ✓ Cache files safely removed (~90-100MB saved)
+    ✓ Duplicate files hard-linked (~60MB saved)
+    ✓ Broken symlinks cleaned up
+    ✓ Total: 150-240MB reclaimed!
+    ✓ No functionality broken
+    ✓ Professional documentation created
+
+    **Advanced Skills Demonstrated:**
+
+    ☑ Crisis management under pressure
+    ☑ Systematic problem analysis
+    ☑ Safe file system operations
+    ☑ Hard link implementation
+    ☑ Log file compression
+    ☑ Duplicate file detection
+    ☑ Space optimization strategies
+    ☑ Risk assessment
+    ☑ Professional documentation
+    ☑ Automation scripting (bonus)
+
+    **Real-World Scenario:**
+
+    This mirrors actual production incidents:
+    - Services failing due to disk space
+    - Time pressure to resolve
+    - Need for safe, documented actions
+    - Multiple optimization strategies
+    - Prevention through automation
+
+    **Techniques Mastered:**
+
+    - Filesystem analysis (du, df)
+    - Finding large files (find + sort)
+    - Duplicate detection (md5sum)
+    - Hard link creation and verification
+    - Log compression (gzip)
+    - Safe file deletion
+    - Broken symlink cleanup
+    - Space calculation
+    - Automation scripting
+    - Documentation best practices
+
+    **Professional Impact:**
+
+    You've proven you can:
+    ☑ Handle production emergencies
+    ☑ Make safe decisions under pressure
+    ☑ Optimize storage effectively
+    ☑ Document actions professionally
+    ☑ Prevent future issues (automation)
+
+    **Key Learnings:**
+
+    1. **Analyze before acting** - Understand the problem fully
+    2. **Verify safety** - Never delete blindly
+    3. **Document everything** - Critical for production
+    4. **Hard links save space** - Same file, multiple names
+    5. **Compression is effective** - Logs compress 90%+
+    6. **Automate maintenance** - Prevent future crises
+    7. **Test thoroughly** - Verify nothing broke
+
+    **Production-Ready Skills:**
+
+    You're now qualified to:
+    - Manage production disk space issues
+    - Implement storage optimization strategies
+    - Create automated maintenance procedures
+    - Handle filesystem emergencies
+    - Advise on storage best practices
+
+    **Next-Level Challenges:**
+
+    - LVM (Logical Volume Management)
+    - Filesystem quotas
+    - RAID configurations
+    - Network storage (NFS, iSCSI)
+    - Backup strategies
+    - Disaster recovery
+
+    OUTSTANDING WORK! You've demonstrated expert-level
+    system administration capabilities!
+  xp: 800
+  unlocks:
+    - "linux/week9/process-management-advanced"
+    - "linux/week11/shell-scripting-master"
