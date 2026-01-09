@@ -1,0 +1,523 @@
+mission:
+  id: "shell-config-intermediate"
+  title: "Shell Configuration and PATH Management"
+  difficulty: "intermediate"
+  description: |
+    Master shell configuration files and PATH management. Learn about .bashrc,
+    .bash_profile, and how to customize your shell environment permanently.
+
+    Essential skills for creating a personalized and efficient command-line environment!
+  estimated_time: "35 minutes"
+  xp_reward: 300
+  tags:
+    - "shell"
+    - "bashrc"
+    - "configuration"
+    - "PATH"
+    - "week5"
+
+environment:
+  runtime: "docker"
+  base_image: "ubuntu:22.04"
+  setup: |
+    apt-get update && apt-get install -y \
+      bash \
+      vim \
+      coreutils
+
+steps:
+  - id: "understand-shell-config"
+    description: |
+      **Shell Configuration Files**
+
+      When bash starts, it reads configuration files to set up your environment.
+
+      **Login shells read (in order):**
+      1. `/etc/profile` (system-wide)
+      2. `~/.bash_profile` OR `~/.bash_login` OR `~/.profile` (first found)
+      3. `~/.bash_logout` (on exit)
+
+      **Interactive non-login shells read:**
+      1. `/etc/bash.bashrc` (system-wide)
+      2. `~/.bashrc` (user-specific)
+
+      **Common practice:**
+      - Put environment variables in `~/.bash_profile`
+      - Put aliases and functions in `~/.bashrc`
+      - Have `.bash_profile` source `.bashrc` for consistency
+
+      **Check what you have:**
+      ```bash
+      mkdir -p ~/shell_config
+      cd ~/shell_config
+
+      # Check for config files
+      echo "Configuration files:" > config_files.txt
+      for file in ~/.bashrc ~/.bash_profile ~/.profile; do
+        if [ -f "$file" ]; then
+          echo "✓ $file exists" >> config_files.txt
+        else
+          echo "✗ $file not found" >> config_files.txt
+        fi
+      done
+
+      cat config_files.txt
+      ```
+    hint: |
+      Most Ubuntu systems use ~/.bashrc for interactive shells. Check if it
+      exists with 'ls -la ~/' to see hidden files (starting with dot).
+    validation:
+      - type: "file-exists"
+        path: "~/shell_config/config_files.txt"
+
+  - id: "customize-bashrc"
+    description: |
+      **Customizing .bashrc**
+
+      Let's create a custom .bashrc with useful settings.
+
+      **Common customizations:**
+      - Custom prompt (PS1)
+      - Aliases for common commands
+      - Environment variables
+      - Functions
+      - PATH modifications
+
+      **Task:** Create a basic .bashrc
+
+      ```bash
+      # Backup existing .bashrc if it exists
+      [ -f ~/.bashrc ] && cp ~/.bashrc ~/.bashrc.backup
+
+      # Create our custom .bashrc
+      cat > ~/.bashrc << 'EOF'
+      # Custom .bashrc for learning
+
+      # If not interactive, don't do anything
+      case $- in
+          *i*) ;;
+            *) return;;
+      esac
+
+      # History settings
+      HISTSIZE=1000
+      HISTFILESIZE=2000
+      HISTCONTROL=ignoredups:ignorespace
+
+      # Make less more friendly
+      export LESS='-R'
+
+      # Colorful prompt
+      PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+
+      # Useful aliases
+      alias ll='ls -lh'
+      alias la='ls -lah'
+      alias ..='cd ..'
+      alias ...='cd ../..'
+
+      # Custom greeting
+      echo "Welcome, $USER! Today is $(date +%A)"
+      EOF
+
+      # Source it to apply changes
+      source ~/.bashrc
+
+      # Verify
+      echo "Custom .bashrc created successfully" > bashrc_created.txt
+      ```
+
+      Note: The welcome message will appear when you source .bashrc!
+    hint: |
+      Use 'source ~/.bashrc' to reload the configuration without restarting
+      the shell. The changes take effect immediately.
+    validation:
+      - type: "file-exists"
+        path: "~/shell_config/bashrc_created.txt"
+
+  - id: "alias-management"
+    description: |
+      **Creating Useful Aliases**
+
+      Aliases are shortcuts for commands. They're defined in .bashrc.
+
+      **Syntax:**
+      ```bash
+      alias name='command'
+      ```
+
+      **Common useful aliases:**
+      ```bash
+      # Safety aliases
+      alias rm='rm -i'    # Confirm before deleting
+      alias cp='cp -i'    # Confirm before overwriting
+      alias mv='mv -i'    # Confirm before overwriting
+
+      # Convenience aliases
+      alias ll='ls -lh'              # Long listing, human-readable
+      alias la='ls -lah'             # All files including hidden
+      alias grep='grep --color=auto' # Colorful grep
+      alias df='df -h'               # Human-readable disk space
+      alias du='du -h'               # Human-readable disk usage
+
+      # Navigation aliases
+      alias ..='cd ..'
+      alias ...='cd ../..'
+      alias ....='cd ../../..'
+
+      # Git aliases (if you use git)
+      alias gs='git status'
+      alias gl='git log --oneline'
+      alias gd='git diff'
+      ```
+
+      **Task:** Add custom aliases to .bashrc
+
+      ```bash
+      # Add custom aliases section
+      cat >> ~/.bashrc << 'EOF'
+
+      # === Custom Aliases ===
+
+      # Safety first
+      alias rm='rm -i'
+      alias cp='cp -i'
+      alias mv='mv -i'
+
+      # Enhanced ls
+      alias ll='ls -lh'
+      alias la='ls -lah'
+      alias lt='ls -lht'  # Sort by time
+
+      # Quick navigation
+      alias ..='cd ..'
+      alias ...='cd ../..'
+      alias home='cd ~'
+
+      # Disk usage
+      alias df='df -h'
+      alias du='du -h'
+
+      # Process management
+      alias psg='ps aux | grep'
+
+      # Custom function - make directory and cd into it
+      mkcd() {
+        mkdir -p "$1" && cd "$1"
+      }
+      EOF
+
+      # Source to apply
+      source ~/.bashrc
+
+      # Test an alias
+      alias ll > alias_test.txt
+      echo "" >> alias_test.txt
+      echo "Total aliases defined:" >> alias_test.txt
+      alias | wc -l >> alias_test.txt
+
+      cat alias_test.txt
+      ```
+    hint: |
+      Aliases are defined with 'alias name=command'. They persist across sessions
+      when defined in .bashrc. Use 'alias' without arguments to list all aliases.
+    validation:
+      - type: "file-exists"
+        path: "~/shell_config/alias_test.txt"
+
+  - id: "path-modification"
+    description: |
+      **Modifying the PATH Variable**
+
+      Often you need to add directories to PATH for custom scripts or programs.
+
+      **Understanding PATH structure:**
+      ```
+      PATH=/usr/local/bin:/usr/bin:/bin
+                ↑              ↑       ↑
+              First         Second   Third
+      ```
+
+      **Adding to PATH:**
+
+      **Append (add to end):**
+      ```bash
+      export PATH="$PATH:/new/directory"
+      ```
+
+      **Prepend (add to beginning - takes priority):**
+      ```bash
+      export PATH="/new/directory:$PATH"
+      ```
+
+      **Task:** Create a personal bin directory and add it to PATH
+
+      ```bash
+      # Create personal bin directory
+      mkdir -p ~/bin
+
+      # Create a simple custom script
+      cat > ~/bin/hello << 'EOF'
+      #!/bin/bash
+      echo "Hello from custom script!"
+      echo "This is in my personal ~/bin directory"
+      EOF
+
+      chmod +x ~/bin/hello
+
+      # Add ~/bin to PATH in .bashrc
+      cat >> ~/.bashrc << 'EOF'
+
+      # === Custom PATH ===
+
+      # Add personal bin to PATH if it exists
+      if [ -d "$HOME/bin" ]; then
+        export PATH="$HOME/bin:$PATH"
+      fi
+      EOF
+
+      # Source to apply
+      source ~/.bashrc
+
+      # Document PATH changes
+      echo "PATH Configuration:" > path_config.txt
+      echo "==================" >> path_config.txt
+      echo "" >> path_config.txt
+      echo "Current PATH:" >> path_config.txt
+      echo "$PATH" | tr ':' '\n' >> path_config.txt
+      echo "" >> path_config.txt
+      echo "Testing custom command:" >> path_config.txt
+      which hello >> path_config.txt
+
+      cat path_config.txt
+      ```
+    hint: |
+      When adding to PATH, put '$PATH' in quotes and use colons (:) to separate
+      directories. Prepend (dir:$PATH) gives priority, append ($PATH:dir) is last.
+    validation:
+      - type: "file-exists"
+        path: "~/shell_config/path_config.txt"
+
+  - id: "environment-in-bashrc"
+    description: |
+      **Managing Environment Variables in .bashrc**
+
+      You can set environment variables permanently in .bashrc.
+
+      **Best practices:**
+      ```bash
+      # Application settings
+      export EDITOR=vim
+      export VISUAL=vim
+      export PAGER=less
+
+      # Development settings
+      export GOPATH="$HOME/go"
+      export JAVA_HOME="/usr/lib/jvm/java-11"
+
+      # Custom application config
+      export MY_APP_CONFIG="$HOME/.config/myapp"
+      ```
+
+      **Task:** Add environment variables to .bashrc
+
+      ```bash
+      # Add environment variables section
+      cat >> ~/.bashrc << 'EOF'
+
+      # === Environment Variables ===
+
+      # Default programs
+      export EDITOR=vim
+      export PAGER=less
+
+      # Custom settings
+      export PRACTICE_DIR="$HOME/shell_config"
+      export BACKUP_DIR="$HOME/backups"
+
+      # Development
+      export PROJECT_HOME="$HOME/projects"
+      EOF
+
+      # Source to apply
+      source ~/.bashrc
+
+      # Verify environment variables
+      cat > env_vars.txt << EOF
+      Environment Variables in .bashrc
+      =================================
+
+      EDITOR: $EDITOR
+      PAGER: $PAGER
+      PRACTICE_DIR: $PRACTICE_DIR
+      BACKUP_DIR: $BACKUP_DIR
+      PROJECT_HOME: $PROJECT_HOME
+      EOF
+
+      cat env_vars.txt
+      ```
+    hint: |
+      Use 'export VAR=value' in .bashrc to make environment variables permanent.
+      They'll be set every time you start a new shell session.
+    validation:
+      - type: "file-exists"
+        path: "~/shell_config/env_vars.txt"
+
+  - id: "bash-profile-integration"
+    description: |
+      **Integrating .bash_profile and .bashrc**
+
+      Best practice is to have .bash_profile source .bashrc so settings are
+      consistent in all shell types.
+
+      **Standard pattern:**
+      ```bash
+      # In ~/.bash_profile
+
+      # Source .bashrc if it exists
+      if [ -f ~/.bashrc ]; then
+        source ~/.bashrc
+      fi
+
+      # Login-specific settings here
+      export PATH="$PATH:/opt/bin"
+      ```
+
+      **Task:** Create .bash_profile that sources .bashrc
+
+      ```bash
+      cat > ~/.bash_profile << 'EOF'
+      # .bash_profile - Login shell configuration
+
+      # Source .bashrc for common settings
+      if [ -f ~/.bashrc ]; then
+        source ~/.bashrc
+      fi
+
+      # Login-specific environment variables
+      # These run only once when you log in
+
+      # Set default umask for file creation
+      umask 022
+
+      # Login message
+      echo "Login shell initialized"
+      EOF
+
+      # Document the setup
+      cat > profile_setup.txt << 'EOF'
+      Shell Configuration Strategy
+      =============================
+
+      .bash_profile (login shells):
+      - Sourced when you log in
+      - Should source .bashrc
+      - Login-specific settings (umask, etc.)
+
+      .bashrc (interactive shells):
+      - Sourced for interactive shells
+      - Aliases, functions, prompts
+      - Environment variables
+      - PATH modifications
+
+      Benefits of this approach:
+      - Consistent environment in all shells
+      - Easy to maintain (most settings in .bashrc)
+      - Works for both login and non-login shells
+      EOF
+
+      cat profile_setup.txt
+      ```
+    hint: |
+      The pattern 'if [ -f ~/.bashrc ]; then source ~/.bashrc; fi' checks if
+      .bashrc exists before sourcing it, preventing errors if the file is missing.
+    validation:
+      - type: "file-exists"
+        path: "~/shell_config/profile_setup.txt"
+
+  - id: "testing-and-verification"
+    description: |
+      **Testing Your Configuration**
+
+      Let's verify everything works correctly.
+
+      **Test commands:**
+      ```bash
+      # Test aliases
+      alias ll  # Should show the alias definition
+
+      # Test functions
+      type mkcd  # Should show it's a function
+
+      # Test environment variables
+      echo $EDITOR
+      echo $PRACTICE_DIR
+
+      # Test PATH
+      echo $PATH | grep "$HOME/bin"
+      which hello  # Should find your custom script
+
+      # Test custom script
+      hello  # Should run and display message
+      ```
+
+      **Create comprehensive test:**
+      ```bash
+      cat > config_test.txt << EOF
+      Shell Configuration Test Results
+      =================================
+
+      1. Aliases Test:
+      $(alias ll 2>&1)
+
+      2. Functions Test:
+      $(type mkcd 2>&1 | head -1)
+
+      3. Environment Variables:
+      EDITOR=$EDITOR
+      PRACTICE_DIR=$PRACTICE_DIR
+
+      4. PATH Test:
+      ~/bin in PATH: $(echo $PATH | grep -q "$HOME/bin" && echo "✓ Yes" || echo "✗ No")
+
+      5. Custom Command Test:
+      $(which hello 2>&1)
+
+      6. Configuration Files:
+      .bashrc: $([ -f ~/.bashrc ] && echo "✓ exists" || echo "✗ missing")
+      .bash_profile: $([ -f ~/.bash_profile ] && echo "✓ exists" || echo "✗ missing")
+
+      7. Current Shell:
+      SHELL=$SHELL
+
+      Status: Configuration complete!
+      EOF
+
+      cat config_test.txt
+      ```
+
+      **Congratulations!** You've mastered shell configuration!
+
+      **You learned:**
+      - Understanding shell configuration files (.bashrc, .bash_profile)
+      - Customizing your shell prompt and settings
+      - Creating and managing aliases for efficiency
+      - Modifying PATH to include custom directories
+      - Setting persistent environment variables
+      - Integrating .bash_profile and .bashrc properly
+      - Testing and verifying your configuration
+
+      **Pro tips:**
+      - Keep .bashrc organized with comments and sections
+      - Backup your config files before making changes
+      - Test changes with 'source ~/.bashrc' before logging out
+      - Share useful aliases with your team
+      - Document complex configurations
+
+      Your shell is now customized and ready for productive work!
+    hint: |
+      Use 'source ~/.bashrc' to test changes without opening a new shell.
+      The 'type' command shows whether something is an alias, function, or binary.
+    validation:
+      - type: "file-exists"
+        path: "~/shell_config/config_test.txt"

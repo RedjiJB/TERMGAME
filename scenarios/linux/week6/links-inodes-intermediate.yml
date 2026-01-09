@@ -1,0 +1,512 @@
+mission:
+  id: "links-inodes-intermediate"
+  title: "Understanding Links and Inodes"
+  difficulty: "intermediate"
+  description: |
+    Dive deeper into how Linux filesystems work. Learn about inodes, hard links,
+    and symbolic links - essential concepts for understanding file management.
+
+    Master the difference between hard and symbolic links and when to use each!
+  estimated_time: "40 minutes"
+  xp_reward: 350
+  tags:
+    - "filesystem"
+    - "inodes"
+    - "links"
+    - "hard-links"
+    - "symbolic-links"
+    - "week6"
+
+environment:
+  runtime: "docker"
+  base_image: "ubuntu:22.04"
+  setup: |
+    apt-get update && apt-get install -y \
+      coreutils \
+      tree
+
+steps:
+  - id: "understanding-inodes"
+    description: |
+      **What is an Inode?**
+
+      An inode (index node) is a data structure that stores metadata about a file:
+      - File size
+      - Owner (user and group)
+      - Permissions
+      - Timestamps (created, modified, accessed)
+      - Location of data blocks on disk
+      - Link count
+
+      **What's NOT in the inode:**
+      - The filename (stored in the directory)
+      - The actual file data (stored in data blocks)
+
+      **Key insight:** The filename is just a label that points to an inode!
+
+      **Viewing inodes:**
+      ```bash
+      # Show inode numbers with ls
+      ls -i filename
+
+      # Show detailed inode info with stat
+      stat filename
+      ```
+
+      **Task:** Explore inodes.
+
+      ```bash
+      mkdir -p ~/links_practice
+      cd ~/links_practice
+
+      # Create a test file
+      echo "Hello, inodes!" > testfile.txt
+
+      # Get inode information
+      echo "Inode Exploration" > inode_info.txt
+      echo "=================" >> inode_info.txt
+      echo "" >> inode_info.txt
+
+      echo "File: testfile.txt" >> inode_info.txt
+      echo "Inode number: $(ls -i testfile.txt | awk '{print $1}')" >> inode_info.txt
+      echo "" >> inode_info.txt
+
+      echo "Detailed inode information:" >> inode_info.txt
+      stat testfile.txt >> inode_info.txt
+
+      cat inode_info.txt
+      ```
+    hint: |
+      Use 'ls -i' to see inode numbers, and 'stat' for detailed inode metadata.
+      Every file has exactly one inode.
+    validation:
+      - type: "file-exists"
+        path: "~/links_practice/inode_info.txt"
+
+  - id: "hard-links"
+    description: |
+      **Hard Links: Multiple Names for One Inode**
+
+      A hard link is another directory entry pointing to the SAME inode.
+
+      **Key characteristics:**
+      - Same inode number as the original
+      - Same content, permissions, and metadata
+      - Modifying one updates all (they're the same file!)
+      - Link count increases
+      - Can't cross filesystem boundaries
+      - Can't link to directories (usually)
+
+      **Creating hard links:**
+      ```bash
+      ln original_file hard_link
+      ```
+
+      **The "link count" in inode shows how many names point to it.**
+
+      ```
+      Original File → [Inode 12345] ← Hard Link
+      (Both names point to the same inode!)
+      ```
+
+      **Task:** Create and explore hard links.
+
+      ```bash
+      # Create original file
+      echo "This is the original content" > original.txt
+
+      # Create hard links
+      ln original.txt hardlink1.txt
+      ln original.txt hardlink2.txt
+
+      # Document hard link properties
+      echo "Hard Links Demonstration" > hardlink_demo.txt
+      echo "========================" >> hardlink_demo.txt
+      echo "" >> hardlink_demo.txt
+
+      echo "Inode numbers (should all be the same):" >> hardlink_demo.txt
+      ls -i original.txt hardlink1.txt hardlink2.txt >> hardlink_demo.txt
+
+      echo "" >> hardlink_demo.txt
+      echo "Link count (see the number after permissions):" >> hardlink_demo.txt
+      ls -l original.txt >> hardlink_demo.txt
+
+      echo "" >> hardlink_demo.txt
+      echo "Test: Modify through one link..." >> hardlink_demo.txt
+      echo "Modified through hardlink1" >> hardlink1.txt
+
+      echo "Content of original.txt:" >> hardlink_demo.txt
+      cat original.txt >> hardlink_demo.txt
+
+      echo "" >> hardlink_demo.txt
+      echo "Content of hardlink2.txt:" >> hardlink_demo.txt
+      cat hardlink2.txt >> hardlink_demo.txt
+
+      cat hardlink_demo.txt
+      ```
+    hint: |
+      Hard links share the same inode number (check with 'ls -i'). Modifying any
+      link modifies all because they're the same file underneath.
+    validation:
+      - type: "file-exists"
+        path: "~/links_practice/hardlink_demo.txt"
+
+  - id: "symbolic-links"
+    description: |
+      **Symbolic Links: Pointers to Filenames**
+
+      A symbolic link (symlink) is a special file that contains a path to another file.
+
+      **Key characteristics:**
+      - Different inode from the target
+      - Contains the path to the target file
+      - Can cross filesystem boundaries
+      - Can link to directories
+      - Breaks if target is deleted (dangling link)
+      - Shows as 'l' in ls -l
+
+      **Creating symbolic links:**
+      ```bash
+      ln -s target_file symlink_name
+      ```
+
+      **Visualized:**
+      ```
+      Symlink → [Inode 99999] → Contains: "/path/to/target"
+                                           ↓
+      Target  → [Inode 12345] → Actual file data
+      ```
+
+      **Task:** Create and explore symbolic links.
+
+      ```bash
+      # Create target file
+      echo "Target file content" > target.txt
+
+      # Create symbolic links
+      ln -s target.txt symlink1.txt
+      ln -s target.txt symlink2.txt
+
+      # Create symlink to directory
+      mkdir targetdir
+      ln -s targetdir symlinkdir
+
+      # Document symbolic link properties
+      echo "Symbolic Links Demonstration" > symlink_demo.txt
+      echo "============================" >> symlink_demo.txt
+      echo "" >> symlink_demo.txt
+
+      echo "Inode numbers (should all be DIFFERENT):" >> symlink_demo.txt
+      ls -i target.txt symlink1.txt symlink2.txt >> symlink_demo.txt
+
+      echo "" >> symlink_demo.txt
+      echo "Detailed listing (note the 'l' and '->'):" >> symlink_demo.txt
+      ls -l target.txt symlink1.txt symlink2.txt symlinkdir >> symlink_demo.txt
+
+      echo "" >> symlink_demo.txt
+      echo "Symlink properties:" >> symlink_demo.txt
+      file symlink1.txt >> symlink_demo.txt
+
+      cat symlink_demo.txt
+      ```
+    hint: |
+      Symbolic links show as 'l' in 'ls -l' and display the target with '->'.
+      They have different inode numbers from their targets.
+    validation:
+      - type: "file-exists"
+        path: "~/links_practice/symlink_demo.txt"
+
+  - id: "hard-vs-symbolic"
+    description: |
+      **Comparing Hard Links and Symbolic Links**
+
+      **Hard Links:**
+      ✓ Same inode as original
+      ✓ Survive if original name deleted
+      ✓ Can't tell which is "original"
+      ✗ Can't cross filesystem boundaries
+      ✗ Can't link to directories
+      ✗ All copies must exist on same filesystem
+
+      **Symbolic Links:**
+      ✓ Can cross filesystem boundaries
+      ✓ Can link to directories
+      ✓ Clear which is the link (shows in ls -l)
+      ✓ More flexible
+      ✗ Different inode (overhead)
+      ✗ Breaks if target deleted (dangling)
+      ✗ Extra lookup step (slight performance cost)
+
+      **When to use each:**
+      - **Hard links:** Backups, space-efficient duplicates on same filesystem
+      - **Symbolic links:** Shortcuts, cross-filesystem links, directory links
+
+      **Task:** Demonstrate the differences.
+
+      ```bash
+      # Setup test files
+      echo "Original content" > file_for_hardlink.txt
+      echo "Original content" > file_for_symlink.txt
+
+      ln file_for_hardlink.txt hardlink_copy.txt
+      ln -s file_for_symlink.txt symlink_copy.txt
+
+      # Compare behavior
+      echo "Hard Link vs Symbolic Link Comparison" > comparison.txt
+      echo "======================================" >> comparison.txt
+      echo "" >> comparison.txt
+
+      echo "=== Initial State ===" >> comparison.txt
+      echo "Hard link inode: $(ls -i hardlink_copy.txt | awk '{print $1}')" >> comparison.txt
+      echo "Original inode:  $(ls -i file_for_hardlink.txt | awk '{print $1}')" >> comparison.txt
+      echo "Symlink inode:   $(ls -i symlink_copy.txt | awk '{print $1}')" >> comparison.txt
+      echo "Target inode:    $(ls -i file_for_symlink.txt | awk '{print $1}')" >> comparison.txt
+
+      echo "" >> comparison.txt
+      echo "=== After Deleting Originals ===" >> comparison.txt
+
+      # Delete originals
+      rm file_for_hardlink.txt file_for_symlink.txt
+
+      echo "Hard link still works:" >> comparison.txt
+      cat hardlink_copy.txt >> comparison.txt 2>&1
+
+      echo "" >> comparison.txt
+      echo "Symlink is broken (dangling):" >> comparison.txt
+      cat symlink_copy.txt >> comparison.txt 2>&1 || echo "Error: File not found" >> comparison.txt
+
+      echo "" >> comparison.txt
+      ls -l symlink_copy.txt >> comparison.txt 2>&1
+
+      cat comparison.txt
+      ```
+    hint: |
+      Hard links survive when the original is deleted (same inode!). Symbolic
+      links become "dangling" and break when the target is removed.
+    validation:
+      - type: "file-exists"
+        path: "~/links_practice/comparison.txt"
+
+  - id: "practical-link-usage"
+    description: |
+      **Practical Applications of Links**
+
+      **Common use cases:**
+
+      **1. Version management with symlinks:**
+      ```bash
+      # Keep multiple versions, symlink to current
+      /opt/myapp-1.0/
+      /opt/myapp-1.1/
+      /opt/myapp -> myapp-1.1  (symlink to current)
+      ```
+
+      **2. Shared configuration:**
+      ```bash
+      # Multiple services using same config
+      ln /etc/master-config.conf /etc/app1/config.conf
+      ```
+
+      **3. Space-efficient backups:**
+      ```bash
+      # Hard links for unchanged files
+      ln original.txt backup/original.txt
+      ```
+
+      **Task:** Create a practical example.
+
+      ```bash
+      # Simulate application versioning
+      mkdir -p apps/myapp-1.0 apps/myapp-2.0
+
+      echo "Version 1.0" > apps/myapp-1.0/version.txt
+      echo "Version 2.0" > apps/myapp-2.0/version.txt
+
+      # Create symlink to "current" version
+      cd apps
+      ln -s myapp-2.0 current
+      cd ..
+
+      # Document the setup
+      echo "Practical Link Example: Application Versioning" > practical_links.txt
+      echo "==============================================" >> practical_links.txt
+      echo "" >> practical_links.txt
+
+      echo "Directory structure:" >> practical_links.txt
+      ls -l apps/ >> practical_links.txt
+
+      echo "" >> practical_links.txt
+      echo "Current version points to:" >> practical_links.txt
+      readlink apps/current >> practical_links.txt
+
+      echo "" >> practical_links.txt
+      echo "Current version content:" >> practical_links.txt
+      cat apps/current/version.txt >> practical_links.txt
+
+      echo "" >> practical_links.txt
+      echo "To switch versions, just update the symlink:" >> practical_links.txt
+      echo "  ln -sfn myapp-1.0 apps/current" >> practical_links.txt
+
+      cat practical_links.txt
+      ```
+    hint: |
+      Symbolic links are great for version management. Use 'ln -sfn' to force
+      update a symlink ('s' for symbolic, 'f' for force, 'n' for no-dereference).
+    validation:
+      - type: "file-exists"
+        path: "~/links_practice/practical_links.txt"
+
+  - id: "link-troubleshooting"
+    description: |
+      **Finding and Managing Links**
+
+      **Finding all hard links to a file:**
+      ```bash
+      # Find by inode number
+      find /path -inum INODE_NUMBER
+
+      # Find all files with link count > 1
+      find /path -type f -links +1
+      ```
+
+      **Finding symbolic links:**
+      ```bash
+      # Find all symlinks
+      find /path -type l
+
+      # Find broken (dangling) symlinks
+      find /path -type l -xtype l
+      ```
+
+      **Identifying what a symlink points to:**
+      ```bash
+      # Show target
+      readlink symlink_name
+
+      # Show full resolved path
+      readlink -f symlink_name
+      ```
+
+      **Task:** Practice link management.
+
+      ```bash
+      cd ~/links_practice
+
+      # Create test files and links
+      echo "Test 1" > test1.txt
+      echo "Test 2" > test2.txt
+      ln test1.txt test1_hard.txt
+      ln -s test2.txt test2_sym.txt
+      ln -s nonexistent.txt broken_link.txt
+
+      # Find and document links
+      echo "Link Management and Troubleshooting" > link_management.txt
+      echo "===================================" >> link_management.txt
+      echo "" >> link_management.txt
+
+      echo "All symbolic links in current directory:" >> link_management.txt
+      find . -maxdepth 1 -type l -exec ls -l {} \; >> link_management.txt
+
+      echo "" >> link_management.txt
+      echo "Files with multiple hard links:" >> link_management.txt
+      find . -maxdepth 1 -type f -links +1 -exec ls -li {} \; >> link_management.txt
+
+      echo "" >> link_management.txt
+      echo "Broken symbolic links:" >> link_management.txt
+      find . -maxdepth 1 -type l -xtype l -exec ls -l {} \; 2>/dev/null >> link_management.txt
+
+      echo "" >> link_management.txt
+      echo "Symlink target resolution:" >> link_management.txt
+      echo "test2_sym.txt points to: $(readlink test2_sym.txt)" >> link_management.txt
+
+      cat link_management.txt
+      ```
+    hint: |
+      Use 'find -type l' for symlinks, 'find -links +1' for hard links.
+      'readlink' shows where a symlink points.
+    validation:
+      - type: "file-exists"
+        path: "~/links_practice/link_management.txt"
+
+  - id: "advanced-concepts"
+    description: |
+      **Advanced Link Concepts**
+
+      **Inode exhaustion:**
+      A filesystem can run out of inodes even with free space!
+      ```bash
+      df -i    # Show inode usage
+      ```
+
+      **The . and .. directories:**
+      - `.` is a hard link to the current directory
+      - `..` is a hard link to the parent directory
+      - This is why directories have link count ≥ 2
+
+      **File deletion:**
+      When you "delete" a file with `rm`, you're really:
+      1. Removing the directory entry (filename → inode link)
+      2. Decrementing the inode's link count
+      3. If link count reaches 0, data is marked for deletion
+
+      **This is why:**
+      - Hard links prevent deletion (link count > 0)
+      - Files can be "deleted" but still exist if open by a process
+
+      **Task:** Explore advanced concepts.
+
+      ```bash
+      cd ~/links_practice
+
+      # Demonstrate directory link counts
+      mkdir testdir
+      mkdir testdir/subdir1
+      mkdir testdir/subdir2
+
+      echo "Advanced Link Concepts" > advanced_links.txt
+      echo "======================" >> advanced_links.txt
+      echo "" >> advanced_links.txt
+
+      echo "Directory link counts:" >> advanced_links.txt
+      echo "Note: Each subdirectory adds 1 to parent's count (via ..)" >> advanced_links.txt
+      ls -ld testdir testdir/subdir1 testdir/subdir2 >> advanced_links.txt
+
+      echo "" >> advanced_links.txt
+      echo "Inode usage on filesystem:" >> advanced_links.txt
+      df -i . >> advanced_links.txt
+
+      echo "" >> advanced_links.txt
+      echo "Understanding file deletion:" >> advanced_links.txt
+      echo "1. rm removes directory entry" >> advanced_links.txt
+      echo "2. Link count decrements" >> advanced_links.txt
+      echo "3. When count=0, data blocks freed" >> advanced_links.txt
+      echo "4. Hard links prevent deletion" >> advanced_links.txt
+
+      cat advanced_links.txt
+      ```
+
+      **Congratulations!** You now understand links and inodes!
+
+      **You learned:**
+      - What inodes are and what they contain
+      - How hard links work (multiple names, one inode)
+      - How symbolic links work (pointer files)
+      - Key differences between hard and symbolic links
+      - When to use each type of link
+      - Practical applications (versioning, configuration)
+      - How to find and manage links
+      - Advanced concepts (inode exhaustion, deletion)
+
+      **Key takeaways:**
+      - Filenames are just directory entries pointing to inodes
+      - Hard links = same inode, symbolic links = different inode
+      - Hard links are more "permanent", symlinks are more "flexible"
+      - Understanding links is crucial for system administration
+
+      You're now ready for advanced filesystem operations!
+    hint: |
+      Directory link count includes: itself (.), each subdirectory's (..), and
+      its entry in parent. Use 'ls -ld' to see directory info without listing contents.
+    validation:
+      - type: "file-exists"
+        path: "~/links_practice/advanced_links.txt"
