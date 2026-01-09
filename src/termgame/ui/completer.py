@@ -61,29 +61,39 @@ class SlashCommandCompleter(Completer):
         """
         text = document.text_before_cursor
 
-        # Only show completions if line starts with '/' or is empty
-        if not text.startswith("/") and text.strip():
+        # Don't complete if there's text that's not a command
+        # (e.g., if they're typing a Linux command in mission mode)
+        if text and not text.startswith("/") and " " in text:
             return []
 
         # Get available commands based on mode
         commands = self.mission_commands if self.in_mission else self.lobby_commands
 
-        # Remove leading '/' for matching
-        search_text = text[1:].lower() if text.startswith("/") else ""
+        # Determine if using slash syntax and get search text
+        using_slash = text.startswith("/")
+        if using_slash:
+            search_text = text[1:].lower()
+        else:
+            search_text = text.lower()
 
         completions = []
         for cmd, description in commands.items():
             # Match command prefix
             if cmd.lower().startswith(search_text):
-                # Calculate how much to display
-                # If user typed "/st", we want to complete with "art", not "start"
+                # Calculate how much to replace
                 start_position = -len(search_text) if search_text else 0
+
+                # Show with or without slash based on how user typed
+                if using_slash:
+                    display = f"/{cmd}"
+                else:
+                    display = cmd
 
                 completions.append(
                     Completion(
                         text=cmd,
                         start_position=start_position,
-                        display=f"/{cmd}",
+                        display=display,
                         display_meta=description,
                     )
                 )

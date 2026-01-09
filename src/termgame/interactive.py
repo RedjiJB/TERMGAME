@@ -562,6 +562,11 @@ class InteractiveCLI:
 
         parts = user_input.split()
         command = parts[0].lower()
+
+        # Strip leading "/" if present (support both /command and command)
+        if command.startswith("/"):
+            command = command[1:]
+
         args = parts[1:]
 
         # Handle quit command
