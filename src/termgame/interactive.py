@@ -15,6 +15,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.table import Table
 
+from termgame import __author__, __version__
 from termgame.cli_utils import create_cli_engine
 from termgame.config import get_config
 from termgame.loaders.scenario_loader import ScenarioLoader
@@ -105,8 +106,9 @@ class InteractiveCLI:
 """
         self.console.print(f"[bold cyan]{logo}[/bold cyan]")
         self.console.print(
-            "[dim]Terminal training platform for Linux, Cisco IOS, and PowerShell[/dim]\n"
+            "[dim]Terminal training platform for Linux, Cisco IOS, and PowerShell[/dim]"
         )
+        self.console.print(f"[dim]Version {__version__} • Created by {__author__}[/dim]\n")
         self.console.print(
             "Type [cyan]help[/cyan] for commands, or [cyan]list[/cyan] to see all missions\n"
         )
