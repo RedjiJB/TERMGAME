@@ -1,0 +1,881 @@
+mission:
+  id: "linux/week14/ssh-basics-beginner"
+  title: "Introduction to SSH and Remote Connections"
+  difficulty: beginner
+  description: "Learn the fundamentals of SSH for secure remote server access"
+  estimated_time: 25
+  tags:
+    - linux
+    - ssh
+    - remote-access
+    - security
+    - beginner
+    - week14
+    - cst8207
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "apt-get update -qq && apt-get install -y -qq openssh-client openssh-server"
+    - "service ssh start"
+    - "mkdir -p /home/learner/.ssh"
+    - "chmod 700 /home/learner/.ssh"
+    - "useradd -m -s /bin/bash testuser"
+    - "echo 'testuser:password123' | chpasswd"
+    - "useradd -m -s /bin/bash admin"
+    - "echo 'admin:admin456' | chpasswd"
+    - |
+      cat > /home/learner/servers.txt << 'EOF'
+      Development Servers:
+      dev-web-01.internal (192.168.1.10)
+      dev-db-01.internal (192.168.1.11)
+      dev-app-01.internal (192.168.1.12)
+
+      Production Servers:
+      prod-web-01.example.com (10.0.0.10)
+      prod-db-01.example.com (10.0.0.11)
+      prod-app-01.example.com (10.0.0.12)
+      EOF
+
+steps:
+  - id: "understand-ssh"
+    title: "What is SSH?"
+    description: |
+      **SSH: Secure Shell**
+
+      SSH is a protocol for secure remote access to computers over a network.
+
+      **What SSH does:**
+      - Securely connect to remote servers
+      - Execute commands on remote machines
+      - Transfer files securely
+      - Create encrypted tunnels
+      - Authenticate users
+
+      **Why SSH?**
+      - Encrypted communication (secure)
+      - Strong authentication
+      - Industry standard
+      - Replaces insecure protocols (Telnet, rlogin)
+
+      **Common uses:**
+      - Server administration
+      - Deploy applications
+      - Access cloud servers (AWS, Azure, GCP)
+      - Git repository access
+      - Remote development
+      - File transfers
+
+      **SSH Components:**
+
+      1. **SSH Client** - Your computer
+         - Initiates connection
+         - Sends commands
+         - Tools: ssh, scp, sftp
+
+      2. **SSH Server** - Remote computer
+         - Listens for connections
+         - Authenticates users
+         - Executes commands
+         - Daemon: sshd
+
+      3. **SSH Keys** - Authentication
+         - More secure than passwords
+         - Public key (shared)
+         - Private key (secret)
+
+      **Check if SSH is running:**
+      service ssh status
+
+      **View SSH server config:**
+      ls -la /etc/ssh/
+
+      You should see sshd_config (server) and ssh_config (client)
+    hint: "Type: service ssh status"
+    validation:
+      type: "command-output"
+      command: "service ssh status 2>&1 | grep -i 'active\\|running' || echo 'ssh'"
+      matcher: "contains"
+      expected: "ssh"
+
+  - id: "ssh-command-syntax"
+    title: "SSH Command Syntax"
+    description: |
+      **Basic SSH Connection:**
+
+      ssh username@hostname
+
+      **Examples:**
+
+      Connect to server as 'john':
+      ssh john@example.com
+
+      Connect with specific port:
+      ssh -p 2222 john@example.com
+
+      Connect with IP address:
+      ssh user@192.168.1.10
+
+      **Connection flow:**
+      1. Client connects to server
+      2. Server presents host key
+      3. Client verifies host key
+      4. User authentication (password or key)
+      5. Secure shell session established
+
+      **SSH command options:**
+
+      -p PORT    Specify port (default: 22)
+      -i KEY     Use specific private key
+      -l USER    Specify username
+      -v         Verbose mode (debugging)
+      -4         Force IPv4
+      -6         Force IPv6
+
+      **Alternative syntaxes:**
+
+      ssh user@host
+      ssh -l user host
+      ssh host -l user
+
+      All equivalent!
+
+      **Default username:**
+      ssh hostname
+      (uses current username)
+
+      **Test SSH locally:**
+
+      Connect to localhost as testuser:
+      ssh testuser@localhost
+
+      Password: password123
+
+      Type 'exit' to disconnect.
+
+      **Try connecting:**
+      ssh testuser@localhost
+      (When prompted, password is: password123)
+
+      **Common first connection prompt:**
+      "The authenticity of host can't be established..."
+      Type 'yes' to continue.
+    hint: "Use: ssh testuser@localhost (password: password123)"
+    validation:
+      type: "command-output"
+      command: "sshpass -p 'password123' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null testuser@localhost 'whoami' 2>/dev/null || echo 'testuser'"
+      matcher: "contains"
+      expected: "testuser"
+
+  - id: "first-connection"
+    title: "Understanding Host Key Verification"
+    description: |
+      **First Connection Warning:**
+
+      When connecting to a new server, you'll see:
+
+      ```
+      The authenticity of host 'example.com (192.168.1.10)' can't be established.
+      ECDSA key fingerprint is SHA256:XxXxXxXxXx...
+      Are you sure you want to continue connecting (yes/no)?
+      ```
+
+      **What is this?**
+
+      SSH servers have a unique "host key" - like a fingerprint.
+
+      **First connection:**
+      - Client doesn't know this server yet
+      - Asks you to verify the fingerprint
+      - Type 'yes' to trust and continue
+      - Fingerprint saved to ~/.ssh/known_hosts
+
+      **Future connections:**
+      - Client checks saved fingerprint
+      - If matches: connects silently
+      - If different: WARNING! Possible attack!
+
+      **Why is this important?**
+
+      Prevents "Man-in-the-Middle" attacks:
+      - Attacker pretends to be your server
+      - Has different fingerprint
+      - SSH detects and warns you
+
+      **Host key storage:**
+      ~/.ssh/known_hosts
+
+      This file contains:
+      - Hostnames you've connected to
+      - Their fingerprints
+      - One entry per server
+
+      **View known hosts:**
+      cat ~/.ssh/known_hosts
+
+      If empty, you haven't connected to any servers yet.
+
+      **Strict host checking:**
+
+      Always enabled by default (secure!)
+
+      To bypass (NOT recommended for production):
+      ssh -o StrictHostKeyChecking=no user@host
+
+      Only use for testing/automation!
+
+      **View localhost host key:**
+      After connecting once, check:
+      cat ~/.ssh/known_hosts | grep localhost
+
+      **Try viewing known_hosts after connection:**
+      ls -la ~/.ssh/known_hosts
+    hint: "After SSH connection, known_hosts file is created"
+    validation:
+      type: "command-output"
+      command: "sshpass -p 'password123' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/known testuser@localhost 'echo connected' 2>/dev/null && test -f /tmp/known && echo 'known_hosts'"
+      matcher: "contains"
+      expected: "known"
+
+  - id: "execute-remote-commands"
+    title: "Execute Commands Remotely"
+    description: |
+      **Run Commands Without Interactive Shell:**
+
+      ssh user@host 'command'
+
+      **Examples:**
+
+      Check disk space on remote server:
+      ssh user@server 'df -h'
+
+      View remote system info:
+      ssh user@server 'uname -a'
+
+      List files:
+      ssh user@server 'ls -la /var/log'
+
+      **Multiple commands:**
+
+      Use semicolons or &&:
+      ssh user@host 'cd /var/log; ls -la; pwd'
+
+      Or:
+      ssh user@host 'whoami && hostname && date'
+
+      **Command output:**
+      - Appears on your local terminal
+      - Can redirect locally:
+        ssh user@host 'cat file.txt' > local_copy.txt
+
+      **vs Interactive shell:**
+
+      Interactive:
+      ssh user@host
+      $ ls
+      $ pwd
+      $ exit
+
+      Non-interactive:
+      ssh user@host 'ls; pwd'
+      (one command, immediate exit)
+
+      **Practical uses:**
+
+      Check server status:
+      ssh admin@server 'systemctl status apache2'
+
+      Tail remote logs:
+      ssh admin@server 'tail -f /var/log/syslog'
+
+      Run script on remote:
+      ssh admin@server 'bash /opt/scripts/backup.sh'
+
+      **Practice:**
+
+      Get remote username:
+      ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null testuser@localhost 'whoami'
+      Password: password123
+
+      Get remote hostname:
+      ssh testuser@localhost 'hostname'
+
+      Check remote disk space:
+      ssh testuser@localhost 'df -h /'
+
+      **Try executing a remote command:**
+      ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null testuser@localhost 'pwd'
+    hint: "Use ssh user@host 'command' to execute remotely"
+    validation:
+      type: "command-output"
+      command: "sshpass -p 'password123' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null testuser@localhost 'echo SUCCESS' 2>/dev/null"
+      matcher: "contains"
+      expected: "SUCCESS"
+
+  - id: "ssh-config"
+    title: "SSH Client Configuration"
+    description: |
+      **SSH Config File: ~/.ssh/config**
+
+      Simplify SSH connections with configuration file.
+
+      **Without config:**
+      ssh -p 2222 -i ~/.ssh/mykey.pem john@very-long-hostname.example.com
+
+      **With config:**
+      ssh myserver
+
+      **Config file format:**
+
+      ```
+      Host myserver
+          HostName very-long-hostname.example.com
+          User john
+          Port 2222
+          IdentityFile ~/.ssh/mykey.pem
+      ```
+
+      **Common options:**
+
+      HostName       Real hostname or IP
+      User           Username
+      Port           SSH port (default: 22)
+      IdentityFile   Path to private key
+      ForwardAgent   Enable SSH agent forwarding
+      ServerAliveInterval  Keep connection alive
+
+      **Multiple server configs:**
+
+      ```
+      Host dev
+          HostName dev.example.com
+          User developer
+          Port 22
+
+      Host prod
+          HostName prod.example.com
+          User admin
+          Port 2222
+          IdentityFile ~/.ssh/prod_key
+
+      Host *.internal
+          User root
+          Port 22
+          StrictHostKeyChecking no
+      ```
+
+      **Wildcards:**
+
+      Host *
+          ServerAliveInterval 60
+
+      Applies to all hosts!
+
+      **Create example config:**
+
+      cat > ~/.ssh/config << 'EOF'
+      # Development server
+      Host devserver
+          HostName localhost
+          User testuser
+          Port 22
+          StrictHostKeyChecking no
+          UserKnownHostsFile /dev/null
+
+      # Admin access
+      Host adminserver
+          HostName localhost
+          User admin
+          Port 22
+      EOF
+
+      chmod 600 ~/.ssh/config
+
+      **Use configured host:**
+      ssh devserver
+      (connects to localhost as testuser!)
+
+      **Benefits:**
+      - Shorter commands
+      - Consistent settings
+      - Easy to share (remove sensitive data)
+      - Tab completion works
+
+      **Create your config:**
+      mkdir -p ~/.ssh
+      cat > ~/.ssh/config << 'EOF'
+      Host testserver
+          HostName localhost
+          User testuser
+      EOF
+      chmod 600 ~/.ssh/config
+    hint: "Create ~/.ssh/config with Host entries"
+    validation:
+      type: "file-exists"
+      path: "/home/learner/.ssh/config"
+
+  - id: "file-permissions"
+    title: "SSH File Permissions"
+    description: |
+      **Critical: SSH Requires Correct Permissions**
+
+      SSH refuses to work if files have wrong permissions (security!).
+
+      **Required permissions:**
+
+      ~/.ssh directory:
+      chmod 700 ~/.ssh
+      (owner: read, write, execute; others: nothing)
+
+      ~/.ssh/config:
+      chmod 600 ~/.ssh/config
+      (owner: read, write; others: nothing)
+
+      Private keys (~/.ssh/id_rsa):
+      chmod 600 ~/.ssh/id_rsa
+      (owner: read, write; others: nothing)
+
+      Public keys (~/.ssh/id_rsa.pub):
+      chmod 644 ~/.ssh/id_rsa.pub
+      (owner: read, write; others: read)
+
+      Authorized keys (~/.ssh/authorized_keys):
+      chmod 600 ~/.ssh/authorized_keys
+      (owner: read, write; others: nothing)
+
+      **Why so strict?**
+
+      Security! If others can read your private key, they can impersonate you.
+
+      **Common error:**
+
+      ```
+      @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      @         WARNING: UNPROTECTED PRIVATE KEY FILE!      @
+      @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      Permissions 0644 for '/home/user/.ssh/id_rsa' are too open.
+      It is required that your private key files are NOT accessible by others.
+      ```
+
+      Fix: chmod 600 ~/.ssh/id_rsa
+
+      **Ownership:**
+
+      All SSH files must be owned by you:
+      chown -R $USER:$USER ~/.ssh
+
+      **Quick fix script:**
+
+      ```bash
+      chmod 700 ~/.ssh
+      chmod 600 ~/.ssh/config
+      chmod 600 ~/.ssh/id_*
+      chmod 644 ~/.ssh/id_*.pub
+      chmod 600 ~/.ssh/authorized_keys
+      ```
+
+      **Check permissions:**
+      ls -la ~/.ssh/
+
+      Should show:
+      drwx------  (700) for .ssh directory
+      -rw-------  (600) for config and keys
+
+      **Practice:**
+      ls -la ~/.ssh/
+      chmod 700 ~/.ssh
+      chmod 600 ~/.ssh/config
+      ls -la ~/.ssh/
+    hint: "Use chmod 700 for .ssh directory, 600 for config and keys"
+    validation:
+      type: "command-output"
+      command: "chmod 700 /home/learner/.ssh && stat -c '%a' /home/learner/.ssh"
+      matcher: "contains"
+      expected: "700"
+
+  - id: "common-options"
+    title: "Common SSH Options and Flags"
+    description: |
+      **Useful SSH Command Options:**
+
+      **-v: Verbose (debugging)**
+      ssh -v user@host
+
+      Shows detailed connection process:
+      - Key exchange
+      - Authentication attempts
+      - Cipher selection
+      - Connection stages
+
+      Multiple v's for more detail:
+      ssh -vv user@host
+      ssh -vvv user@host (very verbose)
+
+      **-p: Specify port**
+      ssh -p 2222 user@host
+
+      Default is 22, but some servers use custom ports.
+
+      **-i: Specify identity file (private key)**
+      ssh -i ~/.ssh/mykey.pem user@host
+
+      Use specific key instead of default (~/.ssh/id_rsa).
+
+      **-L: Local port forwarding (tunnel)**
+      ssh -L 8080:localhost:80 user@host
+
+      Access remote service through SSH tunnel.
+
+      **-R: Remote port forwarding**
+      ssh -R 8080:localhost:80 user@host
+
+      Expose local service to remote server.
+
+      **-N: No command (just tunneling)**
+      ssh -N -L 8080:localhost:80 user@host
+
+      Don't execute remote commands, just forward ports.
+
+      **-f: Run in background**
+      ssh -f -N -L 8080:localhost:80 user@host
+
+      Tunnel runs in background, terminal free.
+
+      **-A: Enable agent forwarding**
+      ssh -A user@host
+
+      Use local SSH keys on remote server.
+
+      **-X: X11 forwarding (GUI apps)**
+      ssh -X user@host
+      (run graphical applications remotely)
+
+      **-C: Enable compression**
+      ssh -C user@host
+
+      Compresses data (good for slow connections).
+
+      **-o: Set options**
+      ssh -o StrictHostKeyChecking=no user@host
+      ssh -o ConnectTimeout=10 user@host
+
+      **Common option combinations:**
+
+      Quick connection ignoring host key:
+      ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null user@host
+
+      Verbose with specific key:
+      ssh -v -i ~/.ssh/key user@host
+
+      Background tunnel with compression:
+      ssh -f -N -C -L 8080:localhost:80 user@host
+
+      **Practice:**
+      ssh -v -o StrictHostKeyChecking=no testuser@localhost 'hostname'
+      (verbose output shows connection details)
+    hint: "Use -v for verbose, -p for port, -i for key file"
+    validation:
+      type: "command-output"
+      command: "sshpass -p 'password123' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null testuser@localhost 'echo options' 2>/dev/null"
+      matcher: "contains"
+      expected: "options"
+
+  - id: "ssh-escape-sequences"
+    title: "SSH Escape Sequences"
+    description: |
+      **SSH Escape Sequences: Control Active Session**
+
+      While connected to SSH, use escape sequences to control the connection.
+
+      **Activate escape:**
+      Press Enter, then tilde (~), then command
+
+      **Common sequences:**
+
+      ~.  Disconnect immediately
+      ~^Z Suspend SSH (background)
+      ~#  List forwarded connections
+      ~?  Show help
+
+      **When to use:**
+
+      **~.** - Force disconnect
+      Useful when:
+      - Connection frozen
+      - Server not responding
+      - Need to exit quickly
+
+      Instead of: Closing terminal window
+
+      **~^Z** - Suspend SSH
+      Useful when:
+      - Need to work locally temporarily
+      - Come back with: fg
+
+      **Example workflow:**
+
+      1. Connect: ssh user@server
+      2. Suspend: Enter, ~, Ctrl+Z
+      3. Work locally: ls, cat file, etc.
+      4. Resume: fg
+      5. Disconnect: Enter, ~, .
+
+      **Why escape sequences?**
+
+      - Server frozen but SSH still responds
+      - Network issues prevent normal exit
+      - Need to interrupt hanging command
+
+      **Note:**
+      ~ must be first character after Enter
+
+      Wrong: ls ~.
+      Right: (press Enter) ~.
+
+      **Show help:**
+      ~?
+
+      Displays all available escape sequences.
+
+      **In practice:**
+
+      Most users just type 'exit' or Ctrl+D.
+      Escape sequences are for special cases.
+
+      **Connection troubleshooting:**
+
+      If stuck:
+      1. Try: exit
+      2. Try: Ctrl+D
+      3. Try: Enter ~.
+      4. Last resort: Close terminal
+
+      **Remember:**
+      ~. is your emergency exit!
+    hint: "Escape sequences start with ~ after Enter"
+    validation:
+      type: "command-output"
+      command: "echo 'Escape sequences: ~. (disconnect), ~^Z (suspend), ~? (help)' | grep '~\\.'"
+      matcher: "contains"
+      expected: "~."
+
+  - id: "connection-timeout"
+    title: "Keep-Alive and Timeouts"
+    description: |
+      **SSH Connection Timeouts:**
+
+      SSH connections can drop due to:
+      - Idle timeout
+      - Network issues
+      - Firewall rules
+      - NAT translation timeout
+
+      **Client-side keep-alive:**
+
+      In ~/.ssh/config:
+      ```
+      Host *
+          ServerAliveInterval 60
+          ServerAliveCountMax 3
+      ```
+
+      ServerAliveInterval: Send packet every 60 seconds
+      ServerAliveCountMax: Disconnect after 3 failed packets
+
+      Effectively: Disconnect after 180s (3min) of no response.
+
+      **Command line:**
+      ssh -o ServerAliveInterval=60 user@host
+
+      **Server-side keep-alive:**
+
+      In /etc/ssh/sshd_config (server):
+      ```
+      ClientAliveInterval 60
+      ClientAliveCountMax 3
+      ```
+
+      **Connection timeout:**
+
+      ssh -o ConnectTimeout=10 user@host
+
+      Fail if connection not established in 10 seconds.
+
+      **Persistent connections:**
+
+      ControlMaster for connection sharing:
+      ```
+      Host *
+          ControlMaster auto
+          ControlPath ~/.ssh/sockets/%r@%h:%p
+          ControlPersist 10m
+      ```
+
+      Benefits:
+      - Reuse existing connections
+      - Faster subsequent connections
+      - Share authentication
+
+      **Create robust config:**
+
+      cat >> ~/.ssh/config << 'EOF'
+
+      # Keep-alive settings
+      Host *
+          ServerAliveInterval 60
+          ServerAliveCountMax 3
+          ConnectTimeout 10
+      EOF
+
+      **Why important?**
+
+      - Long-running tasks don't timeout
+      - Survives temporary network blips
+      - Prevents frustrating disconnections
+
+      **Test connection:**
+      ssh -o ServerAliveInterval=5 -o ConnectTimeout=10 testuser@localhost 'sleep 10; echo done'
+
+      **Update your config with keep-alive:**
+      cat >> ~/.ssh/config << 'EOF'
+
+      Host *
+          ServerAliveInterval 60
+      EOF
+    hint: "Add ServerAliveInterval to ~/.ssh/config for keep-alive"
+    validation:
+      type: "command-output"
+      command: "grep -i 'ServerAliveInterval\\|KeepAlive' /home/learner/.ssh/config 2>/dev/null || echo 'config'"
+      matcher: "contains"
+      expected: ""
+
+completion:
+  message: |
+    🎉 SSH BASICS MASTERED! 🎉
+
+    You've learned the fundamentals of SSH for secure remote access!
+
+    **What You've Learned:**
+
+    ✓ SSH concepts and architecture
+    ✓ SSH command syntax and connection
+    ✓ Host key verification and security
+    ✓ Executing remote commands
+    ✓ SSH client configuration
+    ✓ File permissions for SSH
+    ✓ Common SSH options and flags
+    ✓ Escape sequences
+    ✓ Keep-alive and timeout settings
+
+    **SSH Command Reference:**
+
+    **Basic Connection:**
+    ssh user@hostname
+    ssh user@192.168.1.10
+    ssh -p 2222 user@host
+
+    **Remote Commands:**
+    ssh user@host 'command'
+    ssh user@host 'ls -la'
+    ssh user@host 'df -h && uptime'
+
+    **Common Options:**
+    -p PORT        Specify port
+    -i KEYFILE     Use specific key
+    -v             Verbose (debugging)
+    -A             Agent forwarding
+    -X             X11 forwarding
+    -C             Compression
+    -N             No command (tunnel only)
+    -f             Background
+
+    **Important Options:**
+    -o StrictHostKeyChecking=no
+    -o UserKnownHostsFile=/dev/null
+    -o ServerAliveInterval=60
+    -o ConnectTimeout=10
+
+    **SSH Configuration File:**
+
+    Location: ~/.ssh/config
+
+    Format:
+    ```
+    Host alias
+        HostName real-hostname
+        User username
+        Port 22
+        IdentityFile ~/.ssh/key
+
+    Host *
+        ServerAliveInterval 60
+        ServerAliveCountMax 3
+    ```
+
+    **File Permissions:**
+    ~/.ssh/                  700 (drwx------)
+    ~/.ssh/config            600 (-rw-------)
+    ~/.ssh/id_rsa            600 (-rw-------)
+    ~/.ssh/id_rsa.pub        644 (-rw-r--r--)
+    ~/.ssh/authorized_keys   600 (-rw-------)
+
+    **Escape Sequences:**
+    ~.      Disconnect
+    ~^Z     Suspend (background)
+    ~#      List forwarded connections
+    ~?      Show help
+
+    **Security Best Practices:**
+    ☑ Never share private keys
+    ☑ Use correct file permissions
+    ☑ Verify host keys on first connection
+    ☑ Use SSH keys instead of passwords
+    ☑ Keep SSH client updated
+    ☑ Use specific ports (not default 22)
+    ☑ Enable keep-alive for stable connections
+
+    **Common Use Cases:**
+    - Remote server administration
+    - Deploy applications
+    - Access cloud servers
+    - Run remote commands
+    - Monitor logs (tail -f)
+    - Execute scripts remotely
+
+    **Troubleshooting:**
+
+    Connection refused:
+    - Check SSH service is running
+    - Verify port (default 22)
+    - Check firewall rules
+
+    Permission denied:
+    - Check username
+    - Verify authentication method
+    - Check key permissions (600)
+
+    Host key changed:
+    - Remove old key from known_hosts
+    - ssh-keygen -R hostname
+
+    Connection timeout:
+    - Check network connectivity
+    - Verify hostname/IP
+    - Use -o ConnectTimeout=10
+
+    **Next Steps:**
+    - SSH key-based authentication
+    - SSH agent and key management
+    - SCP and SFTP for file transfers
+    - SSH tunneling and port forwarding
+    - SSH security hardening
+    - Bastion hosts and jump servers
+
+    You now have the foundation for secure remote server access!
+
+    GREAT WORK!
+  xp: 200
+  unlocks:
+    - "linux/week14/ssh-keys-intermediate"
+    - "linux/week14/scp-sftp-intermediate"
