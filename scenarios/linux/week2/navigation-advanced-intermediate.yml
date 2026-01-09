@@ -1,503 +1,580 @@
 mission:
-  id: "navigation-advanced-intermediate"
-  title: "Advanced Navigation and Directory Management"
-  difficulty: "intermediate"
-  description: |
-    Master advanced navigation techniques including pushd/popd, directory stacks,
+  id: navigation-advanced-intermediate
+  title: Advanced Navigation and Directory Management
+  difficulty: intermediate
+  description: 'Master advanced navigation techniques including pushd/popd, directory
+    stacks,
+
     and efficient filesystem traversal. Learn shortcuts and tools that power users
+
     rely on for productivity.
 
+
     Take your command-line navigation skills to the next level!
-  estimated_time: "30 minutes"
+
+    '
+  estimated_time: 30
   xp_reward: 300
   tags:
-    - "navigation"
-    - "filesystem"
-    - "pushd"
-    - "popd"
-    - "productivity"
-    - "week2"
-
+  - navigation
+  - filesystem
+  - pushd
+  - popd
+  - productivity
+  - week2
 environment:
-  runtime: "docker"
-  base_image: "ubuntu:22.04"
-  setup: |
-    apt-get update && apt-get install -y \
-      coreutils \
-      tree
-
+  setup:
+  - apt-get update && apt-get install -y \
+  - coreutils \
+  - tree
+  image: ubuntu:22.04
 steps:
-  - id: "directory-stack-intro"
-    description: |
-      **The Directory Stack: pushd and popd**
-
-      Instead of `cd`, power users often use `pushd` and `popd` to navigate
-      while maintaining a history of visited directories.
-
-      **Basic concepts:**
-      - `pushd` - Push directory onto stack and cd to it
-      - `popd` - Pop directory from stack and cd to it
-      - `dirs` - Show the directory stack
-
-      **Think of it like a stack of plates:**
-      ```
-      Current: /var/log
-      Stack:   [/home/user, /etc, /tmp]
-      ```
-
-      **Basic usage:**
-      ```bash
-      pwd                    # /home/user
-      pushd /etc             # Go to /etc, save /home/user
-      pushd /var/log         # Go to /var/log, save /etc
-      dirs                   # Show stack
-      popd                   # Back to /etc
-      popd                   # Back to /home/user
-      ```
-
-      **Task:** Practice directory stack basics.
-
-      ```bash
-      mkdir -p ~/navigation/{proj1,proj2,proj3,logs,configs}
-      cd ~/navigation
-
-      # Document initial state
-      echo "Directory Stack Navigation" > stack_demo.txt
-      echo "==========================" >> stack_demo.txt
-      echo "" >> stack_demo.txt
-
-      echo "Starting location:" >> stack_demo.txt
-      pwd >> stack_demo.txt
-
-      # Build up the stack
-      pushd proj1 > /dev/null
-      pushd ../proj2 > /dev/null
-      pushd ../proj3 > /dev/null
-
-      echo "" >> stack_demo.txt
-      echo "After pushing three directories:" >> stack_demo.txt
-      dirs -v >> stack_demo.txt
-      echo "Current: $(pwd)" >> stack_demo.txt
-
-      # Pop back
-      popd > /dev/null
-      echo "" >> stack_demo.txt
-      echo "After one popd:" >> stack_demo.txt
-      echo "Current: $(pwd)" >> stack_demo.txt
-
-      cd ~/navigation
-      cat stack_demo.txt
-      ```
-    hint: |
-      pushd saves your current location before changing directories. popd returns
-      to the last saved location. Use 'dirs -v' to see the full stack with numbers.
-    validation:
-      - type: "file-exists"
-        path: "~/navigation/stack_demo.txt"
-
-  - id: "directory-stack-manipulation"
-    description: |
-      **Advanced Directory Stack Operations**
-
-      **Viewing the stack:**
-      ```bash
-      dirs          # Show stack (space-separated)
-      dirs -v       # Verbose (numbered list)
-      dirs -l       # Long format (full paths)
-      dirs -c       # Clear the stack
-      ```
-
-      **Rotating the stack:**
-      ```bash
-      pushd +N      # Rotate to Nth directory (left)
-      pushd -N      # Rotate to Nth directory (right)
-      ```
-
-      **Example:**
-      ```bash
-      # Stack: 0:/home 1:/etc 2:/var 3:/tmp
-      pushd +2      # Rotate left 2: now at /var
-      # Stack: 0:/var 1:/tmp 2:/home 3:/etc
-      ```
-
-      **Swapping directories:**
-      ```bash
-      pushd         # Swap top two directories
-      ```
-
-      **Task:** Practice stack manipulation.
-
-      ```bash
-      cd ~/navigation
-
-      # Build a stack
-      pushd proj1 > /dev/null
-      pushd ../proj2 > /dev/null
-      pushd ../proj3 > /dev/null
-      pushd ../logs > /dev/null
-
-      # Document manipulation
-      echo "Advanced Stack Operations" > stack_advanced.txt
-      echo "=========================" >> stack_advanced.txt
-      echo "" >> stack_advanced.txt
-
-      echo "Initial stack:" >> stack_advanced.txt
-      dirs -v >> stack_advanced.txt
-
-      echo "" >> stack_advanced.txt
-      echo "After pushd (swap top two):" >> stack_advanced.txt
-      pushd > /dev/null
-      dirs -v >> stack_advanced.txt
-      echo "Now at: $(pwd)" >> stack_advanced.txt
-
-      echo "" >> stack_advanced.txt
-      echo "After pushd +2 (rotate to index 2):" >> stack_advanced.txt
-      pushd +2 > /dev/null
-      dirs -v >> stack_advanced.txt
-      echo "Now at: $(pwd)" >> stack_advanced.txt
-
-      # Clean up stack
-      while popd > /dev/null 2>&1; do :; done
-      cd ~/navigation
-
-      cat stack_advanced.txt
-      ```
-    hint: |
-      Use 'pushd' without arguments to swap the top two directories. Use 'pushd +N'
-      to rotate to a specific position in the stack (shown by 'dirs -v').
-    validation:
-      - type: "file-exists"
-        path: "~/navigation/stack_advanced.txt"
-
-  - id: "efficient-navigation-tricks"
-    description: |
-      **Efficient Navigation Shortcuts**
-
-      **Special directory shortcuts:**
-      ```bash
-      cd -          # Go to previous directory (very useful!)
-      cd            # Go to home directory
-      cd ~          # Go to home directory
-      cd ~/path     # Go to path relative to home
-      cd ..         # Parent directory
-      cd ../..      # Grandparent directory
-      ```
-
-      **The OLDPWD variable:**
-      ```bash
-      # cd - uses the OLDPWD environment variable
-      pwd              # /home/user/projects
-      cd /etc
-      echo $OLDPWD     # /home/user/projects
-      cd -             # Back to /home/user/projects
-      ```
-
-      **CDPATH for shortcuts:**
-      ```bash
-      # Set common base directories
-      export CDPATH=".:~:/var:/etc"
-
-      # Now you can cd to subdirectories from anywhere
-      cd log           # Looks in ., ~, /var, /etc for 'log'
-      ```
-
-      **Task:** Practice navigation shortcuts.
-
-      ```bash
-      cd ~/navigation
-
-      echo "Navigation Shortcuts" > shortcuts.txt
-      echo "====================" >> shortcuts.txt
-      echo "" >> shortcuts.txt
-
-      # Test cd -
-      echo "Testing cd - (previous directory):" >> shortcuts.txt
-      pwd >> shortcuts.txt
-      cd proj1
-      cd ../proj2
-      echo "After cd to proj2: $(pwd)" >> shortcuts.txt
-      cd -
-      echo "After cd -: $(pwd)" >> shortcuts.txt
-      cd -
-      echo "After cd - again: $(pwd)" >> shortcuts.txt
-
-      cd ~/navigation
-
-      echo "" >> shortcuts.txt
-      echo "OLDPWD variable:" >> shortcuts.txt
-      cd configs
-      echo "OLDPWD = $OLDPWD" >> shortcuts.txt
-
-      cd ~/navigation
-      cat shortcuts.txt
-      ```
-    hint: |
-      'cd -' is one of the most useful shortcuts - it toggles between two
-      directories. Great for comparing files or working in two locations.
-    validation:
-      - type: "file-exists"
-        path: "~/navigation/shortcuts.txt"
-
-  - id: "batch-directory-operations"
-    description: |
-      **Working with Multiple Directories**
-
-      **Creating nested structures:**
-      ```bash
-      mkdir -p dir1/dir2/dir3/dir4    # Create all parents
-      mkdir -p {a,b,c}/{1,2,3}        # Create multiple (brace expansion)
-      ```
-
-      **Operating on multiple directories:**
-      ```bash
-      # Visit multiple directories in sequence
-      for dir in dir1 dir2 dir3; do
-        cd "$dir"
-        # do work
-        cd ..
-      done
-
-      # Or with pushd/popd
-      for dir in dir1 dir2 dir3; do
-        pushd "$dir"
-        # do work
-        popd
-      done
-      ```
-
-      **Finding and operating:**
-      ```bash
-      # Find all directories and do something
-      find . -type d -exec echo "Found: {}" \;
-      ```
-
-      **Task:** Practice batch operations.
-
-      ```bash
-      cd ~/navigation
-
-      # Create complex structure with brace expansion
-      mkdir -p projects/{web,mobile,desktop}/{src,test,docs}
-
-      # Document structure
-      echo "Batch Directory Operations" > batch_ops.txt
-      echo "==========================" >> batch_ops.txt
-      echo "" >> batch_ops.txt
-
-      echo "Created structure:" >> batch_ops.txt
-      tree projects >> batch_ops.txt 2>/dev/null || find projects -type d >> batch_ops.txt
-
-      echo "" >> batch_ops.txt
-      echo "Processing multiple directories:" >> batch_ops.txt
-
-      # Visit each project directory
-      for project in projects/*; do
-        if [ -d "$project" ]; then
-          echo "Processing: $project" >> batch_ops.txt
-          echo "  Subdirs: $(ls -d $project/*/ 2>/dev/null | wc -l)" >> batch_ops.txt
-        fi
-      done
-
-      cat batch_ops.txt
-      ```
-    hint: |
-      Brace expansion {a,b,c} creates multiple arguments. Combined with mkdir -p,
-      you can create complex directory structures in one command.
-    validation:
-      - type: "file-exists"
-        path: "~/navigation/batch_ops.txt"
-
-  - id: "navigation-with-find"
-    description: |
-      **Advanced Navigation with find**
-
-      **Finding and changing to directories:**
-      ```bash
-      # Find directory and cd to it
-      cd $(find /path -type d -name "dirname" | head -1)
-
-      # Better: check if found
-      target=$(find /path -type d -name "dirname" | head -1)
-      [ -n "$target" ] && cd "$target"
-      ```
-
-      **Executing commands in found directories:**
-      ```bash
-      # Execute command in each directory
-      find . -type d -exec sh -c 'cd "{}" && pwd' \;
-
-      # Create files in multiple directories
-      find . -type d -name "src" -exec touch {}/main.c \;
-      ```
-
-      **Task:** Combine find with navigation.
-
-      ```bash
-      cd ~/navigation
-
-      # Find all 'src' directories and create files
-      find projects -type d -name "src" -exec touch {}/README.md \;
-
-      # Document
-      echo "Navigation with find" > find_nav.txt
-      echo "====================" >> find_nav.txt
-      echo "" >> find_nav.txt
-
-      echo "All 'src' directories:" >> find_nav.txt
-      find projects -type d -name "src" >> find_nav.txt
-
-      echo "" >> find_nav.txt
-      echo "Files created in src directories:" >> find_nav.txt
-      find projects -name "README.md" >> find_nav.txt
-
-      echo "" >> find_nav.txt
-      echo "Example: Find and count files in each directory:" >> find_nav.txt
-      find projects -type d -name "src" -exec sh -c 'echo "{}: $(ls {} | wc -l) files"' \; >> find_nav.txt
-
-      cat find_nav.txt
-      ```
-    hint: |
-      'find -exec' can run commands on each found item. Use 'sh -c' to execute
-      complex commands that need to cd into directories.
-    validation:
-      - type: "file-exists"
-        path: "~/navigation/find_nav.txt"
-
-  - id: "productivity-tips"
-    description: |
-      **Power User Navigation Tips**
-
-      **Aliases for common directories:**
-      ```bash
-      # In .bashrc
-      alias cdp='cd ~/projects'
-      alias cdl='cd /var/log'
-      alias cde='cd /etc'
-      ```
-
-      **Functions for smarter navigation:**
-      ```bash
-      # Make directory and cd into it
-      mkcd() {
-        mkdir -p "$1" && cd "$1"
-      }
-
-      # Go up N directories
-      up() {
-        local d=""
-        local limit=$1
-        for ((i=1; i <= limit; i++)); do
-          d="../$d"
-        done
-        cd "$d"
-      }
-
-      # Usage:
-      up 3        # Same as cd ../../..
-      ```
-
-      **Using locate for quick navigation:**
-      ```bash
-      # Find and cd (if locate is available)
-      cd $(locate -r '/dirname$' | head -1)
-      ```
-
-      **Task:** Create navigation productivity tools.
-
-      ```bash
-      cd ~/navigation
-
-      # Create useful navigation functions
-      cat > nav_functions.sh << 'EOF'
-      # Navigation Productivity Functions
-
-      # Make directory and cd into it
-      mkcd() {
-        mkdir -p "$1" && cd "$1"
-      }
-
-      # Go up N directories
-      up() {
-        local levels=${1:-1}
-        local path=""
-        for ((i=0; i<levels; i++)); do
-          path="../$path"
-        done
-        cd "$path"
-      }
-
-      # Show current directory tree
-      here() {
-        echo "Current location: $(pwd)"
-        echo "Contents:"
-        ls -lh
-      }
-
-      # Quick pushd
-      goto() {
-        pushd "$1" > /dev/null && dirs -v
-      }
-
-      # Usage examples:
-      # mkcd new/nested/directory
-      # up 3
-      # goto /etc
-      # here
-      EOF
-
-      # Document productivity setup
-      echo "Navigation Productivity Setup" > productivity.txt
-      echo "=============================" >> productivity.txt
-      echo "" >> productivity.txt
-
-      echo "Functions created in nav_functions.sh:" >> productivity.txt
-      echo "- mkcd: Make directory and cd into it" >> productivity.txt
-      echo "- up N: Go up N directories" >> productivity.txt
-      echo "- here: Show current location and contents" >> productivity.txt
-      echo "- goto: pushd with directory listing" >> productivity.txt
-
-      echo "" >> productivity.txt
-      echo "To use, add to ~/.bashrc:" >> productivity.txt
-      echo "  source ~/navigation/nav_functions.sh" >> productivity.txt
-
-      echo "" >> productivity.txt
-      echo "Common aliases to add:" >> productivity.txt
-      echo "  alias ..='cd ..'" >> productivity.txt
-      echo "  alias ...='cd ../..'" >> productivity.txt
-      echo "  alias ....='cd ../../..'" >> productivity.txt
-      echo "  alias cdp='cd ~/projects'" >> productivity.txt
-      echo "  alias l='ls -lah'" >> productivity.txt
-
-      cat productivity.txt
-      ```
-
-      **Congratulations!** You've mastered advanced navigation!
-
-      **You learned:**
-      - Directory stack with pushd/popd/dirs
-      - Stack manipulation and rotation
-      - Navigation shortcuts (cd -, OLDPWD)
-      - Batch directory operations
-      - Combining find with navigation
-      - Productivity functions and aliases
-
-      **Power user techniques:**
-      - Use pushd/popd for complex navigation patterns
-      - Use cd - to toggle between two locations
-      - Create functions for common tasks (mkcd, up)
-      - Set up aliases for frequently visited directories
-      - Use find -exec for batch operations
-
-      **Next steps:**
-      - Add these functions to your .bashrc
-      - Create aliases for your most-visited directories
-      - Practice using the directory stack daily
-      - Combine these techniques in your workflows
-
-      You're now navigating like a command-line pro!
-    hint: |
-      Functions are more powerful than aliases because they can take arguments.
-      Put your favorite navigation functions in ~/.bashrc for permanent access.
-    validation:
-      - type: "file-exists"
-        path: "~/navigation/productivity.txt"
+- id: directory-stack-intro
+  description: '**The Directory Stack: pushd and popd**
+
+
+    Instead of `cd`, power users often use `pushd` and `popd` to navigate
+
+    while maintaining a history of visited directories.
+
+
+    **Basic concepts:**
+
+    - `pushd` - Push directory onto stack and cd to it
+
+    - `popd` - Pop directory from stack and cd to it
+
+    - `dirs` - Show the directory stack
+
+
+    **Think of it like a stack of plates:**
+
+    ```
+
+    Current: /var/log
+
+    Stack:   [/home/user, /etc, /tmp]
+
+    ```
+
+
+    **Basic usage:**
+
+    ```bash
+
+    pwd                    # /home/user
+
+    pushd /etc             # Go to /etc, save /home/user
+
+    pushd /var/log         # Go to /var/log, save /etc
+
+    dirs                   # Show stack
+
+    popd                   # Back to /etc
+
+    popd                   # Back to /home/user
+
+    ```
+
+
+    **Task:** Practice directory stack basics.
+
+
+    ```bash
+
+    mkdir -p ~/navigation/{proj1,proj2,proj3,logs,configs}
+
+    cd ~/navigation
+
+
+    # Document initial state
+
+    echo "Directory Stack Navigation" > stack_demo.txt
+
+    echo "==========================" >> stack_demo.txt
+
+    echo "" >> stack_demo.txt
+
+
+    echo "Starting location:" >> stack_demo.txt
+
+    pwd >> stack_demo.txt
+
+
+    # Build up the stack
+
+    pushd proj1 > /dev/null
+
+    pushd ../proj2 > /dev/null
+
+    pushd ../proj3 > /dev/null
+
+
+    echo "" >> stack_demo.txt
+
+    echo "After pushing three directories:" >> stack_demo.txt
+
+    dirs -v >> stack_demo.txt
+
+    echo "Current: $(pwd)" >> stack_demo.txt
+
+
+    # Pop back
+
+    popd > /dev/null
+
+    echo "" >> stack_demo.txt
+
+    echo "After one popd:" >> stack_demo.txt
+
+    echo "Current: $(pwd)" >> stack_demo.txt
+
+
+    cd ~/navigation
+
+    cat stack_demo.txt
+
+    ```
+
+    '
+  hint: 'pushd saves your current location before changing directories. popd returns
+
+    to the last saved location. Use ''dirs -v'' to see the full stack with numbers.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/navigation/stack_demo.txt
+    matcher: exists
+  title: '**The Directory Stack: pushd and popd**'
+- id: directory-stack-manipulation
+  description: '**Advanced Directory Stack Operations**
+
+
+    **Viewing the stack:**
+
+    ```bash
+
+    dirs          # Show stack (space-separated)
+
+    dirs -v       # Verbose (numbered list)
+
+    dirs -l       # Long format (full paths)
+
+    dirs -c       # Clear the stack
+
+    ```
+
+
+    **Rotating the stack:**
+
+    ```bash
+
+    pushd +N      # Rotate to Nth directory (left)
+
+    pushd -N      # Rotate to Nth directory (right)
+
+    ```
+
+
+    **Example:**
+
+    ```bash
+
+    # Stack: 0:/home 1:/etc 2:/var 3:/tmp
+
+    pushd +2      # Rotate left 2: now at /var
+
+    # Stack: 0:/var 1:/tmp 2:/home 3:/etc
+
+    ```
+
+
+    **Swapping directories:**
+
+    ```bash
+
+    pushd         # Swap top two directories
+
+    ```
+
+
+    **Task:** Practice stack manipulation.
+
+
+    ```bash
+
+    cd ~/navigation
+
+
+    # Build a stack
+
+    pushd proj1 > /dev/null
+
+    pushd ../proj2 > /dev/null
+
+    pushd ../proj3 > /dev/null
+
+    pushd ../logs > /dev/null
+
+
+    # Document manipulation
+
+    echo "Advanced Stack Operations" > stack_advanced.txt
+
+    echo "=========================" >> stack_advanced.txt
+
+    echo "" >> stack_advanced.txt
+
+
+    echo "Initial stack:" >> stack_advanced.txt
+
+    dirs -v >> stack_advanced.txt
+
+
+    echo "" >> stack_advanced.txt
+
+    echo "After pushd (swap top two):" >> stack_advanced.txt
+
+    pushd > /dev/null
+
+    dirs -v >> stack_advanced.txt
+
+    echo "Now at: $(pwd)" >> stack_advanced.txt
+
+
+    echo "" >> stack_advanced.txt
+
+    echo "After pushd +2 (rotate to index 2):" >> stack_advanced.txt
+
+    pushd +2 > /dev/null
+
+    dirs -v >> stack_advanced.txt
+
+    echo "Now at: $(pwd)" >> stack_advanced.txt
+
+
+    # Clean up stack
+
+    while popd > /dev/null 2>&1; do :; done
+
+    cd ~/navigation
+
+
+    cat stack_advanced.txt
+
+    ```
+
+    '
+  hint: 'Use ''pushd'' without arguments to swap the top two directories. Use ''pushd
+    +N''
+
+    to rotate to a specific position in the stack (shown by ''dirs -v'').
+
+    '
+  validation:
+    type: file-exists
+    path: ~/navigation/stack_advanced.txt
+    matcher: exists
+  title: '**Advanced Directory Stack Operations**'
+- id: efficient-navigation-tricks
+  description: '**Efficient Navigation Shortcuts**
+
+
+    **Special directory shortcuts:**
+
+    ```bash
+
+    cd -          # Go to previous directory (very useful!)
+
+    cd            # Go to home directory
+
+    cd ~          # Go to home directory
+
+    cd ~/path     # Go to path relative to home
+
+    cd ..         # Parent directory
+
+    cd ../..      # Grandparent directory
+
+    ```
+
+
+    **The OLDPWD variable:**
+
+    ```bash
+
+    # cd - uses the OLDPWD environment variable
+
+    pwd              # /home/user/projects
+
+    cd /etc
+
+    echo $OLDPWD     # /home/user/projects
+
+    cd -             # Back to /home/user/projects
+
+    ```
+
+
+    **CDPATH for shortcuts:**
+
+    ```bash
+
+    # Set common base directories
+
+    export CDPATH=".:~:/var:/etc"
+
+
+    # Now you can cd to subdirectories from anywhere
+
+    cd log           # Looks in ., ~, /var, /etc for ''log''
+
+    ```
+
+
+    **Task:** Practice navigation shortcuts.
+
+
+    ```bash
+
+    cd ~/navigation
+
+
+    echo "Navigation Shortcuts" > shortcuts.txt
+
+    echo "====================" >> shortcuts.txt
+
+    echo "" >> shortcuts.txt
+
+
+    # Test cd -
+
+    echo "Testing cd - (previous directory):" >> shortcuts.txt
+
+    pwd >> shortcuts.txt
+
+    cd proj1
+
+    cd ../proj2
+
+    echo "After cd to proj2: $(pwd)" >> shortcuts.txt
+
+    cd -
+
+    echo "After cd -: $(pwd)" >> shortcuts.txt
+
+    cd -
+
+    echo "After cd - again: $(pwd)" >> shortcuts.txt
+
+
+    cd ~/navigation
+
+
+    echo "" >> shortcuts.txt
+
+    echo "OLDPWD variable:" >> shortcuts.txt
+
+    cd configs
+
+    echo "OLDPWD = $OLDPWD" >> shortcuts.txt
+
+
+    cd ~/navigation
+
+    cat shortcuts.txt
+
+    ```
+
+    '
+  hint: '''cd -'' is one of the most useful shortcuts - it toggles between two
+
+    directories. Great for comparing files or working in two locations.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/navigation/shortcuts.txt
+    matcher: exists
+  title: '**Efficient Navigation Shortcuts**'
+- id: batch-directory-operations
+  description: "**Working with Multiple Directories**\n\n**Creating nested structures:**\n\
+    ```bash\nmkdir -p dir1/dir2/dir3/dir4    # Create all parents\nmkdir -p {a,b,c}/{1,2,3}\
+    \        # Create multiple (brace expansion)\n```\n\n**Operating on multiple directories:**\n\
+    ```bash\n# Visit multiple directories in sequence\nfor dir in dir1 dir2 dir3;\
+    \ do\n  cd \"$dir\"\n  # do work\n  cd ..\ndone\n\n# Or with pushd/popd\nfor dir\
+    \ in dir1 dir2 dir3; do\n  pushd \"$dir\"\n  # do work\n  popd\ndone\n```\n\n\
+    **Finding and operating:**\n```bash\n# Find all directories and do something\n\
+    find . -type d -exec echo \"Found: {}\" \\;\n```\n\n**Task:** Practice batch operations.\n\
+    \n```bash\ncd ~/navigation\n\n# Create complex structure with brace expansion\n\
+    mkdir -p projects/{web,mobile,desktop}/{src,test,docs}\n\n# Document structure\n\
+    echo \"Batch Directory Operations\" > batch_ops.txt\necho \"==========================\"\
+    \ >> batch_ops.txt\necho \"\" >> batch_ops.txt\n\necho \"Created structure:\"\
+    \ >> batch_ops.txt\ntree projects >> batch_ops.txt 2>/dev/null || find projects\
+    \ -type d >> batch_ops.txt\n\necho \"\" >> batch_ops.txt\necho \"Processing multiple\
+    \ directories:\" >> batch_ops.txt\n\n# Visit each project directory\nfor project\
+    \ in projects/*; do\n  if [ -d \"$project\" ]; then\n    echo \"Processing: $project\"\
+    \ >> batch_ops.txt\n    echo \"  Subdirs: $(ls -d $project/*/ 2>/dev/null | wc\
+    \ -l)\" >> batch_ops.txt\n  fi\ndone\n\ncat batch_ops.txt\n```\n"
+  hint: 'Brace expansion {a,b,c} creates multiple arguments. Combined with mkdir -p,
+
+    you can create complex directory structures in one command.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/navigation/batch_ops.txt
+    matcher: exists
+  title: '**Working with Multiple Directories**'
+- id: navigation-with-find
+  description: '**Advanced Navigation with find**
+
+
+    **Finding and changing to directories:**
+
+    ```bash
+
+    # Find directory and cd to it
+
+    cd $(find /path -type d -name "dirname" | head -1)
+
+
+    # Better: check if found
+
+    target=$(find /path -type d -name "dirname" | head -1)
+
+    [ -n "$target" ] && cd "$target"
+
+    ```
+
+
+    **Executing commands in found directories:**
+
+    ```bash
+
+    # Execute command in each directory
+
+    find . -type d -exec sh -c ''cd "{}" && pwd'' \;
+
+
+    # Create files in multiple directories
+
+    find . -type d -name "src" -exec touch {}/main.c \;
+
+    ```
+
+
+    **Task:** Combine find with navigation.
+
+
+    ```bash
+
+    cd ~/navigation
+
+
+    # Find all ''src'' directories and create files
+
+    find projects -type d -name "src" -exec touch {}/README.md \;
+
+
+    # Document
+
+    echo "Navigation with find" > find_nav.txt
+
+    echo "====================" >> find_nav.txt
+
+    echo "" >> find_nav.txt
+
+
+    echo "All ''src'' directories:" >> find_nav.txt
+
+    find projects -type d -name "src" >> find_nav.txt
+
+
+    echo "" >> find_nav.txt
+
+    echo "Files created in src directories:" >> find_nav.txt
+
+    find projects -name "README.md" >> find_nav.txt
+
+
+    echo "" >> find_nav.txt
+
+    echo "Example: Find and count files in each directory:" >> find_nav.txt
+
+    find projects -type d -name "src" -exec sh -c ''echo "{}: $(ls {} | wc -l) files"''
+    \; >> find_nav.txt
+
+
+    cat find_nav.txt
+
+    ```
+
+    '
+  hint: '''find -exec'' can run commands on each found item. Use ''sh -c'' to execute
+
+    complex commands that need to cd into directories.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/navigation/find_nav.txt
+    matcher: exists
+  title: '**Advanced Navigation with find**'
+- id: productivity-tips
+  description: "**Power User Navigation Tips**\n\n**Aliases for common directories:**\n\
+    ```bash\n# In .bashrc\nalias cdp='cd ~/projects'\nalias cdl='cd /var/log'\nalias\
+    \ cde='cd /etc'\n```\n\n**Functions for smarter navigation:**\n```bash\n# Make\
+    \ directory and cd into it\nmkcd() {\n  mkdir -p \"$1\" && cd \"$1\"\n}\n\n# Go\
+    \ up N directories\nup() {\n  local d=\"\"\n  local limit=$1\n  for ((i=1; i <=\
+    \ limit; i++)); do\n    d=\"../$d\"\n  done\n  cd \"$d\"\n}\n\n# Usage:\nup 3\
+    \        # Same as cd ../../..\n```\n\n**Using locate for quick navigation:**\n\
+    ```bash\n# Find and cd (if locate is available)\ncd $(locate -r '/dirname$' |\
+    \ head -1)\n```\n\n**Task:** Create navigation productivity tools.\n\n```bash\n\
+    cd ~/navigation\n\n# Create useful navigation functions\ncat > nav_functions.sh\
+    \ << 'EOF'\n# Navigation Productivity Functions\n\n# Make directory and cd into\
+    \ it\nmkcd() {\n  mkdir -p \"$1\" && cd \"$1\"\n}\n\n# Go up N directories\nup()\
+    \ {\n  local levels=${1:-1}\n  local path=\"\"\n  for ((i=0; i<levels; i++));\
+    \ do\n    path=\"../$path\"\n  done\n  cd \"$path\"\n}\n\n# Show current directory\
+    \ tree\nhere() {\n  echo \"Current location: $(pwd)\"\n  echo \"Contents:\"\n\
+    \  ls -lh\n}\n\n# Quick pushd\ngoto() {\n  pushd \"$1\" > /dev/null && dirs -v\n\
+    }\n\n# Usage examples:\n# mkcd new/nested/directory\n# up 3\n# goto /etc\n# here\n\
+    EOF\n\n# Document productivity setup\necho \"Navigation Productivity Setup\" >\
+    \ productivity.txt\necho \"=============================\" >> productivity.txt\n\
+    echo \"\" >> productivity.txt\n\necho \"Functions created in nav_functions.sh:\"\
+    \ >> productivity.txt\necho \"- mkcd: Make directory and cd into it\" >> productivity.txt\n\
+    echo \"- up N: Go up N directories\" >> productivity.txt\necho \"- here: Show\
+    \ current location and contents\" >> productivity.txt\necho \"- goto: pushd with\
+    \ directory listing\" >> productivity.txt\n\necho \"\" >> productivity.txt\necho\
+    \ \"To use, add to ~/.bashrc:\" >> productivity.txt\necho \"  source ~/navigation/nav_functions.sh\"\
+    \ >> productivity.txt\n\necho \"\" >> productivity.txt\necho \"Common aliases\
+    \ to add:\" >> productivity.txt\necho \"  alias ..='cd ..'\" >> productivity.txt\n\
+    echo \"  alias ...='cd ../..'\" >> productivity.txt\necho \"  alias ....='cd ../../..'\"\
+    \ >> productivity.txt\necho \"  alias cdp='cd ~/projects'\" >> productivity.txt\n\
+    echo \"  alias l='ls -lah'\" >> productivity.txt\n\ncat productivity.txt\n```\n\
+    \n**Congratulations!** You've mastered advanced navigation!\n\n**You learned:**\n\
+    - Directory stack with pushd/popd/dirs\n- Stack manipulation and rotation\n- Navigation\
+    \ shortcuts (cd -, OLDPWD)\n- Batch directory operations\n- Combining find with\
+    \ navigation\n- Productivity functions and aliases\n\n**Power user techniques:**\n\
+    - Use pushd/popd for complex navigation patterns\n- Use cd - to toggle between\
+    \ two locations\n- Create functions for common tasks (mkcd, up)\n- Set up aliases\
+    \ for frequently visited directories\n- Use find -exec for batch operations\n\n\
+    **Next steps:**\n- Add these functions to your .bashrc\n- Create aliases for your\
+    \ most-visited directories\n- Practice using the directory stack daily\n- Combine\
+    \ these techniques in your workflows\n\nYou're now navigating like a command-line\
+    \ pro!\n"
+  hint: 'Functions are more powerful than aliases because they can take arguments.
+
+    Put your favorite navigation functions in ~/.bashrc for permanent access.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/navigation/productivity.txt
+    matcher: exists
+  title: '**Power User Navigation Tips**'
+completion:
+  message: Congratulations! You've completed this intermediate mission.
+  xp: 300
+  unlocks: []

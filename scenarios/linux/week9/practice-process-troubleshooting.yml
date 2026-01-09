@@ -1,535 +1,503 @@
 mission:
-  id: "practice-process-troubleshooting"
-  title: "Practice: Process Troubleshooting & Performance"
-  difficulty: "expert"
-  description: |
-    Real-world process management challenges! Diagnose system performance issues,
+  id: practice-process-troubleshooting
+  title: 'Practice: Process Troubleshooting & Performance'
+  difficulty: advanced
+  description: 'Real-world process management challenges! Diagnose system performance
+    issues,
+
     handle runaway processes, resolve zombie processes, and optimize system resources.
 
+
     This mission simulates common production scenarios where you must identify and
+
     resolve process-related problems quickly and effectively.
-  estimated_time: "55 minutes"
+
+    '
+  estimated_time: 55
   xp_reward: 700
   tags:
-    - "processes"
-    - "troubleshooting"
-    - "performance"
-    - "system-administration"
-    - "debugging"
-
+  - processes
+  - troubleshooting
+  - performance
+  - system-administration
+  - debugging
 environment:
-  runtime: "docker"
-  base_image: "ubuntu:22.04"
-  setup: |
-    apt-get update && apt-get install -y \
-      stress \
-      procps \
-      htop \
-      sysstat \
-      bc
-
+  setup:
+  - apt-get update && apt-get install -y \
+  - stress \
+  - procps \
+  - htop \
+  - sysstat \
+  - bc
+  image: ubuntu:22.04
 steps:
-  - id: "scenario-setup"
-    description: |
-      **Scenario: Production System Issues**
-
-      You're a sysadmin responding to alerts about system performance degradation.
-      Users report slowness, and monitoring shows high CPU and memory usage.
-
-      Your mission: Diagnose the issues and restore normal operation.
-
-      **Available Tools:**
-      - `ps`, `top`, `htop` - Process monitoring
-      - `kill`, `killall` - Process management
-      - `nice`, `renice` - Priority adjustment
-      - `vmstat`, `mpstat` - System statistics
-      - `/proc` filesystem - Detailed process info
-
-      **Success Criteria:**
-      - Identify resource-intensive processes
-      - Resolve zombie processes
-      - Optimize process priorities
-      - Document findings
-
-      Let's start by creating our scenario environment.
-    hint: |
-      We'll simulate various problematic processes. In real scenarios, you'd
-      encounter these naturally, but we'll create them for practice.
-    validation:
-      - type: "command-output"
-        command: "echo 'Ready to troubleshoot' && mkdir -p ~/troubleshooting && cd ~/troubleshooting && echo 'setup_complete' > status.txt && cat status.txt"
-        expected: "setup_complete"
-        comparison: "contains"
-
-  - id: "identify-cpu-hogs"
-    description: |
-      **Step 1: Identify CPU-Intensive Processes**
-
-      First, let's create a CPU-intensive process to simulate a runaway application:
-
-      ```bash
-      # Simulate CPU-intensive process (runs in background)
-      stress --cpu 2 --timeout 300 &
-      sleep 2  # Let it start
-      ```
-
-      Now identify the CPU hog:
-
-      **Using top (interactive):**
-      ```bash
-      top
-      # Press 'P' to sort by CPU
-      # Press 'q' to quit
-      ```
-
-      **Using ps (scriptable):**
-      ```bash
-      # Show top CPU consumers
-      ps aux --sort=-%cpu | head -10
-
-      # Or more detailed
-      ps -eo pid,ppid,cmd,%cpu,%mem --sort=-%cpu | head -10
-      ```
-
-      **Task:** Find the PID of the stress process and save it.
-
-      ```bash
-      # Method 1: Using pgrep
-      pgrep stress > cpu_hog_pid.txt
-
-      # Method 2: Using ps and grep
-      ps aux | grep '[s]tress' | awk '{print $2}' > cpu_hog_pid.txt
-
-      # Verify
-      cat cpu_hog_pid.txt
-      ```
-    hint: |
-      The stress command will show high CPU usage. Use 'pgrep stress' to quickly
-      find its PID, or 'ps aux --sort=-%cpu' to see all processes by CPU usage.
-    validation:
-      - type: "file-exists"
-        path: "~/troubleshooting/cpu_hog_pid.txt"
-
-  - id: "analyze-memory-usage"
-    description: |
-      **Step 2: Memory Analysis**
-
-      Now let's analyze memory usage and create a memory-intensive process:
-
-      ```bash
-      # Simulate memory-intensive process
-      stress --vm 1 --vm-bytes 50M --timeout 300 &
-      sleep 2
-      ```
-
-      **Check overall memory:**
-      ```bash
-      free -h
-      ```
-
-      **Find memory-intensive processes:**
-      ```bash
-      # Sort by memory usage
-      ps aux --sort=-%mem | head -10
-
-      # More detailed view
-      ps -eo pid,ppid,cmd,%mem,rss --sort=-%mem | head -10
-      ```
-
-      **Understanding memory columns:**
-      - `%MEM` - Percentage of physical memory
-      - `RSS` - Resident Set Size (actual physical memory in KB)
-      - `VSZ` - Virtual memory size
-
-      **Task:** Create a report of top 5 memory consumers.
-
-      ```bash
-      echo "Top 5 Memory Consumers:" > memory_report.txt
-      echo "======================" >> memory_report.txt
-      ps aux --sort=-%mem | head -6 | tail -5 >> memory_report.txt
-
-      # Calculate total memory used
-      total_mem_pct=$(ps aux | awk '{sum+=$4} END {print sum}')
-      echo "" >> memory_report.txt
-      echo "Total memory used: ${total_mem_pct}%" >> memory_report.txt
-      ```
-    hint: |
-      Use 'ps aux --sort=-%mem' to see processes sorted by memory usage.
-      The 'free -h' command shows overall system memory status.
-    validation:
-      - type: "file-exists"
-        path: "~/troubleshooting/memory_report.txt"
-
-  - id: "handle-zombie-processes"
-    description: |
-      **Step 3: Dealing with Zombie Processes**
-
-      Zombie processes (defunct) occur when a child process exits but the parent
-      hasn't read its exit status.
-
-      **Creating a zombie (for demonstration):**
-      ```bash
-      # Create a script that spawns a zombie
-      cat > create_zombie.sh << 'EOF'
-      #!/bin/bash
-      # Child process that will become a zombie
-      if [ "$1" = "child" ]; then
-        exit 0
-      fi
-
-      # Parent creates child and doesn't wait
-      bash $0 child &
-      sleep 30  # Parent stays alive but doesn't reap child
-      EOF
-
-      chmod +x create_zombie.sh
-      ./create_zombie.sh &
-      sleep 2
-      ```
-
-      **Identifying zombies:**
-      ```bash
-      # Find zombie processes
-      ps aux | grep 'Z'
-
-      # Or more specifically
-      ps -eo pid,ppid,stat,cmd | grep '^[0-9].*Z'
-      ```
-
-      **The STAT column shows:**
-      - `Z` or `Z+` = Zombie process
-
-      **Resolving zombies:**
-      Zombies can't be killed directly. You must:
-      1. Find the parent PID (PPID)
-      2. Kill the parent (which should trigger reaping)
-      3. If parent won't die, it may need SIGKILL
-
-      ```bash
-      # Create zombie detection report
-      echo "Zombie Process Analysis:" > zombie_report.txt
-      echo "=======================" >> zombie_report.txt
-
-      # Find zombies and their parents
-      ps -eo pid,ppid,stat,cmd | grep 'Z' >> zombie_report.txt || echo "No zombies found" >> zombie_report.txt
-
-      # Add resolution strategy
-      echo "" >> zombie_report.txt
-      echo "Resolution: Kill parent processes to reap zombies" >> zombie_report.txt
-      ```
-    hint: |
-      Zombie processes show as 'Z' in the STAT column. They're already dead and
-      use almost no resources, but indicate the parent isn't properly cleaning up.
-      Find the parent with 'ps -o ppid= -p ZOMBIE_PID'.
-    validation:
-      - type: "file-exists"
-        path: "~/troubleshooting/zombie_report.txt"
-
-  - id: "process-priority-optimization"
-    description: |
-      **Step 4: Optimize Process Priorities**
-
-      Some processes are more important than others. Let's manage priorities.
-
-      **Understanding priority:**
-      - Nice value: -20 (highest priority) to 19 (lowest priority)
-      - Default nice value: 0
-      - Only root can set negative nice values
-
-      **Scenario:** Lower priority of CPU-intensive background tasks.
-
-      ```bash
-      # Start a low-priority CPU task
-      nice -n 19 stress --cpu 1 --timeout 300 &
-      sleep 1
-
-      # Record its PID
-      low_prio_pid=$(pgrep -n stress)
-      echo $low_prio_pid > low_priority_task.txt
-
-      # Verify its nice value
-      ps -o pid,ni,cmd -p $low_prio_pid
-      ```
-
-      **If you need to change an existing process:**
-      ```bash
-      # Find a stress process
-      stress_pid=$(pgrep stress | head -1)
-
-      # Change its priority (if you have permission)
-      renice -n 10 -p $stress_pid
-
-      # Verify
-      ps -o pid,ni,cmd -p $stress_pid
-      ```
-
-      **Create a priority optimization report:**
-      ```bash
-      cat > priority_report.txt << 'EOF'
-      Priority Optimization Report
-      ============================
-
-      Strategy:
-      - Background tasks: nice 10-19
-      - Normal tasks: nice 0
-      - Critical tasks: nice -10 to -1 (requires root)
-
-      Current Optimizations:
-      EOF
-
-      ps -eo pid,ni,cmd | grep stress >> priority_report.txt
-      ```
-    hint: |
-      Use 'nice' to start a process with a specific priority, or 'renice' to
-      change a running process. Check priority with 'ps -o ni -p PID'.
-    validation:
-      - type: "file-exists"
-        path: "~/troubleshooting/priority_report.txt"
-
-  - id: "process-tree-analysis"
-    description: |
-      **Step 5: Process Tree Analysis**
-
-      Understanding parent-child relationships is crucial for troubleshooting.
-
-      **View process tree:**
-      ```bash
-      # Install pstree if needed (might already be available)
-      ps --version  # Just verify ps works
-
-      # Show process tree with PIDs
-      ps -ejH
-
-      # Or more visual (if pstree available)
-      pstree -p 2>/dev/null || ps -ejH
-      ```
-
-      **Finding process relationships:**
-      ```bash
-      # Find all stress processes and their relationships
-      echo "Process Tree Analysis" > process_tree.txt
-      echo "====================" >> process_tree.txt
-      echo "" >> process_tree.txt
-
-      # Get all stress PIDs
-      stress_pids=$(pgrep stress)
-
-      for pid in $stress_pids; do
-        echo "Process: $pid" >> process_tree.txt
-
-        # Get parent
-        ppid=$(ps -o ppid= -p $pid 2>/dev/null | tr -d ' ')
-        echo "  Parent: $ppid" >> process_tree.txt
-
-        # Get command
-        cmd=$(ps -o cmd= -p $pid 2>/dev/null)
-        echo "  Command: $cmd" >> process_tree.txt
-        echo "" >> process_tree.txt
-      done
-      ```
-
-      **Kill entire process group:**
-      ```bash
-      # Sometimes you need to kill a process and all its children
-      # Find process group ID (PGID)
-      stress_pid=$(pgrep stress | head -1)
-      pgid=$(ps -o pgid= -p $stress_pid | tr -d ' ')
-
-      echo "Example: kill -- -$pgid  # Kills entire process group" >> process_tree.txt
-      ```
-    hint: |
-      Use 'ps -ejH' for hierarchical view, or 'ps -o ppid= -p PID' to find a
-      process's parent. Process groups can be killed together with kill -PGID.
-    validation:
-      - type: "file-exists"
-        path: "~/troubleshooting/process_tree.txt"
-
-  - id: "cleanup-and-resolution"
-    description: |
-      **Step 6: Cleanup and Resolution**
-
-      Now let's clean up our test processes and document the resolution.
-
-      **Terminate stress processes:**
-      ```bash
-      # Graceful termination first
-      killall -TERM stress
-      sleep 2
-
-      # Force kill any remaining
-      killall -9 stress 2>/dev/null || true
-
-      # Verify cleanup
-      if pgrep stress > /dev/null; then
-        echo "Warning: Some stress processes remain" > cleanup_status.txt
-      else
-        echo "All test processes terminated successfully" > cleanup_status.txt
-      fi
-      ```
-
-      **System health check:**
-      ```bash
-      echo "" >> cleanup_status.txt
-      echo "System Health After Cleanup:" >> cleanup_status.txt
-      echo "============================" >> cleanup_status.txt
-
-      # CPU load
-      uptime | awk '{print "Load average:", $(NF-2), $(NF-1), $NF}' >> cleanup_status.txt
-
-      # Memory
-      free -h | grep Mem | awk '{print "Memory: Used", $3, "/ Total", $2}' >> cleanup_status.txt
-
-      # Process count
-      echo "Running processes: $(ps aux | wc -l)" >> cleanup_status.txt
-      ```
-
-      **Create final troubleshooting report:**
-      ```bash
-      cat > final_report.txt << 'EOF'
-      ========================================
-      PROCESS TROUBLESHOOTING SESSION SUMMARY
-      ========================================
-
-      Issues Identified:
-      1. CPU-intensive processes (stress tests)
-      2. Memory-intensive workloads
-      3. Zombie processes (demo)
-      4. Priority optimization opportunities
-
-      Actions Taken:
-      1. Identified CPU hogs using ps and top
-      2. Analyzed memory usage patterns
-      3. Documented zombie process handling
-      4. Applied process priority adjustments
-      5. Analyzed process tree relationships
-      6. Terminated problematic processes
-
-      Key Commands Used:
-      - ps aux --sort=-%cpu   # CPU usage
-      - ps aux --sort=-%mem   # Memory usage
-      - pgrep, pkill          # Process search/kill
-      - nice, renice          # Priority management
-      - kill, killall         # Process termination
-      - ps -ejH               # Process tree
-
-      Skills Demonstrated:
-      ✓ Performance diagnosis
-      ✓ Resource monitoring
-      ✓ Process lifecycle management
-      ✓ Priority optimization
-      ✓ Systematic troubleshooting
-
-      Status: RESOLVED
-      EOF
-
-      cat final_report.txt
-      ```
-    hint: |
-      Use 'killall' to terminate all processes by name. Always try graceful
-      termination (SIGTERM) before force killing (SIGKILL/-9).
-    validation:
-      - type: "file-exists"
-        path: "~/troubleshooting/final_report.txt"
-
-  - id: "expert-knowledge-check"
-    description: |
-      **Expert Knowledge: Advanced Scenarios**
-
-      Let's document some advanced troubleshooting techniques:
-
-      ```bash
-      cat > expert_techniques.txt << 'EOF'
-      ADVANCED PROCESS TROUBLESHOOTING TECHNIQUES
-      ===========================================
-
-      1. UNINTERRUPTIBLE SLEEP (D state)
-      Problem: Process stuck in D state (usually disk I/O)
-      Detection: ps aux | grep ' D '
-      Resolution: Fix underlying I/O issue (disk, NFS, etc.)
-      Note: Cannot be killed, must fix root cause
-
-      2. TRACKING RESOURCE LEAKS
-      Memory leak detection:
-        - Monitor RSS over time: watch -n 1 'ps -o pid,rss,cmd -p PID'
-        - Check /proc/PID/status for VmSize growth
-        - Use valgrind for C/C++ programs
-
-      File descriptor leaks:
-        - ls -l /proc/PID/fd | wc -l
-        - lsof -p PID
-
-      3. CPU PROFILING
-      Identify what code is consuming CPU:
-        - strace -c -p PID  # System call profile
-        - perf top  # Live CPU profiling (requires perf)
-        - top, then press 'H' to show threads
-
-      4. HANDLING UNKILLABLE PROCESSES
-      If kill -9 doesn't work:
-        - Process in D state: fix I/O issue
-        - Kernel thread: needs kernel fix or reboot
-        - Check for PID namespace issues
-
-      5. CORE DUMPS FOR POST-MORTEM ANALYSIS
-      Enable core dumps:
-        ulimit -c unlimited
-        echo '/tmp/core.%e.%p' > /proc/sys/kernel/core_pattern
-
-      Analyze crash:
-        gdb program core.file
-
-      6. CGROUP RESOURCE LIMITS
-      Check if process is constrained:
-        cat /proc/PID/cgroup
-        cat /sys/fs/cgroup/.../memory.max
-
-      7. LOAD AVERAGE INTERPRETATION
-      Format: 1min 5min 15min averages
-        - < # of CPUs: System healthy
-        - = # of CPUs: Fully utilized
-        - > # of CPUs: Queue building up
-
-      8. MONITORING TOOLS COMPARISON
-      - top: Real-time, interactive
-      - htop: User-friendly top alternative
-      - atop: Includes disk I/O
-      - vmstat: Virtual memory stats
-      - sar: Historical data (requires sysstat)
-      - pidstat: Per-process statistics
-
-      9. PRODUCTION BEST PRACTICES
-      - Always try SIGTERM before SIGKILL
-      - Document all process terminations
-      - Check logs before/after actions
-      - Use monitoring for trend analysis
-      - Set up alerts for resource thresholds
-      - Have rollback plans ready
-
-      10. CONTAINER-SPECIFIC ISSUES
-      Inside containers:
-        - Limited visibility of host processes
-        - Different PID namespaces
-        - Resource limits from cgroups
-        - Check docker stats, kubectl top
-      EOF
-
-      cat expert_techniques.txt
-      ```
-
-      **Congratulations!** You've completed advanced process troubleshooting training.
-
-      **You now know how to:**
-      - Diagnose system performance issues systematically
-      - Identify and resolve resource bottlenecks
-      - Handle zombie and problematic processes
-      - Optimize process priorities for better performance
-      - Analyze process relationships and trees
-      - Apply advanced troubleshooting techniques
-
-      These skills are essential for system administration and production support!
-    hint: |
-      Review the expert techniques. In real scenarios, you'll encounter these
-      situations and need to apply the appropriate solution.
-    validation:
-      - type: "file-exists"
-        path: "~/troubleshooting/expert_techniques.txt"
+- id: scenario-setup
+  description: '**Scenario: Production System Issues**
+
+
+    You''re a sysadmin responding to alerts about system performance degradation.
+
+    Users report slowness, and monitoring shows high CPU and memory usage.
+
+
+    Your mission: Diagnose the issues and restore normal operation.
+
+
+    **Available Tools:**
+
+    - `ps`, `top`, `htop` - Process monitoring
+
+    - `kill`, `killall` - Process management
+
+    - `nice`, `renice` - Priority adjustment
+
+    - `vmstat`, `mpstat` - System statistics
+
+    - `/proc` filesystem - Detailed process info
+
+
+    **Success Criteria:**
+
+    - Identify resource-intensive processes
+
+    - Resolve zombie processes
+
+    - Optimize process priorities
+
+    - Document findings
+
+
+    Let''s start by creating our scenario environment.
+
+    '
+  hint: 'We''ll simulate various problematic processes. In real scenarios, you''d
+
+    encounter these naturally, but we''ll create them for practice.
+
+    '
+  validation:
+    type: command-output
+    command: echo 'Ready to troubleshoot' && mkdir -p ~/troubleshooting && cd ~/troubleshooting
+      && echo 'setup_complete' > status.txt && cat status.txt
+    expected: setup_complete
+    matcher: contains
+  title: '**Scenario: Production System Issues**'
+- id: identify-cpu-hogs
+  description: '**Step 1: Identify CPU-Intensive Processes**
+
+
+    First, let''s create a CPU-intensive process to simulate a runaway application:
+
+
+    ```bash
+
+    # Simulate CPU-intensive process (runs in background)
+
+    stress --cpu 2 --timeout 300 &
+
+    sleep 2  # Let it start
+
+    ```
+
+
+    Now identify the CPU hog:
+
+
+    **Using top (interactive):**
+
+    ```bash
+
+    top
+
+    # Press ''P'' to sort by CPU
+
+    # Press ''q'' to quit
+
+    ```
+
+
+    **Using ps (scriptable):**
+
+    ```bash
+
+    # Show top CPU consumers
+
+    ps aux --sort=-%cpu | head -10
+
+
+    # Or more detailed
+
+    ps -eo pid,ppid,cmd,%cpu,%mem --sort=-%cpu | head -10
+
+    ```
+
+
+    **Task:** Find the PID of the stress process and save it.
+
+
+    ```bash
+
+    # Method 1: Using pgrep
+
+    pgrep stress > cpu_hog_pid.txt
+
+
+    # Method 2: Using ps and grep
+
+    ps aux | grep ''[s]tress'' | awk ''{print $2}'' > cpu_hog_pid.txt
+
+
+    # Verify
+
+    cat cpu_hog_pid.txt
+
+    ```
+
+    '
+  hint: 'The stress command will show high CPU usage. Use ''pgrep stress'' to quickly
+
+    find its PID, or ''ps aux --sort=-%cpu'' to see all processes by CPU usage.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/troubleshooting/cpu_hog_pid.txt
+    matcher: exists
+  title: '**Step 1: Identify CPU-Intensive Processes**'
+- id: analyze-memory-usage
+  description: '**Step 2: Memory Analysis**
+
+
+    Now let''s analyze memory usage and create a memory-intensive process:
+
+
+    ```bash
+
+    # Simulate memory-intensive process
+
+    stress --vm 1 --vm-bytes 50M --timeout 300 &
+
+    sleep 2
+
+    ```
+
+
+    **Check overall memory:**
+
+    ```bash
+
+    free -h
+
+    ```
+
+
+    **Find memory-intensive processes:**
+
+    ```bash
+
+    # Sort by memory usage
+
+    ps aux --sort=-%mem | head -10
+
+
+    # More detailed view
+
+    ps -eo pid,ppid,cmd,%mem,rss --sort=-%mem | head -10
+
+    ```
+
+
+    **Understanding memory columns:**
+
+    - `%MEM` - Percentage of physical memory
+
+    - `RSS` - Resident Set Size (actual physical memory in KB)
+
+    - `VSZ` - Virtual memory size
+
+
+    **Task:** Create a report of top 5 memory consumers.
+
+
+    ```bash
+
+    echo "Top 5 Memory Consumers:" > memory_report.txt
+
+    echo "======================" >> memory_report.txt
+
+    ps aux --sort=-%mem | head -6 | tail -5 >> memory_report.txt
+
+
+    # Calculate total memory used
+
+    total_mem_pct=$(ps aux | awk ''{sum+=$4} END {print sum}'')
+
+    echo "" >> memory_report.txt
+
+    echo "Total memory used: ${total_mem_pct}%" >> memory_report.txt
+
+    ```
+
+    '
+  hint: 'Use ''ps aux --sort=-%mem'' to see processes sorted by memory usage.
+
+    The ''free -h'' command shows overall system memory status.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/troubleshooting/memory_report.txt
+    matcher: exists
+  title: '**Step 2: Memory Analysis**'
+- id: handle-zombie-processes
+  description: "**Step 3: Dealing with Zombie Processes**\n\nZombie processes (defunct)\
+    \ occur when a child process exits but the parent\nhasn't read its exit status.\n\
+    \n**Creating a zombie (for demonstration):**\n```bash\n# Create a script that\
+    \ spawns a zombie\ncat > create_zombie.sh << 'EOF'\n#!/bin/bash\n# Child process\
+    \ that will become a zombie\nif [ \"$1\" = \"child\" ]; then\n  exit 0\nfi\n\n\
+    # Parent creates child and doesn't wait\nbash $0 child &\nsleep 30  # Parent stays\
+    \ alive but doesn't reap child\nEOF\n\nchmod +x create_zombie.sh\n./create_zombie.sh\
+    \ &\nsleep 2\n```\n\n**Identifying zombies:**\n```bash\n# Find zombie processes\n\
+    ps aux | grep 'Z'\n\n# Or more specifically\nps -eo pid,ppid,stat,cmd | grep '^[0-9].*Z'\n\
+    ```\n\n**The STAT column shows:**\n- `Z` or `Z+` = Zombie process\n\n**Resolving\
+    \ zombies:**\nZombies can't be killed directly. You must:\n1. Find the parent\
+    \ PID (PPID)\n2. Kill the parent (which should trigger reaping)\n3. If parent\
+    \ won't die, it may need SIGKILL\n\n```bash\n# Create zombie detection report\n\
+    echo \"Zombie Process Analysis:\" > zombie_report.txt\necho \"=======================\"\
+    \ >> zombie_report.txt\n\n# Find zombies and their parents\nps -eo pid,ppid,stat,cmd\
+    \ | grep 'Z' >> zombie_report.txt || echo \"No zombies found\" >> zombie_report.txt\n\
+    \n# Add resolution strategy\necho \"\" >> zombie_report.txt\necho \"Resolution:\
+    \ Kill parent processes to reap zombies\" >> zombie_report.txt\n```\n"
+  hint: 'Zombie processes show as ''Z'' in the STAT column. They''re already dead
+    and
+
+    use almost no resources, but indicate the parent isn''t properly cleaning up.
+
+    Find the parent with ''ps -o ppid= -p ZOMBIE_PID''.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/troubleshooting/zombie_report.txt
+    matcher: exists
+  title: '**Step 3: Dealing with Zombie Processes**'
+- id: process-priority-optimization
+  description: '**Step 4: Optimize Process Priorities**
+
+
+    Some processes are more important than others. Let''s manage priorities.
+
+
+    **Understanding priority:**
+
+    - Nice value: -20 (highest priority) to 19 (lowest priority)
+
+    - Default nice value: 0
+
+    - Only root can set negative nice values
+
+
+    **Scenario:** Lower priority of CPU-intensive background tasks.
+
+
+    ```bash
+
+    # Start a low-priority CPU task
+
+    nice -n 19 stress --cpu 1 --timeout 300 &
+
+    sleep 1
+
+
+    # Record its PID
+
+    low_prio_pid=$(pgrep -n stress)
+
+    echo $low_prio_pid > low_priority_task.txt
+
+
+    # Verify its nice value
+
+    ps -o pid,ni,cmd -p $low_prio_pid
+
+    ```
+
+
+    **If you need to change an existing process:**
+
+    ```bash
+
+    # Find a stress process
+
+    stress_pid=$(pgrep stress | head -1)
+
+
+    # Change its priority (if you have permission)
+
+    renice -n 10 -p $stress_pid
+
+
+    # Verify
+
+    ps -o pid,ni,cmd -p $stress_pid
+
+    ```
+
+
+    **Create a priority optimization report:**
+
+    ```bash
+
+    cat > priority_report.txt << ''EOF''
+
+    Priority Optimization Report
+
+    ============================
+
+
+    Strategy:
+
+    - Background tasks: nice 10-19
+
+    - Normal tasks: nice 0
+
+    - Critical tasks: nice -10 to -1 (requires root)
+
+
+    Current Optimizations:
+
+    EOF
+
+
+    ps -eo pid,ni,cmd | grep stress >> priority_report.txt
+
+    ```
+
+    '
+  hint: 'Use ''nice'' to start a process with a specific priority, or ''renice'' to
+
+    change a running process. Check priority with ''ps -o ni -p PID''.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/troubleshooting/priority_report.txt
+    matcher: exists
+  title: '**Step 4: Optimize Process Priorities**'
+- id: process-tree-analysis
+  description: "**Step 5: Process Tree Analysis**\n\nUnderstanding parent-child relationships\
+    \ is crucial for troubleshooting.\n\n**View process tree:**\n```bash\n# Install\
+    \ pstree if needed (might already be available)\nps --version  # Just verify ps\
+    \ works\n\n# Show process tree with PIDs\nps -ejH\n\n# Or more visual (if pstree\
+    \ available)\npstree -p 2>/dev/null || ps -ejH\n```\n\n**Finding process relationships:**\n\
+    ```bash\n# Find all stress processes and their relationships\necho \"Process Tree\
+    \ Analysis\" > process_tree.txt\necho \"====================\" >> process_tree.txt\n\
+    echo \"\" >> process_tree.txt\n\n# Get all stress PIDs\nstress_pids=$(pgrep stress)\n\
+    \nfor pid in $stress_pids; do\n  echo \"Process: $pid\" >> process_tree.txt\n\n\
+    \  # Get parent\n  ppid=$(ps -o ppid= -p $pid 2>/dev/null | tr -d ' ')\n  echo\
+    \ \"  Parent: $ppid\" >> process_tree.txt\n\n  # Get command\n  cmd=$(ps -o cmd=\
+    \ -p $pid 2>/dev/null)\n  echo \"  Command: $cmd\" >> process_tree.txt\n  echo\
+    \ \"\" >> process_tree.txt\ndone\n```\n\n**Kill entire process group:**\n```bash\n\
+    # Sometimes you need to kill a process and all its children\n# Find process group\
+    \ ID (PGID)\nstress_pid=$(pgrep stress | head -1)\npgid=$(ps -o pgid= -p $stress_pid\
+    \ | tr -d ' ')\n\necho \"Example: kill -- -$pgid  # Kills entire process group\"\
+    \ >> process_tree.txt\n```\n"
+  hint: 'Use ''ps -ejH'' for hierarchical view, or ''ps -o ppid= -p PID'' to find
+    a
+
+    process''s parent. Process groups can be killed together with kill -PGID.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/troubleshooting/process_tree.txt
+    matcher: exists
+  title: '**Step 5: Process Tree Analysis**'
+- id: cleanup-and-resolution
+  description: "**Step 6: Cleanup and Resolution**\n\nNow let's clean up our test\
+    \ processes and document the resolution.\n\n**Terminate stress processes:**\n\
+    ```bash\n# Graceful termination first\nkillall -TERM stress\nsleep 2\n\n# Force\
+    \ kill any remaining\nkillall -9 stress 2>/dev/null || true\n\n# Verify cleanup\n\
+    if pgrep stress > /dev/null; then\n  echo \"Warning: Some stress processes remain\"\
+    \ > cleanup_status.txt\nelse\n  echo \"All test processes terminated successfully\"\
+    \ > cleanup_status.txt\nfi\n```\n\n**System health check:**\n```bash\necho \"\"\
+    \ >> cleanup_status.txt\necho \"System Health After Cleanup:\" >> cleanup_status.txt\n\
+    echo \"============================\" >> cleanup_status.txt\n\n# CPU load\nuptime\
+    \ | awk '{print \"Load average:\", $(NF-2), $(NF-1), $NF}' >> cleanup_status.txt\n\
+    \n# Memory\nfree -h | grep Mem | awk '{print \"Memory: Used\", $3, \"/ Total\"\
+    , $2}' >> cleanup_status.txt\n\n# Process count\necho \"Running processes: $(ps\
+    \ aux | wc -l)\" >> cleanup_status.txt\n```\n\n**Create final troubleshooting\
+    \ report:**\n```bash\ncat > final_report.txt << 'EOF'\n========================================\n\
+    PROCESS TROUBLESHOOTING SESSION SUMMARY\n========================================\n\
+    \nIssues Identified:\n1. CPU-intensive processes (stress tests)\n2. Memory-intensive\
+    \ workloads\n3. Zombie processes (demo)\n4. Priority optimization opportunities\n\
+    \nActions Taken:\n1. Identified CPU hogs using ps and top\n2. Analyzed memory\
+    \ usage patterns\n3. Documented zombie process handling\n4. Applied process priority\
+    \ adjustments\n5. Analyzed process tree relationships\n6. Terminated problematic\
+    \ processes\n\nKey Commands Used:\n- ps aux --sort=-%cpu   # CPU usage\n- ps aux\
+    \ --sort=-%mem   # Memory usage\n- pgrep, pkill          # Process search/kill\n\
+    - nice, renice          # Priority management\n- kill, killall         # Process\
+    \ termination\n- ps -ejH               # Process tree\n\nSkills Demonstrated:\n\
+    ✓ Performance diagnosis\n✓ Resource monitoring\n✓ Process lifecycle management\n\
+    ✓ Priority optimization\n✓ Systematic troubleshooting\n\nStatus: RESOLVED\nEOF\n\
+    \ncat final_report.txt\n```\n"
+  hint: 'Use ''killall'' to terminate all processes by name. Always try graceful
+
+    termination (SIGTERM) before force killing (SIGKILL/-9).
+
+    '
+  validation:
+    type: file-exists
+    path: ~/troubleshooting/final_report.txt
+    matcher: exists
+  title: '**Step 6: Cleanup and Resolution**'
+- id: expert-knowledge-check
+  description: "**Expert Knowledge: Advanced Scenarios**\n\nLet's document some advanced\
+    \ troubleshooting techniques:\n\n```bash\ncat > expert_techniques.txt << 'EOF'\n\
+    ADVANCED PROCESS TROUBLESHOOTING TECHNIQUES\n===========================================\n\
+    \n1. UNINTERRUPTIBLE SLEEP (D state)\nProblem: Process stuck in D state (usually\
+    \ disk I/O)\nDetection: ps aux | grep ' D '\nResolution: Fix underlying I/O issue\
+    \ (disk, NFS, etc.)\nNote: Cannot be killed, must fix root cause\n\n2. TRACKING\
+    \ RESOURCE LEAKS\nMemory leak detection:\n  - Monitor RSS over time: watch -n\
+    \ 1 'ps -o pid,rss,cmd -p PID'\n  - Check /proc/PID/status for VmSize growth\n\
+    \  - Use valgrind for C/C++ programs\n\nFile descriptor leaks:\n  - ls -l /proc/PID/fd\
+    \ | wc -l\n  - lsof -p PID\n\n3. CPU PROFILING\nIdentify what code is consuming\
+    \ CPU:\n  - strace -c -p PID  # System call profile\n  - perf top  # Live CPU\
+    \ profiling (requires perf)\n  - top, then press 'H' to show threads\n\n4. HANDLING\
+    \ UNKILLABLE PROCESSES\nIf kill -9 doesn't work:\n  - Process in D state: fix\
+    \ I/O issue\n  - Kernel thread: needs kernel fix or reboot\n  - Check for PID\
+    \ namespace issues\n\n5. CORE DUMPS FOR POST-MORTEM ANALYSIS\nEnable core dumps:\n\
+    \  ulimit -c unlimited\n  echo '/tmp/core.%e.%p' > /proc/sys/kernel/core_pattern\n\
+    \nAnalyze crash:\n  gdb program core.file\n\n6. CGROUP RESOURCE LIMITS\nCheck\
+    \ if process is constrained:\n  cat /proc/PID/cgroup\n  cat /sys/fs/cgroup/.../memory.max\n\
+    \n7. LOAD AVERAGE INTERPRETATION\nFormat: 1min 5min 15min averages\n  - < # of\
+    \ CPUs: System healthy\n  - = # of CPUs: Fully utilized\n  - > # of CPUs: Queue\
+    \ building up\n\n8. MONITORING TOOLS COMPARISON\n- top: Real-time, interactive\n\
+    - htop: User-friendly top alternative\n- atop: Includes disk I/O\n- vmstat: Virtual\
+    \ memory stats\n- sar: Historical data (requires sysstat)\n- pidstat: Per-process\
+    \ statistics\n\n9. PRODUCTION BEST PRACTICES\n- Always try SIGTERM before SIGKILL\n\
+    - Document all process terminations\n- Check logs before/after actions\n- Use\
+    \ monitoring for trend analysis\n- Set up alerts for resource thresholds\n- Have\
+    \ rollback plans ready\n\n10. CONTAINER-SPECIFIC ISSUES\nInside containers:\n\
+    \  - Limited visibility of host processes\n  - Different PID namespaces\n  - Resource\
+    \ limits from cgroups\n  - Check docker stats, kubectl top\nEOF\n\ncat expert_techniques.txt\n\
+    ```\n\n**Congratulations!** You've completed advanced process troubleshooting\
+    \ training.\n\n**You now know how to:**\n- Diagnose system performance issues\
+    \ systematically\n- Identify and resolve resource bottlenecks\n- Handle zombie\
+    \ and problematic processes\n- Optimize process priorities for better performance\n\
+    - Analyze process relationships and trees\n- Apply advanced troubleshooting techniques\n\
+    \nThese skills are essential for system administration and production support!\n"
+  hint: 'Review the expert techniques. In real scenarios, you''ll encounter these
+
+    situations and need to apply the appropriate solution.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/troubleshooting/expert_techniques.txt
+    matcher: exists
+  title: '**Expert Knowledge: Advanced Scenarios**'
+completion:
+  message: Congratulations! You've completed this advanced mission.
+  xp: 550
+  unlocks: []

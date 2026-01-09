@@ -1,420 +1,573 @@
 mission:
-  id: "disk-basics-beginner"
-  title: "Disk Space Management Basics"
-  difficulty: "beginner"
-  description: |
-    Learn essential disk management commands - checking disk space, analyzing disk
+  id: disk-basics-beginner
+  title: Disk Space Management Basics
+  difficulty: beginner
+  description: 'Learn essential disk management commands - checking disk space, analyzing
+    disk
+
     usage, and understanding filesystem capacity. Critical skills for avoiding
+
     "disk full" emergencies!
 
+
     Master the tools every Linux user needs for disk space management!
-  estimated_time: "25 minutes"
+
+    '
+  estimated_time: 25
   xp_reward: 200
   tags:
-    - "disk"
-    - "storage"
-    - "df"
-    - "du"
-    - "basics"
-    - "week7"
-
+  - disk
+  - storage
+  - df
+  - du
+  - basics
+  - week7
 environment:
-  runtime: "docker"
-  base_image: "ubuntu:22.04"
-  setup: |
-    apt-get update && apt-get install -y \
-      coreutils \
-      ncdu
-
+  setup:
+  - apt-get update && apt-get install -y \
+  - coreutils \
+  - ncdu
+  image: ubuntu:22.04
 steps:
-  - id: "disk-free-command"
-    description: |
-      **Checking Disk Space with df**
-
-      The `df` (disk free) command shows filesystem disk space usage.
-
-      **Basic usage:**
-      ```bash
-      df          # Show all filesystems
-      df -h       # Human-readable (KB, MB, GB)
-      df -H       # Human-readable (powers of 1000)
-      df /path    # Show filesystem containing /path
-      ```
-
-      **Understanding df output:**
-      ```
-      Filesystem     1K-blocks    Used    Available Use% Mounted on
-      /dev/sda1       20971520  8388608   12582912  40% /
-      │               │         │         │         │    │
-      │               │         │         │         │    └─ Mount point
-      │               │         │         │         └─ Percentage used
-      │               │         │         └─ Space available
-      │               │         └─ Space used
-      │               └─ Total space
-      └─ Device name
-      ```
-
-      **Task:** Explore disk space.
-
-      ```bash
-      mkdir -p ~/disk_practice
-      cd ~/disk_practice
-
-      # Check disk space
-      echo "Disk Space Report" > disk_space.txt
-      echo "=================" >> disk_space.txt
-      echo "" >> disk_space.txt
-
-      echo "All filesystems (human-readable):" >> disk_space.txt
-      df -h >> disk_space.txt
-
-      echo "" >> disk_space.txt
-      echo "Root filesystem only:" >> disk_space.txt
-      df -h / >> disk_space.txt
-
-      cat disk_space.txt
-      ```
-    hint: |
-      Always use 'df -h' for human-readable output. It shows sizes in GB, MB,
-      KB instead of blocks. The 'Use%' column shows how full the filesystem is.
-    validation:
-      - type: "file-exists"
-        path: "~/disk_practice/disk_space.txt"
-
-  - id: "disk-usage-command"
-    description: |
-      **Analyzing Disk Usage with du**
-
-      The `du` (disk usage) command shows space used by files and directories.
-
-      **Basic usage:**
-      ```bash
-      du              # Show usage of current directory
-      du -h           # Human-readable
-      du -s           # Summary only (total)
-      du -sh *        # Summary of each item in current directory
-      du -ah          # All files, human-readable
-      ```
-
-      **Common combinations:**
-      ```bash
-      du -sh /path/*              # Size of each item
-      du -h /path | sort -h       # Sorted by size
-      du -h --max-depth=1         # One level deep only
-      ```
-
-      **Task:** Analyze disk usage.
-
-      ```bash
-      # Create test files of different sizes
-      mkdir -p testdir/subdir1 testdir/subdir2
-      echo "Small file" > testdir/small.txt
-      dd if=/dev/zero of=testdir/medium.bin bs=1M count=5 2>/dev/null
-      dd if=/dev/zero of=testdir/subdir1/large.bin bs=1M count=10 2>/dev/null
-
-      # Analyze usage
-      echo "Disk Usage Analysis" > disk_usage.txt
-      echo "==================" >> disk_usage.txt
-      echo "" >> disk_usage.txt
-
-      echo "Total size of testdir:" >> disk_usage.txt
-      du -sh testdir >> disk_usage.txt
-
-      echo "" >> disk_usage.txt
-      echo "Size of each item in testdir:" >> disk_usage.txt
-      du -sh testdir/* >> disk_usage.txt
-
-      echo "" >> disk_usage.txt
-      echo "All files in tree (human-readable):" >> disk_usage.txt
-      du -ah testdir >> disk_usage.txt
-
-      cat disk_usage.txt
-      ```
-    hint: |
-      Use 'du -sh directory' for a quick total, or 'du -sh directory/*' to see
-      the size of each item inside. The -s flag gives a summary.
-    validation:
-      - type: "file-exists"
-        path: "~/disk_practice/disk_usage.txt"
-
-  - id: "df-vs-du"
-    description: |
-      **Understanding df vs du**
-
-      **df (disk free):**
-      - Shows FILESYSTEM space
-      - Fast (reads filesystem metadata)
-      - Answers: "How much space is left?"
-      - Use for: Overall capacity planning
-
-      **du (disk usage):**
-      - Shows DIRECTORY/FILE space
-      - Slower (reads all files)
-      - Answers: "What's using my space?"
-      - Use for: Finding large files/directories
-
-      **Why they might disagree:**
-      - Deleted but open files (du doesn't see, df counts)
-      - Sparse files (du shows actual, df shows allocated)
-      - Reserved blocks (root-only space)
-
-      **Task:** Compare df and du.
-
-      ```bash
-      echo "df vs du Comparison" > df_vs_du.txt
-      echo "===================" >> df_vs_du.txt
-      echo "" >> df_vs_du.txt
-
-      echo "df shows filesystem space:" >> df_vs_du.txt
-      df -h / | head -2 >> df_vs_du.txt
-
-      echo "" >> df_vs_du.txt
-      echo "du shows directory space used:" >> df_vs_du.txt
-      du -sh ~/disk_practice >> df_vs_du.txt
-
-      echo "" >> df_vs_du.txt
-      echo "Use cases:" >> df_vs_du.txt
-      echo "- df: Check if filesystem is full" >> df_vs_du.txt
-      echo "- du: Find what's using space" >> df_vs_du.txt
-      echo "" >> df_vs_du.txt
-      echo "Together: df tells you there's a problem," >> df_vs_du.txt
-      echo "          du helps you find the cause!" >> df_vs_du.txt
-
-      cat df_vs_du.txt
-      ```
-    hint: |
-      Use 'df' first to check if you have a space problem, then use 'du' to
-      find which directories are using the most space.
-    validation:
-      - type: "file-exists"
-        path: "~/disk_practice/df_vs_du.txt"
-
-  - id: "finding-large-files"
-    description: |
-      **Finding Large Files**
-
-      When disk space is running low, you need to find the culprits!
-
-      **Using du with sort:**
-      ```bash
-      # Top 10 largest directories
-      du -h /path | sort -rh | head -10
-
-      # Top 10 largest files
-      du -ah /path | sort -rh | head -10
-      ```
-
-      **Using find:**
-      ```bash
-      # Find files larger than 10MB
-      find /path -type f -size +10M
-
-      # Find and show sizes
-      find /path -type f -size +10M -exec ls -lh {} \;
-      ```
-
-      **Task:** Find large files.
-
-      ```bash
-      cd ~/disk_practice
-
-      # Create files of various sizes
-      mkdir bigfiles
-      dd if=/dev/zero of=bigfiles/huge.bin bs=1M count=20 2>/dev/null
-      dd if=/dev/zero of=bigfiles/big.bin bs=1M count=8 2>/dev/null
-      dd if=/dev/zero of=bigfiles/medium.bin bs=1M count=3 2>/dev/null
-      echo "tiny" > bigfiles/tiny.txt
-
-      # Find large files
-      echo "Finding Large Files" > large_files.txt
-      echo "===================" >> large_files.txt
-      echo "" >> large_files.txt
-
-      echo "All files sorted by size:" >> large_files.txt
-      du -ah bigfiles | sort -rh >> large_files.txt
-
-      echo "" >> large_files.txt
-      echo "Files larger than 5MB:" >> large_files.txt
-      find bigfiles -type f -size +5M -exec ls -lh {} \; >> large_files.txt
-
-      cat large_files.txt
-      ```
-    hint: |
-      'sort -rh' sorts in reverse order (-r) and understands human sizes (-h).
-      Use 'du -ah | sort -rh | head' to find the largest items quickly.
-    validation:
-      - type: "file-exists"
-        path: "~/disk_practice/large_files.txt"
-
-  - id: "cleaning-up-space"
-    description: |
-      **Safe Disk Cleanup Strategies**
-
-      **Common space hogs:**
-      1. Old log files (`/var/log`)
-      2. Package manager cache (`apt clean`)
-      3. Temporary files (`/tmp`, `~/Downloads`)
-      4. Old backups
-      5. Duplicate files
-
-      **Safe cleanup commands:**
-      ```bash
-      # Remove files you created
-      rm unwanted_file
-
-      # Clean package cache (Debian/Ubuntu)
-      apt clean           # Requires root
-
-      # Remove old journal logs (keep last 3 days)
-      journalctl --vacuum-time=3d  # Requires root
-
-      # Find and remove empty files
-      find /path -type f -empty -delete
-
-      # Find and remove old files (30+ days)
-      find /path -type f -mtime +30 -delete
-      ```
-
-      **Task:** Practice safe cleanup.
-
-      ```bash
-      cd ~/disk_practice
-
-      # Create files to clean up
-      mkdir cleanup_demo
-      touch cleanup_demo/empty1.txt cleanup_demo/empty2.txt
-      echo "keep me" > cleanup_demo/important.txt
-
-      # Document before state
-      echo "Disk Cleanup Demo" > cleanup_demo.txt
-      echo "=================" >> cleanup_demo.txt
-      echo "" >> cleanup_demo.txt
-
-      echo "Before cleanup:" >> cleanup_demo.txt
-      ls -lh cleanup_demo >> cleanup_demo.txt
-      echo "File count: $(find cleanup_demo -type f | wc -l)" >> cleanup_demo.txt
-
-      # Clean up empty files
-      find cleanup_demo -type f -empty -delete
-
-      echo "" >> cleanup_demo.txt
-      echo "After removing empty files:" >> cleanup_demo.txt
-      ls -lh cleanup_demo >> cleanup_demo.txt
-      echo "File count: $(find cleanup_demo -type f | wc -l)" >> cleanup_demo.txt
-
-      echo "" >> cleanup_demo.txt
-      echo "Safe cleanup practices:" >> cleanup_demo.txt
-      echo "✓ Always check before deleting (remove -delete, review list)" >> cleanup_demo.txt
-      echo "✓ Keep backups of important data" >> cleanup_demo.txt
-      echo "✓ Use -i flag with rm for confirmation" >> cleanup_demo.txt
-      echo "✗ Never run 'rm -rf /' or similar dangerous commands" >> cleanup_demo.txt
-
-      cat cleanup_demo.txt
-      ```
-    hint: |
-      Always test find commands WITHOUT -delete first! Run the find command,
-      review the results, then add -delete if correct.
-    validation:
-      - type: "file-exists"
-        path: "~/disk_practice/cleanup_demo.txt"
-
-  - id: "monitoring-disk-usage"
-    description: |
-      **Monitoring Disk Usage Over Time**
-
-      **Quick checks:**
-      ```bash
-      # Watch disk usage change
-      watch -n 1 df -h /
-
-      # Alert if usage over 80%
-      df -h / | awk 'NR==2 {if ($5+0 > 80) print "WARNING: Disk over 80%!"}'
-      ```
-
-      **Directory size tracking:**
-      ```bash
-      # Save current sizes
-      du -sh /important/* > sizes_$(date +%Y%m%d).txt
-
-      # Compare later
-      diff sizes_20240101.txt sizes_20240201.txt
-      ```
-
-      **Task:** Create monitoring tools.
-
-      ```bash
-      cd ~/disk_practice
-
-      # Create a simple monitoring script
-      cat > check_disk.sh << 'EOF'
-      #!/bin/bash
-      # Simple disk space checker
-
-      echo "=== Disk Space Report ==="
-      echo "Generated: $(date)"
-      echo ""
-
-      # Show filesystem usage
-      df -h /
-
-      echo ""
-      echo "=== Usage Alert ==="
-
-      # Check if over 80%
-      usage=$(df -h / | awk 'NR==2 {print $5}' | tr -d '%')
-      if [ "$usage" -gt 80 ]; then
-        echo "⚠️  WARNING: Disk usage at ${usage}%"
-      else
-        echo "✓ Disk usage OK (${usage}%)"
-      fi
-      EOF
-
-      chmod +x check_disk.sh
-
-      # Run it
-      echo "Disk Monitoring Tools" > monitoring.txt
-      echo "=====================" >> monitoring.txt
-      echo "" >> monitoring.txt
-
-      echo "Output of check_disk.sh:" >> monitoring.txt
-      ./check_disk.sh >> monitoring.txt
-
-      echo "" >> monitoring.txt
-      echo "Monitoring best practices:" >> monitoring.txt
-      echo "- Check disk space regularly (daily/weekly)" >> monitoring.txt
-      echo "- Set up alerts for >80% usage" >> monitoring.txt
-      echo "- Track growth trends over time" >> monitoring.txt
-      echo "- Clean up proactively, not reactively" >> monitoring.txt
-
-      cat monitoring.txt
-      ```
-
-      **Congratulations!** You've mastered disk management basics!
-
-      **You learned:**
-      - Using df to check filesystem space
-      - Using du to analyze directory usage
-      - Difference between df and du
-      - Finding large files consuming space
-      - Safe cleanup strategies
-      - Monitoring disk usage over time
-
-      **Key commands to remember:**
-      - `df -h` - Check filesystem space
-      - `du -sh *` - Size of each item
-      - `du -ah | sort -rh | head` - Find largest items
-      - `find -size +10M` - Find large files
-
-      **Best practices:**
-      - Monitor regularly, don't wait for emergencies
-      - Always review before deleting
-      - Keep backups of important data
-      - Clean up proactively
-
-      You now have the essential skills for disk space management!
-    hint: |
-      Shell scripts make monitoring easier. Use df and awk to parse usage
-      percentages and trigger alerts when thresholds are exceeded.
-    validation:
-      - type: "file-exists"
-        path: "~/disk_practice/monitoring.txt"
+- id: disk-free-command
+  description: '**Checking Disk Space with df**
+
+
+    The `df` (disk free) command shows filesystem disk space usage.
+
+
+    **Basic usage:**
+
+    ```bash
+
+    df          # Show all filesystems
+
+    df -h       # Human-readable (KB, MB, GB)
+
+    df -H       # Human-readable (powers of 1000)
+
+    df /path    # Show filesystem containing /path
+
+    ```
+
+
+    **Understanding df output:**
+
+    ```
+
+    Filesystem     1K-blocks    Used    Available Use% Mounted on
+
+    /dev/sda1       20971520  8388608   12582912  40% /
+
+    │               │         │         │         │    │
+
+    │               │         │         │         │    └─ Mount point
+
+    │               │         │         │         └─ Percentage used
+
+    │               │         │         └─ Space available
+
+    │               │         └─ Space used
+
+    │               └─ Total space
+
+    └─ Device name
+
+    ```
+
+
+    **Task:** Explore disk space.
+
+
+    ```bash
+
+    mkdir -p ~/disk_practice
+
+    cd ~/disk_practice
+
+
+    # Check disk space
+
+    echo "Disk Space Report" > disk_space.txt
+
+    echo "=================" >> disk_space.txt
+
+    echo "" >> disk_space.txt
+
+
+    echo "All filesystems (human-readable):" >> disk_space.txt
+
+    df -h >> disk_space.txt
+
+
+    echo "" >> disk_space.txt
+
+    echo "Root filesystem only:" >> disk_space.txt
+
+    df -h / >> disk_space.txt
+
+
+    cat disk_space.txt
+
+    ```
+
+    '
+  hint: 'Always use ''df -h'' for human-readable output. It shows sizes in GB, MB,
+
+    KB instead of blocks. The ''Use%'' column shows how full the filesystem is.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/disk_practice/disk_space.txt
+    matcher: exists
+  title: '**Checking Disk Space with df**'
+- id: disk-usage-command
+  description: '**Analyzing Disk Usage with du**
+
+
+    The `du` (disk usage) command shows space used by files and directories.
+
+
+    **Basic usage:**
+
+    ```bash
+
+    du              # Show usage of current directory
+
+    du -h           # Human-readable
+
+    du -s           # Summary only (total)
+
+    du -sh *        # Summary of each item in current directory
+
+    du -ah          # All files, human-readable
+
+    ```
+
+
+    **Common combinations:**
+
+    ```bash
+
+    du -sh /path/*              # Size of each item
+
+    du -h /path | sort -h       # Sorted by size
+
+    du -h --max-depth=1         # One level deep only
+
+    ```
+
+
+    **Task:** Analyze disk usage.
+
+
+    ```bash
+
+    # Create test files of different sizes
+
+    mkdir -p testdir/subdir1 testdir/subdir2
+
+    echo "Small file" > testdir/small.txt
+
+    dd if=/dev/zero of=testdir/medium.bin bs=1M count=5 2>/dev/null
+
+    dd if=/dev/zero of=testdir/subdir1/large.bin bs=1M count=10 2>/dev/null
+
+
+    # Analyze usage
+
+    echo "Disk Usage Analysis" > disk_usage.txt
+
+    echo "==================" >> disk_usage.txt
+
+    echo "" >> disk_usage.txt
+
+
+    echo "Total size of testdir:" >> disk_usage.txt
+
+    du -sh testdir >> disk_usage.txt
+
+
+    echo "" >> disk_usage.txt
+
+    echo "Size of each item in testdir:" >> disk_usage.txt
+
+    du -sh testdir/* >> disk_usage.txt
+
+
+    echo "" >> disk_usage.txt
+
+    echo "All files in tree (human-readable):" >> disk_usage.txt
+
+    du -ah testdir >> disk_usage.txt
+
+
+    cat disk_usage.txt
+
+    ```
+
+    '
+  hint: 'Use ''du -sh directory'' for a quick total, or ''du -sh directory/*'' to
+    see
+
+    the size of each item inside. The -s flag gives a summary.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/disk_practice/disk_usage.txt
+    matcher: exists
+  title: '**Analyzing Disk Usage with du**'
+- id: df-vs-du
+  description: '**Understanding df vs du**
+
+
+    **df (disk free):**
+
+    - Shows FILESYSTEM space
+
+    - Fast (reads filesystem metadata)
+
+    - Answers: "How much space is left?"
+
+    - Use for: Overall capacity planning
+
+
+    **du (disk usage):**
+
+    - Shows DIRECTORY/FILE space
+
+    - Slower (reads all files)
+
+    - Answers: "What''s using my space?"
+
+    - Use for: Finding large files/directories
+
+
+    **Why they might disagree:**
+
+    - Deleted but open files (du doesn''t see, df counts)
+
+    - Sparse files (du shows actual, df shows allocated)
+
+    - Reserved blocks (root-only space)
+
+
+    **Task:** Compare df and du.
+
+
+    ```bash
+
+    echo "df vs du Comparison" > df_vs_du.txt
+
+    echo "===================" >> df_vs_du.txt
+
+    echo "" >> df_vs_du.txt
+
+
+    echo "df shows filesystem space:" >> df_vs_du.txt
+
+    df -h / | head -2 >> df_vs_du.txt
+
+
+    echo "" >> df_vs_du.txt
+
+    echo "du shows directory space used:" >> df_vs_du.txt
+
+    du -sh ~/disk_practice >> df_vs_du.txt
+
+
+    echo "" >> df_vs_du.txt
+
+    echo "Use cases:" >> df_vs_du.txt
+
+    echo "- df: Check if filesystem is full" >> df_vs_du.txt
+
+    echo "- du: Find what''s using space" >> df_vs_du.txt
+
+    echo "" >> df_vs_du.txt
+
+    echo "Together: df tells you there''s a problem," >> df_vs_du.txt
+
+    echo "          du helps you find the cause!" >> df_vs_du.txt
+
+
+    cat df_vs_du.txt
+
+    ```
+
+    '
+  hint: 'Use ''df'' first to check if you have a space problem, then use ''du'' to
+
+    find which directories are using the most space.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/disk_practice/df_vs_du.txt
+    matcher: exists
+  title: '**Understanding df vs du**'
+- id: finding-large-files
+  description: '**Finding Large Files**
+
+
+    When disk space is running low, you need to find the culprits!
+
+
+    **Using du with sort:**
+
+    ```bash
+
+    # Top 10 largest directories
+
+    du -h /path | sort -rh | head -10
+
+
+    # Top 10 largest files
+
+    du -ah /path | sort -rh | head -10
+
+    ```
+
+
+    **Using find:**
+
+    ```bash
+
+    # Find files larger than 10MB
+
+    find /path -type f -size +10M
+
+
+    # Find and show sizes
+
+    find /path -type f -size +10M -exec ls -lh {} \;
+
+    ```
+
+
+    **Task:** Find large files.
+
+
+    ```bash
+
+    cd ~/disk_practice
+
+
+    # Create files of various sizes
+
+    mkdir bigfiles
+
+    dd if=/dev/zero of=bigfiles/huge.bin bs=1M count=20 2>/dev/null
+
+    dd if=/dev/zero of=bigfiles/big.bin bs=1M count=8 2>/dev/null
+
+    dd if=/dev/zero of=bigfiles/medium.bin bs=1M count=3 2>/dev/null
+
+    echo "tiny" > bigfiles/tiny.txt
+
+
+    # Find large files
+
+    echo "Finding Large Files" > large_files.txt
+
+    echo "===================" >> large_files.txt
+
+    echo "" >> large_files.txt
+
+
+    echo "All files sorted by size:" >> large_files.txt
+
+    du -ah bigfiles | sort -rh >> large_files.txt
+
+
+    echo "" >> large_files.txt
+
+    echo "Files larger than 5MB:" >> large_files.txt
+
+    find bigfiles -type f -size +5M -exec ls -lh {} \; >> large_files.txt
+
+
+    cat large_files.txt
+
+    ```
+
+    '
+  hint: '''sort -rh'' sorts in reverse order (-r) and understands human sizes (-h).
+
+    Use ''du -ah | sort -rh | head'' to find the largest items quickly.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/disk_practice/large_files.txt
+    matcher: exists
+  title: '**Finding Large Files**'
+- id: cleaning-up-space
+  description: '**Safe Disk Cleanup Strategies**
+
+
+    **Common space hogs:**
+
+    1. Old log files (`/var/log`)
+
+    2. Package manager cache (`apt clean`)
+
+    3. Temporary files (`/tmp`, `~/Downloads`)
+
+    4. Old backups
+
+    5. Duplicate files
+
+
+    **Safe cleanup commands:**
+
+    ```bash
+
+    # Remove files you created
+
+    rm unwanted_file
+
+
+    # Clean package cache (Debian/Ubuntu)
+
+    apt clean           # Requires root
+
+
+    # Remove old journal logs (keep last 3 days)
+
+    journalctl --vacuum-time=3d  # Requires root
+
+
+    # Find and remove empty files
+
+    find /path -type f -empty -delete
+
+
+    # Find and remove old files (30+ days)
+
+    find /path -type f -mtime +30 -delete
+
+    ```
+
+
+    **Task:** Practice safe cleanup.
+
+
+    ```bash
+
+    cd ~/disk_practice
+
+
+    # Create files to clean up
+
+    mkdir cleanup_demo
+
+    touch cleanup_demo/empty1.txt cleanup_demo/empty2.txt
+
+    echo "keep me" > cleanup_demo/important.txt
+
+
+    # Document before state
+
+    echo "Disk Cleanup Demo" > cleanup_demo.txt
+
+    echo "=================" >> cleanup_demo.txt
+
+    echo "" >> cleanup_demo.txt
+
+
+    echo "Before cleanup:" >> cleanup_demo.txt
+
+    ls -lh cleanup_demo >> cleanup_demo.txt
+
+    echo "File count: $(find cleanup_demo -type f | wc -l)" >> cleanup_demo.txt
+
+
+    # Clean up empty files
+
+    find cleanup_demo -type f -empty -delete
+
+
+    echo "" >> cleanup_demo.txt
+
+    echo "After removing empty files:" >> cleanup_demo.txt
+
+    ls -lh cleanup_demo >> cleanup_demo.txt
+
+    echo "File count: $(find cleanup_demo -type f | wc -l)" >> cleanup_demo.txt
+
+
+    echo "" >> cleanup_demo.txt
+
+    echo "Safe cleanup practices:" >> cleanup_demo.txt
+
+    echo "✓ Always check before deleting (remove -delete, review list)" >> cleanup_demo.txt
+
+    echo "✓ Keep backups of important data" >> cleanup_demo.txt
+
+    echo "✓ Use -i flag with rm for confirmation" >> cleanup_demo.txt
+
+    echo "✗ Never run ''rm -rf /'' or similar dangerous commands" >> cleanup_demo.txt
+
+
+    cat cleanup_demo.txt
+
+    ```
+
+    '
+  hint: 'Always test find commands WITHOUT -delete first! Run the find command,
+
+    review the results, then add -delete if correct.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/disk_practice/cleanup_demo.txt
+    matcher: exists
+  title: '**Safe Disk Cleanup Strategies**'
+- id: monitoring-disk-usage
+  description: "**Monitoring Disk Usage Over Time**\n\n**Quick checks:**\n```bash\n\
+    # Watch disk usage change\nwatch -n 1 df -h /\n\n# Alert if usage over 80%\ndf\
+    \ -h / | awk 'NR==2 {if ($5+0 > 80) print \"WARNING: Disk over 80%!\"}'\n```\n\
+    \n**Directory size tracking:**\n```bash\n# Save current sizes\ndu -sh /important/*\
+    \ > sizes_$(date +%Y%m%d).txt\n\n# Compare later\ndiff sizes_20240101.txt sizes_20240201.txt\n\
+    ```\n\n**Task:** Create monitoring tools.\n\n```bash\ncd ~/disk_practice\n\n#\
+    \ Create a simple monitoring script\ncat > check_disk.sh << 'EOF'\n#!/bin/bash\n\
+    # Simple disk space checker\n\necho \"=== Disk Space Report ===\"\necho \"Generated:\
+    \ $(date)\"\necho \"\"\n\n# Show filesystem usage\ndf -h /\n\necho \"\"\necho\
+    \ \"=== Usage Alert ===\"\n\n# Check if over 80%\nusage=$(df -h / | awk 'NR==2\
+    \ {print $5}' | tr -d '%')\nif [ \"$usage\" -gt 80 ]; then\n  echo \"⚠️  WARNING:\
+    \ Disk usage at ${usage}%\"\nelse\n  echo \"✓ Disk usage OK (${usage}%)\"\nfi\n\
+    EOF\n\nchmod +x check_disk.sh\n\n# Run it\necho \"Disk Monitoring Tools\" > monitoring.txt\n\
+    echo \"=====================\" >> monitoring.txt\necho \"\" >> monitoring.txt\n\
+    \necho \"Output of check_disk.sh:\" >> monitoring.txt\n./check_disk.sh >> monitoring.txt\n\
+    \necho \"\" >> monitoring.txt\necho \"Monitoring best practices:\" >> monitoring.txt\n\
+    echo \"- Check disk space regularly (daily/weekly)\" >> monitoring.txt\necho \"\
+    - Set up alerts for >80% usage\" >> monitoring.txt\necho \"- Track growth trends\
+    \ over time\" >> monitoring.txt\necho \"- Clean up proactively, not reactively\"\
+    \ >> monitoring.txt\n\ncat monitoring.txt\n```\n\n**Congratulations!** You've\
+    \ mastered disk management basics!\n\n**You learned:**\n- Using df to check filesystem\
+    \ space\n- Using du to analyze directory usage\n- Difference between df and du\n\
+    - Finding large files consuming space\n- Safe cleanup strategies\n- Monitoring\
+    \ disk usage over time\n\n**Key commands to remember:**\n- `df -h` - Check filesystem\
+    \ space\n- `du -sh *` - Size of each item\n- `du -ah | sort -rh | head` - Find\
+    \ largest items\n- `find -size +10M` - Find large files\n\n**Best practices:**\n\
+    - Monitor regularly, don't wait for emergencies\n- Always review before deleting\n\
+    - Keep backups of important data\n- Clean up proactively\n\nYou now have the essential\
+    \ skills for disk space management!\n"
+  hint: 'Shell scripts make monitoring easier. Use df and awk to parse usage
+
+    percentages and trigger alerts when thresholds are exceeded.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/disk_practice/monitoring.txt
+    matcher: exists
+  title: '**Monitoring Disk Usage Over Time**'
+completion:
+  message: Congratulations! You've completed this beginner mission.
+  xp: 200
+  unlocks: []

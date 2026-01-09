@@ -1,560 +1,216 @@
 mission:
-  id: "shell-scripting-advanced"
-  title: "Advanced Shell Scripting: Arrays, Regex, and Process Management"
-  difficulty: "advanced"
-  description: |
-    Master advanced bash scripting techniques including arrays, regular expressions,
+  id: shell-scripting-advanced
+  title: 'Advanced Shell Scripting: Arrays, Regex, and Process Management'
+  difficulty: advanced
+  description: 'Master advanced bash scripting techniques including arrays, regular
+    expressions,
+
     process management, and command-line argument parsing. Build production-ready
+
     scripts with professional features.
 
+
     Unlock expert-level scripting capabilities!
-  estimated_time: "55 minutes"
+
+    '
+  estimated_time: 55
   xp_reward: 600
   tags:
-    - "shell-scripting"
-    - "bash"
-    - "arrays"
-    - "regex"
-    - "advanced"
-    - "week11"
-
+  - shell-scripting
+  - bash
+  - arrays
+  - regex
+  - advanced
+  - week11
 environment:
-  runtime: "docker"
-  base_image: "ubuntu:22.04"
-  setup: |
-    apt-get update && apt-get install -y \
-      bash \
-      coreutils \
-      procps
-
+  setup:
+  - apt-get update && apt-get install -y \
+  - bash \
+  - coreutils \
+  - procps
+  image: ubuntu:22.04
 steps:
-  - id: "arrays"
-    description: |
-      **Bash Arrays**
-
-      **Indexed arrays:**
-      ```bash
-      # Declaration
-      arr=(apple banana cherry)
-      arr[3]="date"
-
-      # Access
-      echo ${arr[0]}        # First element
-      echo ${arr[@]}        # All elements
-      echo ${#arr[@]}       # Length
-
-      # Iteration
-      for item in "${arr[@]}"; do
-        echo "$item"
-      done
-      ```
-
-      **Associative arrays (bash 4+):**
-      ```bash
-      declare -A map
-      map[key1]="value1"
-      map[key2]="value2"
-
-      echo ${map[key1]}
-      ```
-
-      **Task:** Work with arrays.
-
-      ```bash
-      mkdir -p ~/advanced_scripting
-      cd ~/advanced_scripting
-
-      cat > arrays.sh << 'EOF'
-      #!/bin/bash
-      # Array demonstration
-
-      # Indexed array
-      fruits=(apple banana cherry date elderberry)
-
-      echo "Array Demo"
-      echo "=========="
-      echo "All fruits: ${fruits[@]}"
-      echo "Count: ${#fruits[@]}"
-      echo "First: ${fruits[0]}"
-      echo "Last: ${fruits[-1]}"
-
-      # Iterate
-      echo ""
-      echo "Iteration:"
-      for i in "${!fruits[@]}"; do
-        echo "  $i: ${fruits[$i]}"
-      done
-
-      # Slice
-      echo ""
-      echo "Slice [1:3]: ${fruits[@]:1:3}"
-
-      # Associative array
-      declare -A scores
-      scores[alice]=95
-      scores[bob]=87
-      scores[carol]=92
-
-      echo ""
-      echo "Scores:"
-      for name in "${!scores[@]}"; do
-        echo "  $name: ${scores[$name]}"
-      done
-      EOF
-
-      chmod +x arrays.sh
-
-      echo "Arrays Output" > arrays_output.txt
-      echo "=============" >> arrays_output.txt
-      ./arrays.sh >> arrays_output.txt
-
-      cat arrays_output.txt
-      ```
-    hint: |
-      Use ${arr[@]} for all elements, ${#arr[@]} for count, ${!arr[@]} for
-      indices. Always quote: "${arr[@]}" to preserve spaces.
-    validation:
-      - type: "file-exists"
-        path: "~/advanced_scripting/arrays_output.txt"
-
-  - id: "regex-and-pattern-matching"
-    description: |
-      **Regular Expressions**
-
-      **Pattern matching:**
-      ```bash
-      # =~ operator for regex
-      if [[ $string =~ ^[0-9]+$ ]]; then
-        echo "Number"
-      fi
-
-      # Glob patterns
-      case $file in
-        *.txt) echo "Text file" ;;
-        *.jpg|*.png) echo "Image" ;;
-      esac
-      ```
-
-      **String manipulation:**
-      ```bash
-      # Remove prefix/suffix
-      ${var#prefix}    # Remove shortest prefix
-      ${var##prefix}   # Remove longest prefix
-      ${var%suffix}    # Remove shortest suffix
-      ${var%%suffix}   # Remove longest suffix
-
-      # Substring
-      ${var:position:length}
-      ```
-
-      **Task:** Use regex and patterns.
-
-      ```bash
-      cat > validator.sh << 'EOF'
-      #!/bin/bash
-      # Input validator
-
-      validate_email() {
-        local email="$1"
-        if [[ $email =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
-          echo "✓ Valid email: $email"
-          return 0
-        else
-          echo "✗ Invalid email: $email"
-          return 1
-        fi
-      }
-
-      validate_ip() {
-        local ip="$1"
-        if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-          echo "✓ Valid IP format: $ip"
-          return 0
-        else
-          echo "✗ Invalid IP format: $ip"
-          return 1
-        fi
-      }
-
-      extract_extension() {
-        local filename="$1"
-        echo "File: $filename"
-        echo "  Extension: ${filename##*.}"
-        echo "  Name only: ${filename%.*}"
-      }
-
-      # Test
-      echo "Email Validation:"
-      validate_email "user@example.com"
-      validate_email "invalid.email"
-
-      echo ""
-      echo "IP Validation:"
-      validate_ip "192.168.1.1"
-      validate_ip "999.999.999.999"
-
-      echo ""
-      echo "Filename Parsing:"
-      extract_extension "document.txt"
-      extract_extension "archive.tar.gz"
-      EOF
-
-      chmod +x validator.sh
-
-      echo "Regex and Pattern Matching" > regex_output.txt
-      echo "==========================" >> regex_output.txt
-      ./validator.sh >> regex_output.txt
-
-      cat regex_output.txt
-      ```
-    hint: |
-      Use [[ ]] for regex with =~. Use ${var#pattern} to remove from start,
-      ${var%pattern} to remove from end. # is shortest, ## is longest.
-    validation:
-      - type: "file-exists"
-        path: "~/advanced_scripting/regex_output.txt"
-
-  - id: "process-management"
-    description: |
-      **Process Management in Scripts**
-
-      **Background jobs:**
-      ```bash
-      command &           # Run in background
-      wait                # Wait for all background jobs
-      wait $PID          # Wait for specific process
-      ```
-
-      **Process control:**
-      ```bash
-      # Check if process running
-      if pgrep -x "process_name" > /dev/null; then
-        echo "Running"
-      fi
-
-      # Get PID
-      PID=$(pgrep -x "process_name")
-      ```
-
-      **Task:** Manage processes.
-
-      ```bash
-      cat > process_manager.sh << 'EOF'
-      #!/bin/bash
-      # Process management
-
-      # Start multiple background jobs
-      run_tasks() {
-        echo "Starting background tasks..."
-
-        sleep 2 &
-        pid1=$!
-        echo "  Task 1 started (PID: $pid1)"
-
-        sleep 3 &
-        pid2=$!
-        echo "  Task 2 started (PID: $pid2)"
-
-        sleep 1 &
-        pid3=$!
-        echo "  Task 3 started (PID: $pid3)"
-
-        # Store PIDs
-        pids=($pid1 $pid2 $pid3)
-
-        echo ""
-        echo "Waiting for tasks to complete..."
-
-        # Wait for each
-        for pid in "${pids[@]}"; do
-          if wait $pid; then
-            echo "  Task $pid completed successfully"
-          else
-            echo "  Task $pid failed"
-          fi
-        done
-
-        echo ""
-        echo "All tasks complete!"
-      }
-
-      # Monitor function
-      monitor_process() {
-        local name="$1"
-        if pgrep -x "$name" > /dev/null; then
-          echo "Process '$name' is running"
-          echo "  PIDs: $(pgrep -x "$name" | tr '\n' ' ')"
-        else
-          echo "Process '$name' is not running"
-        fi
-      }
-
-      # Main
-      echo "Process Management Demo"
-      echo "======================="
-      echo ""
-
-      run_tasks
-
-      echo ""
-      monitor_process "bash"
-      EOF
-
-      chmod +x process_manager.sh
-
-      echo "Process Management Output" > process_output.txt
-      echo "=========================" >> process_output.txt
-      ./process_manager.sh >> process_output.txt
-
-      cat process_output.txt
-      ```
-    hint: |
-      $! gives PID of last background job. Use 'wait' to wait for completion.
-      pgrep finds processes by name. Always save PIDs if you need to control jobs.
-    validation:
-      - type: "file-exists"
-        path: "~/advanced_scripting/process_output.txt"
-
-  - id: "argument-parsing"
-    description: |
-      **Advanced Argument Parsing**
-
-      **Using getopts:**
-      ```bash
-      while getopts "f:vo:" opt; do
-        case $opt in
-          f) file="$OPTARG" ;;
-          v) verbose=true ;;
-          o) output="$OPTARG" ;;
-          \?) echo "Invalid option" ;;
-        esac
-      done
-      shift $((OPTIND-1))  # Remove processed options
-      ```
-
-      **Task:** Build complete argument parser.
-
-      ```bash
-      cat > data_processor.sh << 'EOF'
-      #!/bin/bash
-      # Data processor with full argument parsing
-
-      # Defaults
-      input_file=""
-      output_file="output.txt"
-      verbose=false
-      operation="count"
-
-      # Usage
-      usage() {
-        cat << USAGE
-      Usage: $0 [OPTIONS] input_file
-
-      Options:
-        -i FILE    Input file (required)
-        -o FILE    Output file (default: output.txt)
-        -v         Verbose mode
-        -a ACTION  Action: count, sort, unique (default: count)
-        -h         Show this help
-
-      Examples:
-        $0 -i data.txt
-        $0 -i data.txt -o result.txt -a sort
-        $0 -v -i data.txt -a unique
-      USAGE
-        exit 1
-      }
-
-      # Parse options
-      while getopts "i:o:va:h" opt; do
-        case $opt in
-          i) input_file="$OPTARG" ;;
-          o) output_file="$OPTARG" ;;
-          v) verbose=true ;;
-          a) operation="$OPTARG" ;;
-          h) usage ;;
-          \?) usage ;;
-        esac
-      done
-
-      # Validate
-      if [ -z "$input_file" ]; then
-        echo "Error: Input file required"
-        usage
-      fi
-
-      if [ ! -f "$input_file" ]; then
-        echo "Error: File not found: $input_file"
-        exit 1
-      fi
-
-      # Log function
-      log() {
-        if [ "$verbose" = true ]; then
-          echo "[LOG] $*"
-        fi
-      }
-
-      # Process
-      log "Input: $input_file"
-      log "Output: $output_file"
-      log "Operation: $operation"
-
-      case $operation in
-        count)
-          wc -l "$input_file" > "$output_file"
-          ;;
-        sort)
-          sort "$input_file" > "$output_file"
-          ;;
-        unique)
-          sort "$input_file" | uniq > "$output_file"
-          ;;
-        *)
-          echo "Unknown operation: $operation"
-          exit 1
-          ;;
-      esac
-
-      log "Processing complete"
-      echo "Results saved to: $output_file"
-      EOF
-
-      chmod +x data_processor.sh
-
-      # Create test data
-      cat > sample_data.txt << 'EOF'
-      apple
-      banana
-      apple
-      cherry
-      banana
-      EOF
-
-      echo "Argument Parsing Demo" > arg_parsing_output.txt
-      echo "=====================" >> arg_parsing_output.txt
-      ./data_processor.sh -i sample_data.txt -a unique -v >> arg_parsing_output.txt 2>&1
-
-      cat arg_parsing_output.txt
-      ```
-    hint: |
-      getopts processes options. Use : after letter for required argument.
-      shift $((OPTIND-1)) to access remaining non-option arguments.
-    validation:
-      - type: "file-exists"
-        path: "~/advanced_scripting/arg_parsing_output.txt"
-
-  - id: "production-script"
-    description: |
-      **Production-Ready Script**
-
-      **Task:** Build a complete monitoring script.
-
-      ```bash
-      cat > system_monitor.sh << 'EOF'
-      #!/bin/bash
-      # System monitoring script
-
-      set -euo pipefail
-
-      # Configuration
-      THRESHOLD_CPU=80
-      THRESHOLD_MEM=80
-      THRESHOLD_DISK=80
-      LOG_FILE="monitor.log"
-
-      # Colors (if terminal)
-      if [ -t 1 ]; then
-        RED='\033[0;31m'
-        YELLOW='\033[0;33m'
-        GREEN='\033[0;32m'
-        NC='\033[0m'
-      else
-        RED='' YELLOW='' GREEN='' NC=''
-      fi
-
-      # Logging
-      log() {
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
-      }
-
-      # Check CPU
-      check_cpu() {
-        local cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1 | cut -d'.' -f1 2>/dev/null || echo "0")
-
-        if [ "$cpu_usage" -gt "$THRESHOLD_CPU" ]; then
-          echo -e "${RED}⚠ CPU: ${cpu_usage}%${NC}"
-          log "WARNING: High CPU usage: ${cpu_usage}%"
-        else
-          echo -e "${GREEN}✓ CPU: ${cpu_usage}%${NC}"
-        fi
-      }
-
-      # Check disk
-      check_disk() {
-        local disk_usage=$(df -h / | awk 'NR==2 {print $5}' | tr -d '%')
-
-        if [ "$disk_usage" -gt "$THRESHOLD_DISK" ]; then
-          echo -e "${RED}⚠ Disk: ${disk_usage}%${NC}"
-          log "WARNING: High disk usage: ${disk_usage}%"
-        else
-          echo -e "${GREEN}✓ Disk: ${disk_usage}%${NC}"
-        fi
-      }
-
-      # Main report
-      generate_report() {
-        echo "================================"
-        echo "System Monitor Report"
-        echo "================================"
-        echo "Timestamp: $(date)"
-        echo ""
-
-        check_cpu
-        check_disk
-
-        echo ""
-        echo "Top 3 processes by CPU:"
-        ps aux --sort=-%cpu | head -4 | tail -3
-
-        echo ""
-        log "Monitoring check complete"
-      }
-
-      # Main
-      generate_report
-      EOF
-
-      chmod +x system_monitor.sh
-
-      echo "System Monitor Output" > monitor_output.txt
-      echo "=====================" >> monitor_output.txt
-      ./system_monitor.sh >> monitor_output.txt 2>&1
-
-      cat monitor_output.txt
-      ```
-
-      **Congratulations!** You've mastered advanced shell scripting!
-
-      **You learned:**
-      - Arrays (indexed and associative)
-      - Regular expressions and pattern matching
-      - Process management and background jobs
-      - Professional argument parsing
-      - Production-ready script structure
-
-      **Professional techniques:**
-      - Use arrays for collections
-      - Validate with regex
-      - Manage background processes
-      - Parse arguments with getopts
-      - Add logging and error handling
-      - Use colors for better UX
-
-      You can now write professional, production-ready scripts!
-    hint: |
-      Professional scripts have: set -euo pipefail, argument parsing, logging,
-      error handling, usage help, and good structure. Always validate inputs!
-    validation:
-      - type: "file-exists"
-        path: "~/advanced_scripting/monitor_output.txt"
+- id: arrays
+  description: "**Bash Arrays**\n\n**Indexed arrays:**\n```bash\n# Declaration\narr=(apple\
+    \ banana cherry)\narr[3]=\"date\"\n\n# Access\necho ${arr[0]}        # First element\n\
+    echo ${arr[@]}        # All elements\necho ${#arr[@]}       # Length\n\n# Iteration\n\
+    for item in \"${arr[@]}\"; do\n  echo \"$item\"\ndone\n```\n\n**Associative arrays\
+    \ (bash 4+):**\n```bash\ndeclare -A map\nmap[key1]=\"value1\"\nmap[key2]=\"value2\"\
+    \n\necho ${map[key1]}\n```\n\n**Task:** Work with arrays.\n\n```bash\nmkdir -p\
+    \ ~/advanced_scripting\ncd ~/advanced_scripting\n\ncat > arrays.sh << 'EOF'\n\
+    #!/bin/bash\n# Array demonstration\n\n# Indexed array\nfruits=(apple banana cherry\
+    \ date elderberry)\n\necho \"Array Demo\"\necho \"==========\"\necho \"All fruits:\
+    \ ${fruits[@]}\"\necho \"Count: ${#fruits[@]}\"\necho \"First: ${fruits[0]}\"\n\
+    echo \"Last: ${fruits[-1]}\"\n\n# Iterate\necho \"\"\necho \"Iteration:\"\nfor\
+    \ i in \"${!fruits[@]}\"; do\n  echo \"  $i: ${fruits[$i]}\"\ndone\n\n# Slice\n\
+    echo \"\"\necho \"Slice [1:3]: ${fruits[@]:1:3}\"\n\n# Associative array\ndeclare\
+    \ -A scores\nscores[alice]=95\nscores[bob]=87\nscores[carol]=92\n\necho \"\"\n\
+    echo \"Scores:\"\nfor name in \"${!scores[@]}\"; do\n  echo \"  $name: ${scores[$name]}\"\
+    \ndone\nEOF\n\nchmod +x arrays.sh\n\necho \"Arrays Output\" > arrays_output.txt\n\
+    echo \"=============\" >> arrays_output.txt\n./arrays.sh >> arrays_output.txt\n\
+    \ncat arrays_output.txt\n```\n"
+  hint: 'Use ${arr[@]} for all elements, ${#arr[@]} for count, ${!arr[@]} for
+
+    indices. Always quote: "${arr[@]}" to preserve spaces.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/advanced_scripting/arrays_output.txt
+    matcher: exists
+  title: '**Bash Arrays**'
+- id: regex-and-pattern-matching
+  description: "**Regular Expressions**\n\n**Pattern matching:**\n```bash\n# =~ operator\
+    \ for regex\nif [[ $string =~ ^[0-9]+$ ]]; then\n  echo \"Number\"\nfi\n\n# Glob\
+    \ patterns\ncase $file in\n  *.txt) echo \"Text file\" ;;\n  *.jpg|*.png) echo\
+    \ \"Image\" ;;\nesac\n```\n\n**String manipulation:**\n```bash\n# Remove prefix/suffix\n\
+    ${var#prefix}    # Remove shortest prefix\n${var##prefix}   # Remove longest prefix\n\
+    ${var%suffix}    # Remove shortest suffix\n${var%%suffix}   # Remove longest suffix\n\
+    \n# Substring\n${var:position:length}\n```\n\n**Task:** Use regex and patterns.\n\
+    \n```bash\ncat > validator.sh << 'EOF'\n#!/bin/bash\n# Input validator\n\nvalidate_email()\
+    \ {\n  local email=\"$1\"\n  if [[ $email =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\
+    .[a-zA-Z]{2,}$ ]]; then\n    echo \"✓ Valid email: $email\"\n    return 0\n  else\n\
+    \    echo \"✗ Invalid email: $email\"\n    return 1\n  fi\n}\n\nvalidate_ip()\
+    \ {\n  local ip=\"$1\"\n  if [[ $ip =~ ^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\\
+    .[0-9]{1,3}$ ]]; then\n    echo \"✓ Valid IP format: $ip\"\n    return 0\n  else\n\
+    \    echo \"✗ Invalid IP format: $ip\"\n    return 1\n  fi\n}\n\nextract_extension()\
+    \ {\n  local filename=\"$1\"\n  echo \"File: $filename\"\n  echo \"  Extension:\
+    \ ${filename##*.}\"\n  echo \"  Name only: ${filename%.*}\"\n}\n\n# Test\necho\
+    \ \"Email Validation:\"\nvalidate_email \"user@example.com\"\nvalidate_email \"\
+    invalid.email\"\n\necho \"\"\necho \"IP Validation:\"\nvalidate_ip \"192.168.1.1\"\
+    \nvalidate_ip \"999.999.999.999\"\n\necho \"\"\necho \"Filename Parsing:\"\nextract_extension\
+    \ \"document.txt\"\nextract_extension \"archive.tar.gz\"\nEOF\n\nchmod +x validator.sh\n\
+    \necho \"Regex and Pattern Matching\" > regex_output.txt\necho \"==========================\"\
+    \ >> regex_output.txt\n./validator.sh >> regex_output.txt\n\ncat regex_output.txt\n\
+    ```\n"
+  hint: 'Use [[ ]] for regex with =~. Use ${var#pattern} to remove from start,
+
+    ${var%pattern} to remove from end. # is shortest, ## is longest.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/advanced_scripting/regex_output.txt
+    matcher: exists
+  title: '**Regular Expressions**'
+- id: process-management
+  description: "**Process Management in Scripts**\n\n**Background jobs:**\n```bash\n\
+    command &           # Run in background\nwait                # Wait for all background\
+    \ jobs\nwait $PID          # Wait for specific process\n```\n\n**Process control:**\n\
+    ```bash\n# Check if process running\nif pgrep -x \"process_name\" > /dev/null;\
+    \ then\n  echo \"Running\"\nfi\n\n# Get PID\nPID=$(pgrep -x \"process_name\")\n\
+    ```\n\n**Task:** Manage processes.\n\n```bash\ncat > process_manager.sh << 'EOF'\n\
+    #!/bin/bash\n# Process management\n\n# Start multiple background jobs\nrun_tasks()\
+    \ {\n  echo \"Starting background tasks...\"\n\n  sleep 2 &\n  pid1=$!\n  echo\
+    \ \"  Task 1 started (PID: $pid1)\"\n\n  sleep 3 &\n  pid2=$!\n  echo \"  Task\
+    \ 2 started (PID: $pid2)\"\n\n  sleep 1 &\n  pid3=$!\n  echo \"  Task 3 started\
+    \ (PID: $pid3)\"\n\n  # Store PIDs\n  pids=($pid1 $pid2 $pid3)\n\n  echo \"\"\n\
+    \  echo \"Waiting for tasks to complete...\"\n\n  # Wait for each\n  for pid in\
+    \ \"${pids[@]}\"; do\n    if wait $pid; then\n      echo \"  Task $pid completed\
+    \ successfully\"\n    else\n      echo \"  Task $pid failed\"\n    fi\n  done\n\
+    \n  echo \"\"\n  echo \"All tasks complete!\"\n}\n\n# Monitor function\nmonitor_process()\
+    \ {\n  local name=\"$1\"\n  if pgrep -x \"$name\" > /dev/null; then\n    echo\
+    \ \"Process '$name' is running\"\n    echo \"  PIDs: $(pgrep -x \"$name\" | tr\
+    \ '\\n' ' ')\"\n  else\n    echo \"Process '$name' is not running\"\n  fi\n}\n\
+    \n# Main\necho \"Process Management Demo\"\necho \"=======================\"\n\
+    echo \"\"\n\nrun_tasks\n\necho \"\"\nmonitor_process \"bash\"\nEOF\n\nchmod +x\
+    \ process_manager.sh\n\necho \"Process Management Output\" > process_output.txt\n\
+    echo \"=========================\" >> process_output.txt\n./process_manager.sh\
+    \ >> process_output.txt\n\ncat process_output.txt\n```\n"
+  hint: '$! gives PID of last background job. Use ''wait'' to wait for completion.
+
+    pgrep finds processes by name. Always save PIDs if you need to control jobs.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/advanced_scripting/process_output.txt
+    matcher: exists
+  title: '**Process Management in Scripts**'
+- id: argument-parsing
+  description: "**Advanced Argument Parsing**\n\n**Using getopts:**\n```bash\nwhile\
+    \ getopts \"f:vo:\" opt; do\n  case $opt in\n    f) file=\"$OPTARG\" ;;\n    v)\
+    \ verbose=true ;;\n    o) output=\"$OPTARG\" ;;\n    \\?) echo \"Invalid option\"\
+    \ ;;\n  esac\ndone\nshift $((OPTIND-1))  # Remove processed options\n```\n\n**Task:**\
+    \ Build complete argument parser.\n\n```bash\ncat > data_processor.sh << 'EOF'\n\
+    #!/bin/bash\n# Data processor with full argument parsing\n\n# Defaults\ninput_file=\"\
+    \"\noutput_file=\"output.txt\"\nverbose=false\noperation=\"count\"\n\n# Usage\n\
+    usage() {\n  cat << USAGE\nUsage: $0 [OPTIONS] input_file\n\nOptions:\n  -i FILE\
+    \    Input file (required)\n  -o FILE    Output file (default: output.txt)\n \
+    \ -v         Verbose mode\n  -a ACTION  Action: count, sort, unique (default:\
+    \ count)\n  -h         Show this help\n\nExamples:\n  $0 -i data.txt\n  $0 -i\
+    \ data.txt -o result.txt -a sort\n  $0 -v -i data.txt -a unique\nUSAGE\n  exit\
+    \ 1\n}\n\n# Parse options\nwhile getopts \"i:o:va:h\" opt; do\n  case $opt in\n\
+    \    i) input_file=\"$OPTARG\" ;;\n    o) output_file=\"$OPTARG\" ;;\n    v) verbose=true\
+    \ ;;\n    a) operation=\"$OPTARG\" ;;\n    h) usage ;;\n    \\?) usage ;;\n  esac\n\
+    done\n\n# Validate\nif [ -z \"$input_file\" ]; then\n  echo \"Error: Input file\
+    \ required\"\n  usage\nfi\n\nif [ ! -f \"$input_file\" ]; then\n  echo \"Error:\
+    \ File not found: $input_file\"\n  exit 1\nfi\n\n# Log function\nlog() {\n  if\
+    \ [ \"$verbose\" = true ]; then\n    echo \"[LOG] $*\"\n  fi\n}\n\n# Process\n\
+    log \"Input: $input_file\"\nlog \"Output: $output_file\"\nlog \"Operation: $operation\"\
+    \n\ncase $operation in\n  count)\n    wc -l \"$input_file\" > \"$output_file\"\
+    \n    ;;\n  sort)\n    sort \"$input_file\" > \"$output_file\"\n    ;;\n  unique)\n\
+    \    sort \"$input_file\" | uniq > \"$output_file\"\n    ;;\n  *)\n    echo \"\
+    Unknown operation: $operation\"\n    exit 1\n    ;;\nesac\n\nlog \"Processing\
+    \ complete\"\necho \"Results saved to: $output_file\"\nEOF\n\nchmod +x data_processor.sh\n\
+    \n# Create test data\ncat > sample_data.txt << 'EOF'\napple\nbanana\napple\ncherry\n\
+    banana\nEOF\n\necho \"Argument Parsing Demo\" > arg_parsing_output.txt\necho \"\
+    =====================\" >> arg_parsing_output.txt\n./data_processor.sh -i sample_data.txt\
+    \ -a unique -v >> arg_parsing_output.txt 2>&1\n\ncat arg_parsing_output.txt\n\
+    ```\n"
+  hint: 'getopts processes options. Use : after letter for required argument.
+
+    shift $((OPTIND-1)) to access remaining non-option arguments.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/advanced_scripting/arg_parsing_output.txt
+    matcher: exists
+  title: '**Advanced Argument Parsing**'
+- id: production-script
+  description: "**Production-Ready Script**\n\n**Task:** Build a complete monitoring\
+    \ script.\n\n```bash\ncat > system_monitor.sh << 'EOF'\n#!/bin/bash\n# System\
+    \ monitoring script\n\nset -euo pipefail\n\n# Configuration\nTHRESHOLD_CPU=80\n\
+    THRESHOLD_MEM=80\nTHRESHOLD_DISK=80\nLOG_FILE=\"monitor.log\"\n\n# Colors (if\
+    \ terminal)\nif [ -t 1 ]; then\n  RED='\\033[0;31m'\n  YELLOW='\\033[0;33m'\n\
+    \  GREEN='\\033[0;32m'\n  NC='\\033[0m'\nelse\n  RED='' YELLOW='' GREEN='' NC=''\n\
+    fi\n\n# Logging\nlog() {\n  echo \"[$(date '+%Y-%m-%d %H:%M:%S')] $*\" | tee -a\
+    \ \"$LOG_FILE\"\n}\n\n# Check CPU\ncheck_cpu() {\n  local cpu_usage=$(top -bn1\
+    \ | grep \"Cpu(s)\" | awk '{print $2}' | cut -d'%' -f1 | cut -d'.' -f1 2>/dev/null\
+    \ || echo \"0\")\n\n  if [ \"$cpu_usage\" -gt \"$THRESHOLD_CPU\" ]; then\n   \
+    \ echo -e \"${RED}⚠ CPU: ${cpu_usage}%${NC}\"\n    log \"WARNING: High CPU usage:\
+    \ ${cpu_usage}%\"\n  else\n    echo -e \"${GREEN}✓ CPU: ${cpu_usage}%${NC}\"\n\
+    \  fi\n}\n\n# Check disk\ncheck_disk() {\n  local disk_usage=$(df -h / | awk 'NR==2\
+    \ {print $5}' | tr -d '%')\n\n  if [ \"$disk_usage\" -gt \"$THRESHOLD_DISK\" ];\
+    \ then\n    echo -e \"${RED}⚠ Disk: ${disk_usage}%${NC}\"\n    log \"WARNING:\
+    \ High disk usage: ${disk_usage}%\"\n  else\n    echo -e \"${GREEN}✓ Disk: ${disk_usage}%${NC}\"\
+    \n  fi\n}\n\n# Main report\ngenerate_report() {\n  echo \"================================\"\
+    \n  echo \"System Monitor Report\"\n  echo \"================================\"\
+    \n  echo \"Timestamp: $(date)\"\n  echo \"\"\n\n  check_cpu\n  check_disk\n\n\
+    \  echo \"\"\n  echo \"Top 3 processes by CPU:\"\n  ps aux --sort=-%cpu | head\
+    \ -4 | tail -3\n\n  echo \"\"\n  log \"Monitoring check complete\"\n}\n\n# Main\n\
+    generate_report\nEOF\n\nchmod +x system_monitor.sh\n\necho \"System Monitor Output\"\
+    \ > monitor_output.txt\necho \"=====================\" >> monitor_output.txt\n\
+    ./system_monitor.sh >> monitor_output.txt 2>&1\n\ncat monitor_output.txt\n```\n\
+    \n**Congratulations!** You've mastered advanced shell scripting!\n\n**You learned:**\n\
+    - Arrays (indexed and associative)\n- Regular expressions and pattern matching\n\
+    - Process management and background jobs\n- Professional argument parsing\n- Production-ready\
+    \ script structure\n\n**Professional techniques:**\n- Use arrays for collections\n\
+    - Validate with regex\n- Manage background processes\n- Parse arguments with getopts\n\
+    - Add logging and error handling\n- Use colors for better UX\n\nYou can now write\
+    \ professional, production-ready scripts!\n"
+  hint: 'Professional scripts have: set -euo pipefail, argument parsing, logging,
+
+    error handling, usage help, and good structure. Always validate inputs!
+
+    '
+  validation:
+    type: file-exists
+    path: ~/advanced_scripting/monitor_output.txt
+    matcher: exists
+  title: '**Production-Ready Script**'
+completion:
+  message: Congratulations! You've completed this advanced mission.
+  xp: 550
+  unlocks: []

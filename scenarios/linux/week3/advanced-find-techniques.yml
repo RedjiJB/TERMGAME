@@ -1,230 +1,326 @@
 mission:
-  id: "advanced-find-techniques"
-  title: "Advanced File Finding and Search Techniques"
-  difficulty: "advanced"
-  description: |
-    Master advanced find command techniques, complex search patterns, and efficient
+  id: advanced-find-techniques
+  title: Advanced File Finding and Search Techniques
+  difficulty: advanced
+  description: 'Master advanced find command techniques, complex search patterns,
+    and efficient
+
     file location strategies. Learn to combine find with exec, xargs, and regex.
 
+
     Become a file-finding expert!
-  estimated_time: "45 minutes"
+
+    '
+  estimated_time: 45
   xp_reward: 500
   tags:
-    - "find"
-    - "search"
-    - "advanced"
-    - "regex"
-    - "week3"
-
+  - find
+  - search
+  - advanced
+  - regex
+  - week3
 environment:
-  runtime: "docker"
-  base_image: "ubuntu:22.04"
-  setup: |
-    apt-get update && apt-get install -y \
-      findutils \
-      coreutils
-
+  setup:
+  - apt-get update && apt-get install -y \
+  - findutils \
+  - coreutils
+  image: ubuntu:22.04
 steps:
-  - id: "find-advanced-tests"
-    description: |
-      **Advanced find Tests**
+- id: find-advanced-tests
+  description: '**Advanced find Tests**
 
-      ```bash
-      # Time-based
-      find -mtime -7        # Modified in last 7 days
-      find -mtime +30       # Modified more than 30 days ago
-      find -newer file      # Newer than file
 
-      # Size-based
-      find -size +100M      # Larger than 100MB
-      find -size -1k        # Smaller than 1KB
-      find -empty           # Empty files/dirs
+    ```bash
 
-      # Combining tests
-      find -name "*.log" -size +10M      # AND
-      find -name "*.txt" -o -name "*.md" # OR
-      find \! -name "*.bak"              # NOT
-      ```
+    # Time-based
 
-      **Task:** Practice advanced tests.
+    find -mtime -7        # Modified in last 7 days
 
-      ```bash
-      mkdir -p ~/advanced_find
-      cd ~/advanced_find
+    find -mtime +30       # Modified more than 30 days ago
 
-      # Create test files
-      touch old_file.txt
-      touch -t 202301010000 old_file.txt
-      dd if=/dev/zero of=large.bin bs=1M count=5 2>/dev/null
-      touch small.txt
-      mkdir empty_dir
+    find -newer file      # Newer than file
 
-      echo "Advanced find Tests" > find_tests.txt
-      echo "===================" >> find_tests.txt
-      echo "" >> find_tests.txt
 
-      echo "Files larger than 1MB:" >> find_tests.txt
-      find . -type f -size +1M >> find_tests.txt
+    # Size-based
 
-      echo "" >> find_tests.txt
-      echo "Empty files/directories:" >> find_tests.txt
-      find . -empty >> find_tests.txt
+    find -size +100M      # Larger than 100MB
 
-      cat find_tests.txt
-      ```
-    hint: |
-      Combine tests with -a (AND, default), -o (OR), or ! (NOT). Use parentheses
-      for grouping: \( -name "*.txt" -o -name "*.md" \)
-    validation:
-      - type: "file-exists"
-        path: "~/advanced_find/find_tests.txt"
+    find -size -1k        # Smaller than 1KB
 
-  - id: "find-exec-xargs"
-    description: |
-      **find with -exec and xargs**
+    find -empty           # Empty files/dirs
 
-      **-exec method:**
-      ```bash
-      find . -name "*.txt" -exec cat {} \;
-      find . -type f -exec chmod 644 {} \;
-      find . -name "*.log" -exec gzip {} \;
-      ```
 
-      **xargs method (more efficient):**
-      ```bash
-      find . -name "*.txt" | xargs cat
-      find . -name "*.txt" -print0 | xargs -0 rm
-      ```
+    # Combining tests
 
-      **Task:** Use exec and xargs.
+    find -name "*.log" -size +10M      # AND
 
-      ```bash
-      mkdir -p batch_ops
-      for i in {1..5}; do
-        echo "Content $i" > batch_ops/file$i.txt
-      done
+    find -name "*.txt" -o -name "*.md" # OR
 
-      echo "find -exec and xargs" > exec_demo.txt
-      echo "====================" >> exec_demo.txt
-      echo "" >> exec_demo.txt
+    find \! -name "*.bak"              # NOT
 
-      echo "Using -exec to add prefix:" >> exec_demo.txt
-      find batch_ops -name "*.txt" -exec sh -c 'echo "File: $(basename {})"' \; >> exec_demo.txt
+    ```
 
-      echo "" >> exec_demo.txt
-      echo "Count lines in all files (xargs):" >> exec_demo.txt
-      find batch_ops -name "*.txt" | xargs wc -l >> exec_demo.txt
 
-      cat exec_demo.txt
-      ```
-    hint: |
-      -exec runs command for each file. {} is replaced with filename. xargs is
-      more efficient for large result sets. Use -print0 and xargs -0 for spaces.
-    validation:
-      - type: "file-exists"
-        path: "~/advanced_find/exec_demo.txt"
+    **Task:** Practice advanced tests.
 
-  - id: "locate-and-which"
-    description: |
-      **Using locate and which**
 
-      **locate (fast database search):**
-      ```bash
-      locate filename       # Search entire system
-      locate -i pattern     # Case-insensitive
-      locate -c pattern     # Count matches
-      ```
+    ```bash
 
-      **which (find commands):**
-      ```bash
-      which ls              # Find ls command
-      which -a python       # All instances
-      ```
+    mkdir -p ~/advanced_find
 
-      **Task:** Use locate and which alternatives.
+    cd ~/advanced_find
 
-      ```bash
-      echo "locate and which Alternatives" > locate_demo.txt
-      echo "=============================" >> locate_demo.txt
-      echo "" >> locate_demo.txt
 
-      echo "Finding commands with which:" >> locate_demo.txt
-      which bash >> locate_demo.txt
-      which find >> locate_demo.txt
-      which cat >> locate_demo.txt
+    # Create test files
 
-      echo "" >> locate_demo.txt
-      echo "Alternative to locate using find:" >> locate_demo.txt
-      find /usr -name "ls" 2>/dev/null | head -5 >> locate_demo.txt
+    touch old_file.txt
 
-      cat locate_demo.txt
-      ```
-    hint: |
-      locate is fast but uses a database (updatedb). which finds executables
-      in PATH. For real-time search, use find.
-    validation:
-      - type: "file-exists"
-        path: "~/advanced_find/locate_demo.txt"
+    touch -t 202301010000 old_file.txt
 
-  - id: "complex-scenarios"
-    description: |
-      **Complex Search Scenarios**
+    dd if=/dev/zero of=large.bin bs=1M count=5 2>/dev/null
 
-      ```bash
-      # Find and clean old logs
-      find /var/log -name "*.log" -mtime +30 -exec gzip {} \;
+    touch small.txt
 
-      # Find duplicate file names
-      find . -type f -printf "%f\n" | sort | uniq -d
+    mkdir empty_dir
 
-      # Find and organize by extension
-      find . -type f -name "*.jpg" -exec mv {} images/ \;
 
-      # Find world-writable files (security)
-      find / -perm -002 -type f 2>/dev/null
-      ```
+    echo "Advanced find Tests" > find_tests.txt
 
-      **Task:** Solve complex scenarios.
+    echo "===================" >> find_tests.txt
 
-      ```bash
-      mkdir -p scenarios/{images,docs,archives}
-      touch scenarios/photo1.jpg scenarios/photo2.jpg
-      touch scenarios/doc1.pdf scenarios/doc2.pdf
-      touch scenarios/archive.zip
+    echo "" >> find_tests.txt
 
-      echo "Complex Find Scenarios" > scenarios_demo.txt
-      echo "======================" >> scenarios_demo.txt
-      echo "" >> scenarios_demo.txt
 
-      echo "Organizing files by type:" >> scenarios_demo.txt
-      find scenarios -maxdepth 1 -name "*.jpg" -exec mv {} scenarios/images/ \; 2>/dev/null || true
-      find scenarios -maxdepth 1 -name "*.pdf" -exec mv {} scenarios/docs/ \; 2>/dev/null || true
-      echo "Files organized!" >> scenarios_demo.txt
+    echo "Files larger than 1MB:" >> find_tests.txt
 
-      echo "Result:" >> scenarios_demo.txt
-      find scenarios -type f >> scenarios_demo.txt
+    find . -type f -size +1M >> find_tests.txt
 
-      cat scenarios_demo.txt
-      ```
 
-      **Congratulations!** You've mastered advanced find techniques!
+    echo "" >> find_tests.txt
 
-      **You learned:**
-      - Advanced find tests (time, size, type)
-      - Using -exec and xargs efficiently
-      - locate and which for quick searches
-      - Complex real-world scenarios
+    echo "Empty files/directories:" >> find_tests.txt
 
-      **Power user tips:**
-      - Combine tests for precise results
-      - Use xargs for efficiency
-      - Test with -print before -exec
-      - Use -print0 and -0 for special characters
+    find . -empty >> find_tests.txt
 
-      You can now find anything efficiently!
-    hint: |
-      Always test find commands with a dry run first. Replace -exec with -print
-      to see what would be affected before making changes.
-    validation:
-      - type: "file-exists"
-        path: "~/advanced_find/scenarios_demo.txt"
+
+    cat find_tests.txt
+
+    ```
+
+    '
+  hint: 'Combine tests with -a (AND, default), -o (OR), or ! (NOT). Use parentheses
+
+    for grouping: \( -name "*.txt" -o -name "*.md" \)
+
+    '
+  validation:
+    type: file-exists
+    path: ~/advanced_find/find_tests.txt
+    matcher: exists
+  title: '**Advanced find Tests**'
+- id: find-exec-xargs
+  description: "**find with -exec and xargs**\n\n**-exec method:**\n```bash\nfind\
+    \ . -name \"*.txt\" -exec cat {} \\;\nfind . -type f -exec chmod 644 {} \\;\n\
+    find . -name \"*.log\" -exec gzip {} \\;\n```\n\n**xargs method (more efficient):**\n\
+    ```bash\nfind . -name \"*.txt\" | xargs cat\nfind . -name \"*.txt\" -print0 |\
+    \ xargs -0 rm\n```\n\n**Task:** Use exec and xargs.\n\n```bash\nmkdir -p batch_ops\n\
+    for i in {1..5}; do\n  echo \"Content $i\" > batch_ops/file$i.txt\ndone\n\necho\
+    \ \"find -exec and xargs\" > exec_demo.txt\necho \"====================\" >> exec_demo.txt\n\
+    echo \"\" >> exec_demo.txt\n\necho \"Using -exec to add prefix:\" >> exec_demo.txt\n\
+    find batch_ops -name \"*.txt\" -exec sh -c 'echo \"File: $(basename {})\"' \\\
+    ; >> exec_demo.txt\n\necho \"\" >> exec_demo.txt\necho \"Count lines in all files\
+    \ (xargs):\" >> exec_demo.txt\nfind batch_ops -name \"*.txt\" | xargs wc -l >>\
+    \ exec_demo.txt\n\ncat exec_demo.txt\n```\n"
+  hint: '-exec runs command for each file. {} is replaced with filename. xargs is
+
+    more efficient for large result sets. Use -print0 and xargs -0 for spaces.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/advanced_find/exec_demo.txt
+    matcher: exists
+  title: '**find with -exec and xargs**'
+- id: locate-and-which
+  description: '**Using locate and which**
+
+
+    **locate (fast database search):**
+
+    ```bash
+
+    locate filename       # Search entire system
+
+    locate -i pattern     # Case-insensitive
+
+    locate -c pattern     # Count matches
+
+    ```
+
+
+    **which (find commands):**
+
+    ```bash
+
+    which ls              # Find ls command
+
+    which -a python       # All instances
+
+    ```
+
+
+    **Task:** Use locate and which alternatives.
+
+
+    ```bash
+
+    echo "locate and which Alternatives" > locate_demo.txt
+
+    echo "=============================" >> locate_demo.txt
+
+    echo "" >> locate_demo.txt
+
+
+    echo "Finding commands with which:" >> locate_demo.txt
+
+    which bash >> locate_demo.txt
+
+    which find >> locate_demo.txt
+
+    which cat >> locate_demo.txt
+
+
+    echo "" >> locate_demo.txt
+
+    echo "Alternative to locate using find:" >> locate_demo.txt
+
+    find /usr -name "ls" 2>/dev/null | head -5 >> locate_demo.txt
+
+
+    cat locate_demo.txt
+
+    ```
+
+    '
+  hint: 'locate is fast but uses a database (updatedb). which finds executables
+
+    in PATH. For real-time search, use find.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/advanced_find/locate_demo.txt
+    matcher: exists
+  title: '**Using locate and which**'
+- id: complex-scenarios
+  description: '**Complex Search Scenarios**
+
+
+    ```bash
+
+    # Find and clean old logs
+
+    find /var/log -name "*.log" -mtime +30 -exec gzip {} \;
+
+
+    # Find duplicate file names
+
+    find . -type f -printf "%f\n" | sort | uniq -d
+
+
+    # Find and organize by extension
+
+    find . -type f -name "*.jpg" -exec mv {} images/ \;
+
+
+    # Find world-writable files (security)
+
+    find / -perm -002 -type f 2>/dev/null
+
+    ```
+
+
+    **Task:** Solve complex scenarios.
+
+
+    ```bash
+
+    mkdir -p scenarios/{images,docs,archives}
+
+    touch scenarios/photo1.jpg scenarios/photo2.jpg
+
+    touch scenarios/doc1.pdf scenarios/doc2.pdf
+
+    touch scenarios/archive.zip
+
+
+    echo "Complex Find Scenarios" > scenarios_demo.txt
+
+    echo "======================" >> scenarios_demo.txt
+
+    echo "" >> scenarios_demo.txt
+
+
+    echo "Organizing files by type:" >> scenarios_demo.txt
+
+    find scenarios -maxdepth 1 -name "*.jpg" -exec mv {} scenarios/images/ \; 2>/dev/null
+    || true
+
+    find scenarios -maxdepth 1 -name "*.pdf" -exec mv {} scenarios/docs/ \; 2>/dev/null
+    || true
+
+    echo "Files organized!" >> scenarios_demo.txt
+
+
+    echo "Result:" >> scenarios_demo.txt
+
+    find scenarios -type f >> scenarios_demo.txt
+
+
+    cat scenarios_demo.txt
+
+    ```
+
+
+    **Congratulations!** You''ve mastered advanced find techniques!
+
+
+    **You learned:**
+
+    - Advanced find tests (time, size, type)
+
+    - Using -exec and xargs efficiently
+
+    - locate and which for quick searches
+
+    - Complex real-world scenarios
+
+
+    **Power user tips:**
+
+    - Combine tests for precise results
+
+    - Use xargs for efficiency
+
+    - Test with -print before -exec
+
+    - Use -print0 and -0 for special characters
+
+
+    You can now find anything efficiently!
+
+    '
+  hint: 'Always test find commands with a dry run first. Replace -exec with -print
+
+    to see what would be affected before making changes.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/advanced_find/scenarios_demo.txt
+    matcher: exists
+  title: '**Complex Search Scenarios**'
+completion:
+  message: Congratulations! You've completed this advanced mission.
+  xp: 550
+  unlocks: []
