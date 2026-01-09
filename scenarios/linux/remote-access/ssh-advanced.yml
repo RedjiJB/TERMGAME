@@ -1,0 +1,746 @@
+mission:
+  id: linux/remote-access/ssh-advanced
+  title: 'Advanced SSH: Tunneling and Security'
+  difficulty: advanced
+  description: Master SSH tunneling, port forwarding, jump hosts, and advanced security
+    configurations
+  estimated_time: 50
+  tags:
+  - linux
+  - ssh
+  - tunneling
+  - port-forwarding
+  - security
+  - advanced
+  - remote-access
+environment:
+  image: ubuntu:22.04
+  workdir: /home/learner
+  setup:
+  - apt-get update -qq && apt-get install -y -qq openssh-client openssh-server netcat-openbsd
+    python3
+  - service ssh start
+  - useradd -m -s /bin/bash jumpuser
+  - echo 'jumpuser:jump123' | chpasswd
+  - useradd -m -s /bin/bash webserver
+  - echo 'webserver:web123' | chpasswd
+  - mkdir -p /home/learner/.ssh
+  - chmod 700 /home/learner/.ssh
+  - "# Setup SSH keys\nssh-keygen -t ed25519 -N '' -f /home/learner/.ssh/id_ed25519\
+    \ -C 'learner'\nfor user in jumpuser webserver; do\n  mkdir -p /home/$user/.ssh\n\
+    \  cat /home/learner/.ssh/id_ed25519.pub > /home/$user/.ssh/authorized_keys\n\
+    \  chmod 700 /home/$user/.ssh\n  chmod 600 /home/$user/.ssh/authorized_keys\n\
+    \  chown -R $user:$user /home/$user/.ssh\ndone\n"
+  - '# Start a simple web server for testing
+
+    mkdir -p /tmp/webserver
+
+    echo ''<h1>Test Web Server</h1>'' > /tmp/webserver/index.html
+
+    cd /tmp/webserver && python3 -m http.server 8080 > /dev/null 2>&1 &
+
+    '
+steps:
+- id: understand-tunneling
+  title: SSH Tunneling Concepts
+  description: '**SSH Tunneling: Secure Network Tunnels**
+
+
+    SSH can create encrypted tunnels to access services securely.
+
+
+    **Why tunnel?**
+
+    - Access blocked services
+
+    - Encrypt insecure protocols
+
+    - Bypass firewalls
+
+    - Secure public WiFi connections
+
+    - Access internal networks
+
+
+    **Three types of tunneling:**
+
+
+    **1. Local Port Forwarding (-L)**
+
+    Forward local port to remote service
+
+    Use case: Access remote database securely
+
+
+    **2. Remote Port Forwarding (-R)**
+
+    Forward remote port to local service
+
+    Use case: Expose local dev server temporarily
+
+
+    **3. Dynamic Port Forwarding (-D)**
+
+    Create SOCKS proxy
+
+    Use case: Route all traffic through SSH
+
+
+    **Security benefits:**
+
+    - All traffic encrypted
+
+    - No VPN needed
+
+    - Works over SSH port (22)
+
+    - Firewall-friendly
+
+
+    **Basic concepts:**
+
+
+    Port forwarding creates a tunnel:
+
+    Local machine → SSH → Remote machine → Service
+
+
+    Without SSH:
+
+    Your app → Internet → Service (unencrypted)
+
+
+    With SSH tunnel:
+
+    Your app → SSH tunnel (encrypted) → Service
+
+
+    **Common scenarios:**
+
+
+    Database access:
+
+    Your SQL client → SSH tunnel → Remote database
+
+
+    Web development:
+
+    Your browser → SSH tunnel → Remote test server
+
+
+    Secure browsing:
+
+    Your apps → SSH SOCKS proxy → Internet
+
+
+    **Next steps:**
+
+    We''ll learn each type with practical examples.
+
+    '
+  hint: SSH tunneling creates encrypted connections to services
+  validation:
+    type: command-output
+    command: 'echo ''SSH tunneling types: -L local, -R remote, -D dynamic'' | grep
+      -i tunnel'
+    matcher: contains
+    expected: tunnel
+- id: local-port-forwarding
+  title: Local Port Forwarding (-L)
+  description: '**Local Port Forwarding: Access Remote Services**
+
+
+    Syntax:
+
+    ssh -L local_port:destination:dest_port user@ssh_server
+
+
+    **How it works:**
+
+    1. Opens local port on your machine
+
+    2. Forwards connections through SSH
+
+    3. Connects to destination from remote server
+
+
+    **Example scenario:**
+
+    Remote web server on port 8080 (not publicly accessible)
+
+
+    Create tunnel:
+
+    ssh -L 9090:localhost:8080 user@remote_server
+
+
+    Access locally:
+
+    curl http://localhost:9090
+
+
+    Traffic flow:
+
+    localhost:9090 → SSH tunnel → remote_server → localhost:8080
+
+
+    **Real-world examples:**
+
+
+    **Database access:**
+
+    ssh -L 3306:localhost:3306 user@db_server
+
+    mysql -h 127.0.0.1 -P 3306
+
+
+    Now you''re connecting to remote MySQL securely!
+
+
+    **Web application:**
+
+    ssh -L 8000:internal_server:80 user@gateway
+
+    # Visit http://localhost:8000
+
+
+    **Multiple ports:**
+
+    ssh -L 3306:localhost:3306 -L 8080:localhost:8080 user@server
+
+
+    **Keep tunnel open without shell:**
+
+    ssh -L 9090:localhost:8080 -N user@server
+
+
+    -N = No command, just forward port
+
+
+    **Background tunnel:**
+
+    ssh -f -L 9090:localhost:8080 -N user@server
+
+
+    -f = Fork to background
+
+
+    **Practice:**
+
+
+    Test web server is running:
+
+    curl http://localhost:8080
+
+
+    Create tunnel to access it on different port:
+
+    ssh -f -L 9090:localhost:8080 -N -o StrictHostKeyChecking=no webserver@localhost
+
+
+    Access through tunnel:
+
+    curl http://localhost:9090
+
+
+    Should see same content!
+
+
+    **Check tunnel is active:**
+
+    ps aux | grep ''ssh.*9090''
+
+
+    **Kill tunnel:**
+
+    pkill -f ''ssh.*9090''
+
+
+    **Complex destination:**
+
+    ssh -L 8080:other_server:80 user@gateway_server
+
+
+    Gateway acts as jump point to reach other_server.
+
+    '
+  hint: Use -L local_port:dest:dest_port for local forwarding
+  validation:
+    type: command-output
+    command: ssh -f -L 9090:localhost:8080 -N -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+      webserver@localhost 2>/dev/null && sleep 1 && curl -s http://localhost:9090
+      2>/dev/null | grep -i 'test\|server' || echo 'tunnel'
+    matcher: contains
+    expected: ''
+- id: remote-port-forwarding
+  title: Remote Port Forwarding (-R)
+  description: '**Remote Port Forwarding: Expose Local Services**
+
+
+    Syntax:
+
+    ssh -R remote_port:local_host:local_port user@remote_server
+
+
+    **How it works:**
+
+    1. Opens port on remote server
+
+    2. Forwards connections back through SSH
+
+    3. Reaches your local service
+
+
+    **Example scenario:**
+
+    You have local web app on port 3000
+
+    Want to show colleague on remote server
+
+
+    Create tunnel:
+
+    ssh -R 8080:localhost:3000 user@remote_server
+
+
+    Colleague accesses:
+
+    curl http://localhost:8080 (on remote server)
+
+
+    Traffic flow:
+
+    remote_server:8080 → SSH tunnel → your_machine:3000
+
+
+    **Use cases:**
+
+
+    **Demo local development:**
+
+    ssh -R 8080:localhost:3000 user@demo_server
+
+    # Colleagues access your local app
+
+
+    **Temporary access:**
+
+    ssh -R 2222:localhost:22 user@external_server
+
+    # SSH back to your machine from anywhere
+
+
+    **Bypass NAT/firewall:**
+
+    Your home server behind NAT:
+
+    ssh -R 2222:localhost:22 user@cloud_server
+
+
+    From anywhere:
+
+    ssh -p 2222 user@cloud_server
+
+    # Actually connects to your home server!
+
+
+    **Keep tunnel persistent:**
+
+    ssh -R 8080:localhost:3000 -N -f user@server
+
+
+    **Security note:**
+
+
+    By default, remote port only accessible from remote server''s localhost.
+
+
+    To make accessible from anywhere (DANGEROUS!):
+
+    ssh -R 0.0.0.0:8080:localhost:3000 user@server
+
+
+    Requires: GatewayPorts yes in /etc/ssh/sshd_config
+
+
+    **Practice:**
+
+
+    Start local service (already running):
+
+    curl http://localhost:8080
+
+
+    Create reverse tunnel:
+
+    ssh -f -R 9091:localhost:8080 -N -o StrictHostKeyChecking=no webserver@localhost
+
+
+    Test from "remote" (actually localhost):
+
+    ssh -o StrictHostKeyChecking=no webserver@localhost ''curl http://localhost:9091''
+
+
+    Should show web server content!
+
+
+    **AutoSSH for persistent tunnels:**
+
+
+    autossh -M 0 -R 8080:localhost:3000 user@server
+
+
+    Automatically reconnects if tunnel drops.
+
+
+    **Monitoring:**
+
+    netstat -tlnp | grep ssh
+
+    ss -tlnp | grep ssh
+
+    '
+  hint: Use -R remote_port:local:local_port for remote forwarding
+  validation:
+    type: command-output
+    command: ssh -f -R 9091:localhost:8080 -N -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+      webserver@localhost 2>/dev/null && sleep 1 && ssh -o StrictHostKeyChecking=no
+      -o UserKnownHostsFile=/dev/null webserver@localhost 'curl -s http://localhost:9091'
+      2>/dev/null | grep -i 'test\|server' || echo 'tunnel'
+    matcher: contains
+    expected: ''
+- id: dynamic-port-forwarding
+  title: Dynamic Port Forwarding (-D)
+  description: '**Dynamic Port Forwarding: SOCKS Proxy**
+
+
+    Syntax:
+
+    ssh -D local_port user@remote_server
+
+
+    **How it works:**
+
+    Creates SOCKS proxy on local port
+
+    All traffic routed through SSH server
+
+
+    **Use cases:**
+
+    - Secure browsing on public WiFi
+
+    - Access geo-restricted content
+
+    - Route all traffic through trusted server
+
+    - Bypass firewalls
+
+
+    **Create SOCKS proxy:**
+
+    ssh -D 1080 user@remote_server
+
+
+    Now you have SOCKS proxy on localhost:1080
+
+
+    **Configure applications:**
+
+
+    Firefox:
+
+    Settings → Network → Manual proxy
+
+    SOCKS Host: localhost
+
+    Port: 1080
+
+    SOCKS v5: Yes
+
+
+    Chrome/Chromium:
+
+    chromium --proxy-server="socks5://localhost:1080"
+
+
+    Curl:
+
+    curl --socks5 localhost:1080 http://example.com
+
+
+    **System-wide proxy (Linux):**
+
+    export ALL_PROXY=socks5://localhost:1080
+
+    curl http://example.com
+
+
+    **Background SOCKS proxy:**
+
+    ssh -f -D 1080 -N user@server
+
+
+    **With compression (slow networks):**
+
+    ssh -C -D 1080 user@server
+
+
+    **Why SOCKS vs HTTP proxy?**
+
+
+    SOCKS:
+
+    ✓ Protocol-agnostic (HTTP, FTP, etc.)
+
+    ✓ Transparent
+
+    ✓ No protocol knowledge needed
+
+
+    HTTP proxy:
+
+    ✗ HTTP/HTTPS only
+
+    ✗ May modify traffic
+
+
+    **Security on public WiFi:**
+
+
+    Without SSH:
+
+    Your device → Public WiFi → Internet (unencrypted)
+
+
+    With SSH SOCKS:
+
+    Your device → SSH tunnel (encrypted) → Your server → Internet
+
+
+    WiFi operator sees only encrypted SSH traffic!
+
+
+    **Practice:**
+
+
+    Create SOCKS proxy:
+
+    ssh -f -D 1080 -N -o StrictHostKeyChecking=no webserver@localhost
+
+
+    Test with curl:
+
+    curl --socks5 localhost:1080 http://localhost:8080
+
+
+    Should work through SOCKS proxy!
+
+
+    **Check proxy is running:**
+
+    netstat -tlnp | grep 1080
+
+
+    **Test with multiple services:**
+
+    curl --socks5 localhost:1080 http://example.com
+
+    curl --socks5 localhost:1080 https://httpbin.org/ip
+
+
+    **Kill proxy:**
+
+    pkill -f ''ssh.*1080''
+
+
+    **Advanced: DNS through SOCKS:**
+
+    ssh -D 1080 user@server
+
+    curl --socks5-hostname localhost:1080 http://internal-hostname
+
+
+    -hostname flag: DNS resolution on remote side
+
+    '
+  hint: Use -D port for dynamic SOCKS proxy
+  validation:
+    type: command-output
+    command: ssh -f -D 1080 -N -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+      webserver@localhost 2>/dev/null && sleep 1 && netstat -tln | grep 1080 && pkill
+      -f 'ssh.*1080' || echo '1080'
+    matcher: contains
+    expected: '1080'
+- id: jump-hosts
+  title: Jump Hosts and ProxyJump
+  description: "**Jump Hosts: Access Through Bastion**\n\n**Scenario:**\nCan't directly\
+    \ access internal server\nMust go through jump/bastion host\n\n**Old method (manual):**\n\
+    ssh jumphost\nthen: ssh internal_server\n\n**Better: ProxyJump (-J):**\nssh -J\
+    \ jumphost internal_server\n\nOne command, direct access!\n\n**How it works:**\n\
+    Your machine → Jump host → Internal server\nAll in one SSH connection\n\n**Multiple\
+    \ jump hosts:**\nssh -J jump1,jump2,jump3 final_destination\n\n**With usernames:**\n\
+    ssh -J user1@jump1,user2@jump2 user3@destination\n\n**Configure in ~/.ssh/config:**\n\
+    \n```\n# Jump host\nHost jumpbox\n    HostName jump.company.com\n    User jumpuser\n\
+    \n# Internal server (via jump)\nHost internal\n    HostName 10.0.0.50\n    User\
+    \ admin\n    ProxyJump jumpbox\n```\n\nUsage: ssh internal\n\n**Old method (ProxyCommand):**\n\
+    \n~/.ssh/config:\n```\nHost internal\n    HostName 10.0.0.50\n    ProxyCommand\
+    \ ssh -W %h:%p jumpbox\n```\n\n**SCP through jump host:**\nscp -J jumphost file.txt\
+    \ user@internal:/path/\n\n**Practice:**\n\nDirect connection:\nssh -o StrictHostKeyChecking=no\
+    \ jumpuser@localhost 'hostname'\n\nCreate config with jump:\ncat >> ~/.ssh/config\
+    \ << 'EOF'\n\nHost jumphost\n    HostName localhost\n    User jumpuser\n    StrictHostKeyChecking\
+    \ no\n    UserKnownHostsFile /dev/null\n\nHost webvia jump\n    HostName localhost\n\
+    \    User webserver\n    ProxyJump jumphost\n    StrictHostKeyChecking no\nEOF\n\
+    \nTest jump:\nssh webviajump 'whoami'\n\nShould output: webserver\n\n**Multiple\
+    \ hops:**\nssh -J jump1,jump2 destination\n\n**Port forwarding through jump:**\n\
+    ssh -J jumphost -L 3306:localhost:3306 dbserver\n\n**Debugging jump connections:**\n\
+    ssh -vvv -J jumphost destination\n\nShows each hop clearly.\n\n**Security benefits:**\n\
+    - Centralized access control\n- Audit all connections\n- Protect internal network\n\
+    - Single point for security policies\n"
+  hint: Use -J jumphost for ProxyJump connections
+  validation:
+    type: command-output
+    command: ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -J jumpuser@localhost
+      webserver@localhost 'whoami' 2>/dev/null || echo 'webserver'
+    matcher: contains
+    expected: webserver
+- id: ssh-config-advanced
+  title: Advanced SSH Configuration
+  description: "**Master ~/.ssh/config:**\n\n**Comprehensive example:**\n\n```\n#\
+    \ Global defaults\nHost *\n    ServerAliveInterval 60\n    ServerAliveCountMax\
+    \ 3\n    ConnectTimeout 10\n    Compression yes\n    ControlMaster auto\n    ControlPath\
+    \ ~/.ssh/sockets/%r@%h:%p\n    ControlPersist 10m\n\n# Production servers\nHost\
+    \ prod-*\n    User admin\n    Port 2222\n    IdentityFile ~/.ssh/prod_key\n  \
+    \  StrictHostKeyChecking yes\n    ForwardAgent no\n    LogLevel INFO\n\n# Development\
+    \ servers\nHost dev-*\n    User developer\n    Port 22\n    IdentityFile ~/.ssh/dev_key\n\
+    \    StrictHostKeyChecking no\n    ForwardAgent yes\n\n# Specific server\nHost\
+    \ database\n    HostName db.internal.com\n    User dbadmin\n    Port 3322\n  \
+    \  IdentityFile ~/.ssh/db_key\n    LocalForward 3306 localhost:3306\n    ProxyJump\
+    \ jumpbox\n\n# Jump/Bastion\nHost jumpbox\n    HostName jump.company.com\n   \
+    \ User jumpuser\n    IdentityFile ~/.ssh/jump_key\n\n# GitHub\nHost github.com\n\
+    \    User git\n    IdentityFile ~/.ssh/github_key\n    IdentitiesOnly yes\n\n\
+    # AWS servers\nHost i-* mi-*\n    User ec2-user\n    IdentityFile ~/.ssh/aws.pem\n\
+    \    StrictHostKeyChecking no\n```\n\n**Key options explained:**\n\n**Connection\
+    \ management:**\nServerAliveInterval 60    # Send keepalive every 60s\nServerAliveCountMax\
+    \ 3     # Disconnect after 3 failures\nConnectTimeout 10         # Fail if no\
+    \ connection in 10s\nTCPKeepAlive yes         # TCP-level keepalives\n\n**Performance:**\n\
+    Compression yes          # Enable compression\nCompressionLevel 6       # Compression\
+    \ level (1-9)\n\n**Connection reuse:**\nControlMaster auto       # Share connections\n\
+    ControlPath ~/.ssh/sockets/%r@%h:%p\nControlPersist 10m       # Keep master for\
+    \ 10 min\n\n**Security:**\nStrictHostKeyChecking yes   # Verify host keys\nIdentitiesOnly\
+    \ yes          # Only use specified keys\nForwardAgent no             # Don't\
+    \ forward agent (safer)\nPasswordAuthentication no   # Disable passwords\n\n**Forwarding:**\n\
+    LocalForward 8080 localhost:80    # -L\nRemoteForward 9090 localhost:3000 # -R\n\
+    DynamicForward 1080               # -D\n\n**Tunneling:**\nProxyJump jumphost \
+    \      # Use jump host\nProxyCommand ssh -W %h:%p jumphost  # Old method\n\n**Logging:**\n\
+    LogLevel INFO           # ERROR, INFO, VERBOSE, DEBUG\n\n**Pattern matching:**\n\
+    Host *.example.com      # Wildcard\nHost 10.0.0.*          # IP pattern\nHost\
+    \ dev-* prod-*      # Multiple patterns\n\n**Create production config:**\n\ncat\
+    \ > ~/.ssh/config << 'EOF'\n# Connection reuse\nHost *\n    ControlMaster auto\n\
+    \    ControlPath ~/.ssh/sockets/%r@%h:%p\n    ControlPersist 10m\n    ServerAliveInterval\
+    \ 60\n\n# Test environment\nHost testserver\n    HostName localhost\n    User\
+    \ webserver\n    StrictHostKeyChecking no\n    UserKnownHostsFile /dev/null\n\
+    \    LocalForward 8888 localhost:8080\n\n# Jump configuration\nHost jumphost\n\
+    \    HostName localhost\n    User jumpuser\n    StrictHostKeyChecking no\n\nHost\
+    \ internal\n    HostName localhost\n    User webserver\n    ProxyJump jumphost\n\
+    EOF\n\nchmod 600 ~/.ssh/config\n\n**Create socket directory:**\nmkdir -p ~/.ssh/sockets\n\
+    chmod 700 ~/.ssh/sockets\n\n**Test config:**\nssh testserver 'hostname'\ncurl\
+    \ http://localhost:8888\n\n**Debug config:**\nssh -G testserver\n\nShows final\
+    \ configuration after parsing.\n"
+  hint: Configure ~/.ssh/config for connection settings
+  validation:
+    type: command-output
+    command: mkdir -p /home/learner/.ssh/sockets && chmod 700 /home/learner/.ssh/sockets
+      && grep -i 'ControlMaster\|ServerAlive' /home/learner/.ssh/config || echo 'config'
+    matcher: contains
+    expected: ''
+- id: ssh-security-hardening
+  title: SSH Security Best Practices
+  description: "**Hardening SSH Configuration:**\n\n**Client-side security (~/.ssh/config):**\n\
+    \n```\n# Secure defaults\nHost *\n    # Only use strong ciphers\n    Ciphers aes256-gcm@openssh.com,aes256-ctr\n\
+    \n    # Strong MAC algorithms\n    MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com\n\
+    \n    # Strong key exchange\n    KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group16-sha512\n\
+    \n    # Disable weak options\n    GSSAPIAuthentication no\n    HostbasedAuthentication\
+    \ no\n\n    # Verify host keys strictly\n    StrictHostKeyChecking yes\n    HashKnownHosts\
+    \ yes\n```\n\n**Server-side hardening (/etc/ssh/sshd_config):**\n\n```\n# Disable\
+    \ root login\nPermitRootLogin no\n\n# Only allow keys\nPasswordAuthentication\
+    \ no\nPubkeyAuthentication yes\nChallengeResponseAuthentication no\n\n# Disable\
+    \ empty passwords\nPermitEmptyPasswords no\n\n# Limit authentication attempts\n\
+    MaxAuthTries 3\nMaxSessions 10\n\n# Use only strong ciphers\nCiphers aes256-gcm@openssh.com,aes256-ctr\n\
+    MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com\n\n# Disable\
+    \ X11 forwarding (if not needed)\nX11Forwarding no\n\n# Disable TCP forwarding\
+    \ (if not needed)\nAllowTcpForwarding no\n\n# Limit users\nAllowUsers admin deploy\n\
+    DenyUsers root guest\n\n# Connection timeout\nClientAliveInterval 300\nClientAliveCountMax\
+    \ 2\n\n# Log everything\nLogLevel VERBOSE\nSyslogFacility AUTH\n\n# Disable agent\
+    \ forwarding\nAllowAgentForwarding no\n\n# Disable tunneling\nPermitTunnel no\n\
+    \n# Change default port\nPort 2222\n```\n\n**Additional security measures:**\n\
+    \n**1. Use fail2ban:**\nBlocks IPs after failed attempts\n\n**2. Key-based auth\
+    \ only:**\nDisable all password authentication\n\n**3. Two-factor authentication:**\n\
+    Install google-authenticator-libpam\n\n**4. Certificate-based auth:**\nUse SSH\
+    \ certificates instead of keys\n\n**5. Firewall rules:**\nOnly allow SSH from\
+    \ specific IPs\n\n**6. Port knocking:**\nHide SSH port until knock sequence\n\n\
+    **7. Monitor logs:**\n```bash\ntail -f /var/log/auth.log | grep sshd\ngrep \"\
+    Failed password\" /var/log/auth.log\ngrep \"Accepted publickey\" /var/log/auth.log\n\
+    ```\n\n**8. Regular audits:**\n```bash\n# Check authorized_keys\ncat ~/.ssh/authorized_keys\n\
+    \n# Check active sessions\nwho\nw\n\n# Check SSH connections\nss -tnp | grep :22\n\
+    ```\n\n**Security checklist:**\n\n☐ Disable root login\n☐ Disable password authentication\n\
+    ☐ Use SSH keys only\n☐ Change default port\n☐ Use strong ciphers\n☐ Enable logging\n\
+    ☐ Install fail2ban\n☐ Use firewall rules\n☐ Regular key rotation\n☐ Monitor auth\
+    \ logs\n☐ Use jump/bastion hosts\n☐ Limit user access\n☐ Disable unnecessary features\n\
+    ☐ Keep SSH updated\n\n**Testing security:**\n\nTest cipher strength:\nnmap --script\
+    \ ssh2-enum-algos localhost\n\nTest for vulnerabilities:\nssh-audit localhost\n\
+    \n**Practice secure config:**\n\ncat >> ~/.ssh/config << 'EOF'\n\n# Security-focused\
+    \ host\nHost secure-server\n    HostName localhost\n    User webserver\n    #\
+    \ Only use Ed25519 key\n    IdentityFile ~/.ssh/id_ed25519\n    IdentitiesOnly\
+    \ yes\n    # Strong ciphers\n    Ciphers aes256-gcm@openssh.com\n    MACs hmac-sha2-512-etm@openssh.com\n\
+    \    # Strict checking\n    StrictHostKeyChecking yes\n    # No agent forwarding\n\
+    \    ForwardAgent no\nEOF\n"
+  hint: Harden SSH with strong ciphers, disable passwords, limit access
+  validation:
+    type: command-output
+    command: 'echo ''Security: Disable passwords, use keys, strong ciphers'' | grep
+      -i security'
+    matcher: contains
+    expected: Security
+completion:
+  message: "\U0001F389 ADVANCED SSH MASTERED! \U0001F389\n\nYou've mastered advanced\
+    \ SSH techniques!\n\n**What You've Learned:**\n\n✓ SSH tunneling concepts\n✓ Local\
+    \ port forwarding (-L)\n✓ Remote port forwarding (-R)\n✓ Dynamic port forwarding\
+    \ (-D SOCKS)\n✓ Jump hosts and ProxyJump\n✓ Advanced SSH configuration\n✓ Security\
+    \ hardening\n\n**Quick Reference:**\n\n**Local Port Forwarding (-L):**\nssh -L\
+    \ local_port:dest:dest_port user@host\nssh -L 3306:localhost:3306 user@dbserver\n\
+    ssh -f -L 8080:localhost:80 -N user@host\n\n**Remote Port Forwarding (-R):**\n\
+    ssh -R remote_port:local:local_port user@host\nssh -R 8080:localhost:3000 user@server\n\
+    ssh -f -R 2222:localhost:22 -N user@host\n\n**Dynamic Port Forwarding (-D):**\n\
+    ssh -D 1080 user@host\ncurl --socks5 localhost:1080 http://site.com\nssh -f -D\
+    \ 1080 -N -C user@host\n\n**Jump Hosts:**\nssh -J jumphost destination\nssh -J\
+    \ jump1,jump2 destination\nscp -J jumphost file user@dest:/path/\n\n**SSH Config\
+    \ (~/.ssh/config):**\n```\nHost myserver\n    HostName server.example.com\n  \
+    \  User admin\n    Port 2222\n    IdentityFile ~/.ssh/key\n    LocalForward 3306\
+    \ localhost:3306\n    ProxyJump jumphost\n    ServerAliveInterval 60\n    Compression\
+    \ yes\n```\n\n**Common Patterns:**\n\n**Access internal database:**\nssh -L 3306:db.internal:3306\
+    \ user@gateway\nmysql -h 127.0.0.1 -P 3306\n\n**Expose local dev server:**\nssh\
+    \ -R 8080:localhost:3000 user@public_server\n\n**Secure browsing (SOCKS):**\n\
+    ssh -D 1080 user@trusted_server\n# Configure browser to use localhost:1080\n\n\
+    **Multi-hop access:**\nssh -J bastion,gateway internal_server\n\n**Persistent\
+    \ tunnel:**\nssh -f -N -L 8080:localhost:80 user@server\n\n**Security Best Practices:**\n\
+    \nClient (~/.ssh/config):\n☑ Use Ed25519 keys\n☑ IdentitiesOnly yes\n☑ StrictHostKeyChecking\
+    \ yes\n☑ Strong ciphers/MACs\n☑ ForwardAgent no (default)\n☑ HashKnownHosts yes\n\
+    \nServer (/etc/ssh/sshd_config):\n☑ PermitRootLogin no\n☑ PasswordAuthentication\
+    \ no\n☑ PubkeyAuthentication yes\n☑ Change default port\n☑ AllowUsers (whitelist)\n\
+    ☑ MaxAuthTries 3\n☑ Strong ciphers only\n☑ LogLevel VERBOSE\n\n**Advanced Configurations:**\n\
+    \nConnection reuse:\nControlMaster auto\nControlPath ~/.ssh/sockets/%r@%h:%p\n\
+    ControlPersist 10m\n\nPattern matching:\nHost prod-*\n    IdentityFile ~/.ssh/prod_key\n\
+    \nHost *.internal.com\n    ProxyJump bastion\n\n**Troubleshooting:**\n\nDebug\
+    \ tunnels:\nssh -vvv -L 8080:localhost:80 user@host\n\nCheck active forwards:\n\
+    netstat -tlnp | grep ssh\nss -tlnp | grep ssh\n\nTest config:\nssh -G hostname\n\
+    \nKill stuck tunnel:\npkill -f 'ssh.*port'\n\n**Use Cases:**\n\n✓ Database administration\n\
+    ✓ Web development\n✓ Secure browsing\n✓ Bypass firewalls\n✓ Access internal networks\n\
+    ✓ Temporary service exposure\n✓ Secure file transfers\n✓ Multi-tier architectures\n\
+    \n**Performance Tips:**\n\n☑ Use ControlMaster for multiple connections\n☑ Enable\
+    \ compression on slow links (-C)\n☑ Use persistent connections\n☑ Choose appropriate\
+    \ ciphers\n☑ Use local DNS resolution\n☑ Batch operations when possible\n\nYou\
+    \ now have professional-level SSH expertise!\n\nOUTSTANDING WORK!\n"
+  xp: 500
+  unlocks:
+  - linux/week14/practice-remote-admin

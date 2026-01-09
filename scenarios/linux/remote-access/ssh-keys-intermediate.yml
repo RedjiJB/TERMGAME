@@ -1,0 +1,556 @@
+mission:
+  id: linux/remote-access/ssh-keys-intermediate
+  title: SSH Key-Based Authentication
+  difficulty: intermediate
+  description: Master SSH key generation, management, and passwordless authentication
+  estimated_time: 40
+  tags:
+  - linux
+  - ssh
+  - ssh-keys
+  - authentication
+  - security
+  - intermediate
+  - remote-access
+environment:
+  image: ubuntu:22.04
+  workdir: /home/learner
+  setup:
+  - apt-get update -qq && apt-get install -y -qq openssh-client openssh-server
+  - service ssh start
+  - useradd -m -s /bin/bash testuser
+  - echo 'testuser:password123' | chpasswd
+  - mkdir -p /home/testuser/.ssh
+  - chmod 700 /home/testuser/.ssh
+  - chown testuser:testuser /home/testuser/.ssh
+  - mkdir -p /home/learner/.ssh
+  - chmod 700 /home/learner/.ssh
+steps:
+- id: understand-keys
+  title: SSH Key Authentication Concepts
+  description: "**Why SSH Keys?**\n\n**Password Authentication:**\n✗ Can be guessed\
+    \ (brute force)\n✗ Needs to be typed each time\n✗ Can be intercepted (keyloggers)\n\
+    ✗ Hard to manage many servers\n\n**SSH Key Authentication:**\n✓ Extremely secure\
+    \ (4096-bit encryption)\n✓ Passwordless login\n✓ Cannot be brute-forced\n✓ One\
+    \ key for many servers\n✓ Can be revoked easily\n\n**How SSH Keys Work:**\n\n\
+    1. Generate key pair:\n   - Private key (secret, stays on your computer)\n   -\
+    \ Public key (shared, copied to servers)\n\n2. Setup:\n   - Copy public key to\
+    \ server's ~/.ssh/authorized_keys\n   - Keep private key secure on client\n\n\
+    3. Authentication:\n   - Client proves it has private key\n   - Server verifies\
+    \ with public key\n   - No password sent over network!\n\n**Analogy:**\n- Public\
+    \ key = Lock (put on any door)\n- Private key = Key (only you have it)\n- Anyone\
+    \ can install your lock, but only your key opens it\n\n**Key Formats:**\n\nPrivate\
+    \ key: ~/.ssh/id_rsa (or id_ed25519)\nPublic key: ~/.ssh/id_rsa.pub\n\n**Security:**\n\
+    - Private key NEVER leaves your computer\n- Public key can be freely shared\n\
+    - Private key can be encrypted with passphrase (extra security)\n\n**Advantages\
+    \ in practice:**\n- Automated scripts (no password prompt)\n- Easier for system\
+    \ administrators\n- Disabled password auth = much more secure\n- Easy to add/remove\
+    \ access (add/remove public key)\n\n**View existing keys (if any):**\nls -la ~/.ssh/id_*\n\
+    \nIf empty, no keys exist yet - we'll create them next!\n"
+  hint: 'Check for existing keys with: ls ~/.ssh/id_*'
+  validation:
+    type: command-output
+    command: ls -la /home/learner/.ssh/ 2>/dev/null | wc -l
+    matcher: regex
+    expected: '[0-9]+'
+- id: generate-key-rsa
+  title: Generate RSA SSH Key Pair
+  description: "**Generate SSH Keys with ssh-keygen:**\n\nssh-keygen -t rsa -b 4096\
+    \ -C \"your_email@example.com\"\n\n**Options explained:**\n-t rsa       Type:\
+    \ RSA algorithm\n-b 4096      Bits: 4096-bit key (very secure)\n-C \"comment\"\
+    \ Comment: Usually your email\n\n**Interactive prompts:**\n\n1. **Where to save:**\n\
+    \   Enter file in which to save the key (/home/user/.ssh/id_rsa):\n   Press Enter\
+    \ for default location\n\n2. **Passphrase:**\n   Enter passphrase (empty for no\
+    \ passphrase):\n   Optional: Extra protection for private key\n   Leave empty\
+    \ for passwordless automation\n\n3. **Confirm passphrase:**\n   Enter same passphrase\
+    \ again:\n\n**Output:**\n- Private key: ~/.ssh/id_rsa\n- Public key: ~/.ssh/id_rsa.pub\n\
+    - Fingerprint shown\n\n**Example session:**\n```\n$ ssh-keygen -t rsa -b 4096\
+    \ -C \"user@example.com\"\nGenerating public/private rsa key pair.\nEnter file\
+    \ in which to save the key (/home/user/.ssh/id_rsa):\nEnter passphrase (empty\
+    \ for no passphrase):\nEnter same passphrase again:\nYour identification has been\
+    \ saved in /home/user/.ssh/id_rsa\nYour public key has been saved in /home/user/.ssh/id_rsa.pub\n\
+    The key fingerprint is:\nSHA256:AbCdEf123456... user@example.com\n```\n\n**Important:**\n\
+    - Default name: id_rsa / id_rsa.pub\n- Can have multiple keys (different names)\n\
+    - For automation: Don't use passphrase\n- For personal use: Use passphrase\n\n\
+    **Generate your key:**\nssh-keygen -t rsa -b 4096 -C \"learner@termgame\" -N \"\
+    \" -f ~/.ssh/id_rsa\n\n-N \"\" = No passphrase\n-f ~/.ssh/id_rsa = Specify file\
+    \ (non-interactive)\n\n**Verify creation:**\nls -la ~/.ssh/id_rsa*\n\nShould see:\n\
+    - id_rsa (private key, 600 permissions)\n- id_rsa.pub (public key, 644 permissions)\n\
+    \n**View public key:**\ncat ~/.ssh/id_rsa.pub\n\nFormat: ssh-rsa AAAAB3NzaC...\
+    \ learner@termgame\n"
+  hint: Use ssh-keygen -t rsa -b 4096 to generate key pair
+  validation:
+    type: file-exists
+    path: /home/learner/.ssh/id_rsa
+    matcher: exists
+- id: generate-key-ed25519
+  title: Generate Ed25519 SSH Key (Modern)
+  description: '**Ed25519: Modern SSH Key Type**
+
+
+    Ed25519 is newer and better than RSA:
+
+    ✓ Faster
+
+    ✓ More secure (same security with smaller key)
+
+    ✓ Smaller key size (256 bits)
+
+    ✓ Recommended by security experts
+
+
+    **Generate Ed25519 key:**
+
+    ssh-keygen -t ed25519 -C "your_email@example.com"
+
+
+    **Comparison:**
+
+
+    | Feature | RSA 4096 | Ed25519 |
+
+    |---------|----------|---------|
+
+    | Key size | 4096 bits | 256 bits |
+
+    | Speed | Slower | Faster |
+
+    | Security | Strong | Stronger |
+
+    | Compatibility | Universal | Modern systems |
+
+
+    **When to use which:**
+
+
+    Use RSA:
+
+    - Old servers (no Ed25519 support)
+
+    - Maximum compatibility
+
+
+    Use Ed25519:
+
+    - Modern servers (2014+)
+
+    - Best security and performance
+
+    - Personal preference
+
+
+    **File names:**
+
+    RSA: ~/.ssh/id_rsa, ~/.ssh/id_rsa.pub
+
+    Ed25519: ~/.ssh/id_ed25519, ~/.ssh/id_ed25519.pub
+
+
+    **Generate Ed25519 key:**
+
+    ssh-keygen -t ed25519 -C "learner@termgame" -N "" -f ~/.ssh/id_ed25519
+
+
+    **View keys:**
+
+    ls -la ~/.ssh/id_*
+
+
+    You now have both types:
+
+    - id_rsa / id_rsa.pub (RSA)
+
+    - id_ed25519 / id_ed25519.pub (Ed25519)
+
+
+    **Default key selection:**
+
+
+    SSH tries keys in this order:
+
+    1. id_ed25519
+
+    2. id_rsa
+
+    3. id_ecdsa
+
+    4. id_dsa
+
+
+    Or specify: ssh -i ~/.ssh/specific_key user@host
+
+
+    **View Ed25519 public key:**
+
+    cat ~/.ssh/id_ed25519.pub
+
+
+    Format: ssh-ed25519 AAAAC3... learner@termgame
+
+
+    Notice: Much shorter than RSA key!
+
+
+    **Best practice:**
+
+    Generate both, use Ed25519 when possible, fall back to RSA for old systems.
+
+    '
+  hint: Use ssh-keygen -t ed25519 for modern Ed25519 keys
+  validation:
+    type: file-exists
+    path: /home/learner/.ssh/id_ed25519
+    matcher: exists
+- id: copy-public-key
+  title: Copy Public Key to Server
+  description: "**ssh-copy-id: Easy Key Distribution**\n\nCopy your public key to\
+    \ a server for passwordless login.\n\n**Command:**\nssh-copy-id user@hostname\n\
+    \n**What it does:**\n1. Connects to server (asks for password one last time)\n\
+    2. Copies your public key to ~/.ssh/authorized_keys\n3. Sets correct permissions\
+    \ automatically\n4. Future connections: passwordless!\n\n**Example:**\n```\n$\
+    \ ssh-copy-id john@server.com\n/usr/bin/ssh-copy-id: INFO: attempting to log in\
+    \ with the new key(s)\njohn@server.com's password: [enter password]\nNumber of\
+    \ key(s) added: 1\n\nNow try logging into the machine with:\n   ssh john@server.com\n\
+    and check to make sure that only the key(s) you wanted were added.\n```\n\n**Specify\
+    \ which key:**\nssh-copy-id -i ~/.ssh/id_ed25519.pub user@host\n\n**What happens\
+    \ on server:**\n\nYour public key is appended to:\n~/.ssh/authorized_keys\n\n\
+    Format (one key per line):\nssh-rsa AAAAB3NzaC... user@client1\nssh-ed25519 AAAAC3...\
+    \ user@client2\n\n**Manual method (if ssh-copy-id not available):**\n\ncat ~/.ssh/id_rsa.pub\
+    \ | ssh user@host 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys\
+    \ && chmod 600 ~/.ssh/authorized_keys'\n\n**Practice - Copy key to testuser:**\n\
+    \nFirst, let's set up testuser's authorized_keys:\n\n# Show current public key\n\
+    cat ~/.ssh/id_rsa.pub\n\n# Manually add to testuser's authorized_keys\nsudo mkdir\
+    \ -p /home/testuser/.ssh\nsudo cat ~/.ssh/id_rsa.pub | sudo tee -a /home/testuser/.ssh/authorized_keys\n\
+    sudo chmod 600 /home/testuser/.ssh/authorized_keys\nsudo chown testuser:testuser\
+    \ /home/testuser/.ssh/authorized_keys\n\n**Verify setup:**\nsudo ls -la /home/testuser/.ssh/\n\
+    sudo cat /home/testuser/.ssh/authorized_keys\n\n**Test passwordless login:**\n\
+    ssh -o StrictHostKeyChecking=no testuser@localhost\n\nShould connect WITHOUT password!\n\
+    \n**Try the manual copy process:**\nView your public key, then set up authorized_keys\
+    \ as shown above.\n"
+  hint: Use ssh-copy-id or manually append public key to authorized_keys
+  validation:
+    type: command-output
+    command: test -f /home/testuser/.ssh/authorized_keys && cat /home/testuser/.ssh/authorized_keys
+      | wc -l
+    matcher: regex
+    expected: '[1-9]'
+- id: test-key-auth
+  title: Test Key-Based Authentication
+  description: "**Test Passwordless SSH:**\n\nAfter copying your public key, test\
+    \ the connection:\n\nssh user@hostname\n\nShould connect WITHOUT asking for password!\n\
+    \n**What happens during key authentication:**\n\n1. Client: \"I want to connect\
+    \ as user\"\n2. Server: \"Prove you have the private key for this public key\"\
+    \n3. Client: (uses private key to prove identity, sends proof)\n4. Server: \"\
+    Proof valid! Welcome!\"\n5. Connection established\n\nAll cryptographic - no password\
+    \ sent!\n\n**Troubleshooting: Still asks for password?**\n\n**Check 1: Is your\
+    \ key on the server?**\nssh user@host 'cat ~/.ssh/authorized_keys'\n\nShould contain\
+    \ your public key.\n\n**Check 2: Permissions correct?**\nssh user@host 'ls -la\
+    \ ~/.ssh/authorized_keys'\n\nShould be: -rw------- (600)\n\n**Check 3: Which key\
+    \ is being used?**\nssh -v user@host\n\nLook for: \"Offering public key: /home/user/.ssh/id_rsa\"\
+    \n\n**Check 4: Server allows key authentication?**\nsudo cat /etc/ssh/sshd_config\
+    \ | grep PubkeyAuthentication\n\nShould be: PubkeyAuthentication yes\n\n**Check\
+    \ 5: Local key permissions?**\nls -la ~/.ssh/id_rsa\n\nShould be: -rw------- (600)\n\
+    \n**Verbose mode for debugging:**\nssh -vvv user@host\n\nShows:\n- Which keys\
+    \ are tried\n- Authentication methods offered\n- Success/failure reasons\n\n**Force\
+    \ specific key:**\nssh -i ~/.ssh/id_ed25519 user@host\n\n**Test your setup:**\n\
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null testuser@localhost\
+    \ 'whoami'\n\nShould output: testuser (without password prompt)\n\n**Multiple\
+    \ connections:**\nfor i in {1..3}; do\n  ssh testuser@localhost 'echo \"Connection\
+    \ $i: $(date)\"'\ndone\n\nAll three should connect instantly, no password!\n\n\
+    **Practice:**\nTest the connection several times to verify it's truly passwordless.\n"
+  hint: 'Test with: ssh user@localhost (should not ask for password)'
+  validation:
+    type: command-output
+    command: ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes
+      testuser@localhost 'echo SUCCESS' 2>/dev/null || echo 'key auth not working'
+    matcher: contains
+    expected: SUCCESS
+- id: multiple-keys
+  title: Managing Multiple SSH Keys
+  description: "**Multiple Keys for Different Services:**\n\nCommon scenario:\n- Personal\
+    \ GitHub: personal_key\n- Work GitHub: work_key\n- AWS servers: aws_key\n- Client\
+    \ servers: client_key\n\n**Generate multiple keys:**\n\nPersonal:\nssh-keygen\
+    \ -t ed25519 -C \"personal@email.com\" -f ~/.ssh/id_personal\n\nWork:\nssh-keygen\
+    \ -t ed25519 -C \"work@company.com\" -f ~/.ssh/id_work\n\nAWS:\nssh-keygen -t\
+    \ rsa -b 4096 -C \"aws-admin\" -f ~/.ssh/aws_key\n\n**~/.ssh/config for multiple\
+    \ keys:**\n\n```\n# Personal GitHub\nHost github.com-personal\n    HostName github.com\n\
+    \    User git\n    IdentityFile ~/.ssh/id_personal\n    IdentitiesOnly yes\n\n\
+    # Work GitHub\nHost github.com-work\n    HostName github.com\n    User git\n \
+    \   IdentityFile ~/.ssh/id_work\n    IdentitiesOnly yes\n\n# AWS Production\n\
+    Host aws-prod-*\n    User ubuntu\n    IdentityFile ~/.ssh/aws_key\n    StrictHostKeyChecking\
+    \ no\n\n# Client servers\nHost client.example.com\n    User admin\n    IdentityFile\
+    \ ~/.ssh/client_key\n    Port 2222\n```\n\n**Usage:**\ngit clone git@github.com-personal:user/repo.git\n\
+    git clone git@github.com-work:company/repo.git\nssh aws-prod-web-01\nssh client.example.com\n\
+    \n**IdentitiesOnly:**\nPrevents SSH from trying ALL keys (which can cause login\
+    \ failures\nif server limits authentication attempts).\n\n**List all keys:**\n\
+    ls -la ~/.ssh/id_* ~/.ssh/*_key*\n\n**View key fingerprints:**\nssh-keygen -l\
+    \ -f ~/.ssh/id_rsa\nssh-keygen -l -f ~/.ssh/id_ed25519\n\n**SSH Agent (covered\
+    \ later) helps:**\n- Load multiple keys\n- Don't need to specify -i each time\n\
+    - Unlock passphrases once\n\n**Create multiple keys for practice:**\nssh-keygen\
+    \ -t ed25519 -C \"github\" -N \"\" -f ~/.ssh/github_key\nssh-keygen -t ed25519\
+    \ -C \"server\" -N \"\" -f ~/.ssh/server_key\n\n**Configure them:**\ncat >> ~/.ssh/config\
+    \ << 'EOF'\n\nHost github\n    HostName github.com\n    User git\n    IdentityFile\
+    \ ~/.ssh/github_key\n\nHost myserver\n    HostName localhost\n    User testuser\n\
+    \    IdentityFile ~/.ssh/server_key\nEOF\n\n**Test:**\nssh -T github\n(will fail\
+    \ - not real GitHub, but shows key would be used)\n"
+  hint: Create multiple keys with different -f filenames
+  validation:
+    type: command-output
+    command: ls /home/learner/.ssh/id_* 2>/dev/null | wc -l
+    matcher: regex
+    expected: '[2-9]|[1-9][0-9]'
+- id: ssh-agent
+  title: SSH Agent for Key Management
+  description: "**SSH Agent: Password Manager for SSH Keys**\n\nProblem: Keys with\
+    \ passphrases require typing passphrase each time.\n\nSolution: SSH Agent\n- Runs\
+    \ in background\n- Stores unlocked keys in memory\n- Type passphrase once per\
+    \ session\n- All SSH commands use agent automatically\n\n**Start SSH agent:**\n\
+    eval \"$(ssh-agent -s)\"\n\nOutput: Agent pid 12345\n\n**Add key to agent:**\n\
+    ssh-add ~/.ssh/id_rsa\n\nIf passphrase protected, prompts once:\nEnter passphrase\
+    \ for /home/user/.ssh/id_rsa:\n\n**List loaded keys:**\nssh-add -l\n\nOutput:\n\
+    4096 SHA256:abc123... user@host (RSA)\n256 SHA256:def456... user@host (ED25519)\n\
+    \n**Add specific key:**\nssh-add ~/.ssh/specific_key\n\n**Add with lifetime:**\n\
+    ssh-add -t 3600 ~/.ssh/id_rsa\n\n(Key removed after 1 hour)\n\n**Remove key:**\n\
+    ssh-add -d ~/.ssh/id_rsa\n\n**Remove all keys:**\nssh-add -D\n\n**How agent works:**\n\
+    \n1. ssh-agent starts (background process)\n2. ssh-add loads keys (prompts for\
+    \ passphrases)\n3. SSH commands automatically use agent\n4. No more passphrase\
+    \ prompts!\n\n**Agent forwarding (-A):**\n\nssh -A user@jumphost\n\nAllows jumphost\
+    \ to use YOUR keys for further connections:\nlocal → jumphost → destination\n\n\
+    **Warning:** Only forward to trusted servers!\n\n**Persistent agent:**\n\nAdd\
+    \ to ~/.bashrc or ~/.profile:\n```bash\nif [ -z \"$SSH_AUTH_SOCK\" ]; then\n \
+    \   eval \"$(ssh-agent -s)\"\n    ssh-add ~/.ssh/id_rsa\n    ssh-add ~/.ssh/id_ed25519\n\
+    fi\n```\n\n**Alternative: keychain**\n\nBetter than manual ssh-agent management:\n\
+    ```bash\neval \"$(keychain --eval --quiet id_rsa id_ed25519)\"\n```\n\n**Practice:**\n\
+    \nStart agent:\neval \"$(ssh-agent -s)\"\n\nAdd keys:\nssh-add ~/.ssh/id_rsa\n\
+    ssh-add ~/.ssh/id_ed25519\n\nList loaded keys:\nssh-add -l\n\nTest connection\
+    \ (uses agent automatically):\nssh testuser@localhost 'echo \"Agent working!\"\
+    '\n\n**Check agent status:**\necho $SSH_AUTH_SOCK\necho $SSH_AGENT_PID\n\nShould\
+    \ show socket path and PID.\n"
+  hint: Start agent with eval $(ssh-agent -s), add keys with ssh-add
+  validation:
+    type: command-output
+    command: eval $(ssh-agent -s) > /dev/null 2>&1 && echo $SSH_AGENT_PID
+    matcher: regex
+    expected: '[0-9]+'
+- id: key-security
+  title: SSH Key Security Best Practices
+  description: '**Securing Your SSH Keys:**
+
+
+    **1. Use passphrases:**
+
+
+    Protect private keys with passphrases:
+
+    ssh-keygen -t ed25519 -C "email" -N "strongpassphrase"
+
+
+    Even if key file is stolen, attacker needs passphrase.
+
+
+    **Change passphrase:**
+
+    ssh-keygen -p -f ~/.ssh/id_rsa
+
+
+    **2. Correct permissions (critical!):**
+
+
+    ~/.ssh/                700 (drwx------)
+
+    ~/.ssh/config          600 (-rw-------)
+
+    ~/.ssh/id_rsa          600 (-rw-------)
+
+    ~/.ssh/id_rsa.pub      644 (-rw-r--r--)
+
+    ~/.ssh/authorized_keys 600 (-rw-------)
+
+    ~/.ssh/known_hosts     644 (-rw-r--r--)
+
+
+    **Fix all permissions:**
+
+    chmod 700 ~/.ssh
+
+    chmod 600 ~/.ssh/config
+
+    chmod 600 ~/.ssh/id_*
+
+    chmod 644 ~/.ssh/*.pub
+
+    chmod 600 ~/.ssh/authorized_keys
+
+
+    **3. Never share private keys:**
+
+
+    ✗ Don''t email private keys
+
+    ✗ Don''t commit to Git
+
+    ✗ Don''t store in cloud (Dropbox, Google Drive)
+
+    ✓ Keep on your computer only
+
+    ✓ Share public keys freely
+
+
+    **4. Separate keys for different purposes:**
+
+
+    Personal:    ~/.ssh/id_personal
+
+    Work:        ~/.ssh/id_work
+
+    High-value:  ~/.ssh/id_prod (with passphrase!)
+
+
+    **5. Regular key rotation:**
+
+
+    Generate new keys periodically:
+
+    - Personal: Yearly
+
+    - Work: When leaving company
+
+    - Production: Every 6-12 months
+
+
+    **6. Audit authorized_keys:**
+
+
+    Regularly check servers:
+
+    cat ~/.ssh/authorized_keys
+
+
+    Remove old/unknown keys:
+
+    sed -i ''/old-key-comment/d'' ~/.ssh/authorized_keys
+
+
+    **7. Use SSH agent correctly:**
+
+
+    ✓ Lock screen when away
+
+    ✓ Use agent timeouts (-t)
+
+    ✗ Don''t forward to untrusted servers (-A)
+
+
+    **8. Backup keys securely:**
+
+
+    Encrypted backup:
+
+    tar czf ssh-keys.tar.gz ~/.ssh/
+
+    gpg -c ssh-keys.tar.gz
+
+    rm ssh-keys.tar.gz
+
+
+    Store encrypted file safely.
+
+
+    **9. Restrict key usage (advanced):**
+
+
+    In authorized_keys, prefix key with restrictions:
+
+    ```
+
+    command="/usr/bin/rsync-only",no-port-forwarding ssh-rsa AAAA...
+
+    ```
+
+
+    **10. Monitor SSH logs:**
+
+
+    Watch for unauthorized access:
+
+    sudo tail -f /var/log/auth.log | grep sshd
+
+
+    **Security checklist:**
+
+    ☐ All keys have passphrases
+
+    ☐ Permissions correct (700/600)
+
+    ☐ Private keys never shared
+
+    ☐ Separate keys per purpose
+
+    ☐ Regular key rotation schedule
+
+    ☐ Authorized_keys audited
+
+    ☐ SSH agent configured with timeouts
+
+    ☐ Keys backed up (encrypted)
+
+    ☐ Logs monitored
+
+
+    **Verify your security:**
+
+    ls -la ~/.ssh/
+
+    Check all permissions!
+
+    '
+  hint: Always use 700 for .ssh dir, 600 for private keys
+  validation:
+    type: command-output
+    command: ls -la /home/learner/.ssh/ | head -1
+    matcher: contains
+    expected: drwx
+completion:
+  message: "\U0001F389 SSH KEY AUTHENTICATION MASTERED! \U0001F389\n\nYou've mastered\
+    \ SSH key-based authentication!\n\n**What You've Learned:**\n\n✓ SSH key authentication\
+    \ concepts\n✓ Generating RSA and Ed25519 keys\n✓ Public vs private keys\n✓ Copying\
+    \ public keys to servers\n✓ Testing passwordless authentication\n✓ Managing multiple\
+    \ SSH keys\n✓ SSH Agent for key management\n✓ Security best practices\n\n**Quick\
+    \ Reference:**\n\n**Generate Keys:**\nssh-keygen -t rsa -b 4096 -C \"email\"\n\
+    ssh-keygen -t ed25519 -C \"email\"\nssh-keygen -t ed25519 -C \"email\" -f ~/.ssh/custom_name\n\
+    \n**Copy to Server:**\nssh-copy-id user@hostname\nssh-copy-id -i ~/.ssh/specific_key.pub\
+    \ user@host\n\n**Manual Copy:**\ncat ~/.ssh/id_rsa.pub | ssh user@host 'cat >>\
+    \ ~/.ssh/authorized_keys'\n\n**SSH Agent:**\neval \"$(ssh-agent -s)\"    # Start\
+    \ agent\nssh-add ~/.ssh/id_rsa     # Add key\nssh-add -l                # List\
+    \ keys\nssh-add -D                # Remove all keys\nssh-add -t 3600 key     \
+    \  # Add with 1hr timeout\n\n**Multiple Keys in ~/.ssh/config:**\n```\nHost github-personal\n\
+    \    HostName github.com\n    User git\n    IdentityFile ~/.ssh/id_personal\n\n\
+    Host work-server\n    HostName server.company.com\n    User admin\n    IdentityFile\
+    \ ~/.ssh/id_work\n    Port 2222\n```\n\n**File Permissions:**\n~/.ssh/       \
+    \           700\n~/.ssh/config            600\n~/.ssh/id_rsa            600\n\
+    ~/.ssh/id_rsa.pub        644\n~/.ssh/authorized_keys   600\n\n**Key Types Comparison:**\n\
+    RSA 4096:   Universal compatibility, slower\nEd25519:    Modern, faster, smaller,\
+    \ recommended\n\n**Security Best Practices:**\n\n☑ Use passphrases on private\
+    \ keys\n☑ Never share private keys\n☑ Use SSH agent for convenience\n☑ Separate\
+    \ keys for different purposes\n☑ Rotate keys regularly\n☑ Audit authorized_keys\
+    \ periodically\n☑ Correct file permissions always\n☑ Backup keys securely (encrypted)\n\
+    ☑ Use IdentitiesOnly in config\n☑ Monitor SSH logs\n\n**Troubleshooting:**\n\n\
+    Still prompts for password?\n- Check authorized_keys contains your public key\n\
+    - Verify authorized_keys is 600 permissions\n- Check private key is 600 permissions\n\
+    - Use ssh -v to debug\n- Verify PubkeyAuthentication yes on server\n\nPermission\
+    \ denied?\n- Check username correct\n- Verify key copied to right user\n- Check\
+    \ ~/.ssh directory is 700\n- Use ssh -vvv for detailed debugging\n\n**Common Workflows:**\n\
+    \n**Setup new server:**\n1. ssh-keygen -t ed25519 -C \"server-name\"\n2. ssh-copy-id\
+    \ user@new-server\n3. ssh user@new-server (test)\n4. Disable password auth on\
+    \ server\n\n**Setup new client:**\n1. ssh-keygen -t ed25519 -C \"my-email\"\n\
+    2. cat ~/.ssh/id_ed25519.pub\n3. Add to servers' authorized_keys\n4. Add to GitHub/GitLab/Bitbucket\n\
+    \n**Daily use:**\n1. eval \"$(ssh-agent -s)\"\n2. ssh-add (passphrases once)\n\
+    3. ssh anywhere (no more passwords!)\n\n**Advantages Over Passwords:**\n✓ More\
+    \ secure (4096-bit vs 8-char password)\n✓ Passwordless (convenience)\n✓ One key,\
+    \ many servers\n✓ Can't be brute-forced\n✓ Easy to revoke (remove from authorized_keys)\n\
+    ✓ Works with automation/scripts\n\nYou now have professional-grade SSH authentication\
+    \ skills!\n\nEXCELLENT WORK!\n"
+  xp: 300
+  unlocks:
+  - linux/week14/ssh-advanced
+  - linux/week14/scp-sftp-intermediate

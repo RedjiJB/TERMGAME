@@ -1,0 +1,565 @@
+mission:
+  id: environment-basics-beginner
+  title: Environment Variables Fundamentals
+  difficulty: beginner
+  description: 'Learn the basics of environment variables in Linux - what they are,
+    how to view
+
+    them, and how to set them. Environment variables control program behavior and
+
+    system configuration.
+
+
+    Perfect for understanding how programs receive configuration from the shell!
+
+    '
+  estimated_time: 25
+  xp_reward: 200
+  tags:
+  - environment
+  - variables
+  - shell
+  - basics
+environment:
+  setup:
+  - apt-get update && apt-get install -y \
+  - bash \
+  - coreutils
+  image: ubuntu:22.04
+steps:
+- id: what-are-env-vars
+  description: '**What Are Environment Variables?**
+
+
+    Environment variables are named values that affect how programs run. They''re
+
+    like global settings that programs can read.
+
+
+    **Common uses:**
+
+    - `HOME` - Your home directory
+
+    - `USER` - Your username
+
+    - `PATH` - Where the shell looks for commands
+
+    - `LANG` - Your language/locale
+
+    - `EDITOR` - Default text editor
+
+
+    **Viewing environment variables:**
+
+
+    ```bash
+
+    # View ALL environment variables
+
+    env
+
+
+    # Or
+
+    printenv
+
+
+    # View a specific variable
+
+    echo $HOME
+
+    echo $USER
+
+    echo $PATH
+
+    ```
+
+
+    **Task:** Create a file with your current HOME directory.
+
+
+    ```bash
+
+    mkdir -p ~/env_practice
+
+    cd ~/env_practice
+
+    echo $HOME > my_home.txt
+
+    cat my_home.txt
+
+    ```
+
+    '
+  hint: 'Use ''echo $HOME'' to print the HOME variable, then redirect it to a file
+
+    with ''>''. The dollar sign ($) is how you reference a variable''s value.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/env_practice/my_home.txt
+    matcher: exists
+  title: '**What Are Environment Variables?**'
+- id: viewing-variables
+  description: '**Different Ways to View Variables**
+
+
+    Let''s explore the tools for viewing environment variables:
+
+
+    ```bash
+
+    # View ALL environment variables (paginated)
+
+    env | less
+
+    # Press ''q'' to quit
+
+
+    # View specific variable with echo
+
+    echo "My username is: $USER"
+
+    echo "My home is: $HOME"
+
+
+    # View specific variable with printenv
+
+    printenv USER
+
+    printenv HOME
+
+
+    # Search for variables with grep
+
+    env | grep HOME
+
+    env | grep PATH
+
+    ```
+
+
+    **The difference between echo and printenv:**
+
+    - `echo $VAR` - Shell expands the variable first
+
+    - `printenv VAR` - Directly reads environment
+
+
+    **Task:** Create a report of key environment variables.
+
+
+    ```bash
+
+    cat > env_report.txt << EOF
+
+    Environment Variable Report
+
+    ===========================
+
+
+    User Information:
+
+    - Username: $USER
+
+    - Home: $HOME
+
+    - Shell: $SHELL
+
+
+    System Information:
+
+    - Hostname: $HOSTNAME
+
+    - PWD: $PWD
+
+    - PATH: $PATH
+
+
+    Locale:
+
+    - LANG: $LANG
+
+    EOF
+
+
+    cat env_report.txt
+
+    ```
+
+    '
+  hint: 'The heredoc syntax (cat > file << EOF) lets you write multiple lines.
+
+    Variables like $USER are automatically expanded inside the heredoc.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/env_practice/env_report.txt
+    matcher: exists
+  title: '**Different Ways to View Variables**'
+- id: setting-variables
+  description: '**Setting Environment Variables**
+
+
+    There are two types of variables in bash:
+
+    1. **Shell variables** - Only available in current shell
+
+    2. **Environment variables** - Passed to child processes
+
+
+    **Setting a shell variable:**
+
+    ```bash
+
+    # Just assign it (no spaces around =)
+
+    MY_VAR="Hello World"
+
+
+    # View it
+
+    echo $MY_VAR
+
+    ```
+
+
+    **Setting an environment variable:**
+
+    ```bash
+
+    # Use export to make it an environment variable
+
+    export MY_ENV_VAR="I''m exported!"
+
+
+    # Or in one line
+
+    export ANOTHER_VAR="One-liner"
+
+
+    # View it
+
+    echo $MY_ENV_VAR
+
+    printenv MY_ENV_VAR
+
+    ```
+
+
+    **The difference:**
+
+    ```bash
+
+    # Shell variable
+
+    TEST1="shell only"
+
+
+    # Environment variable
+
+    export TEST2="environment too"
+
+
+    # Start a new bash shell
+
+    bash -c ''echo "TEST1: $TEST1"''  # Empty!
+
+    bash -c ''echo "TEST2: $TEST2"''  # Works!
+
+    ```
+
+
+    **Task:** Create variables and test them.
+
+
+    ```bash
+
+    # Create a shell variable
+
+    MY_NAME="Student"
+
+
+    # Create an environment variable
+
+    export MY_COURSE="Linux Fundamentals"
+
+
+    # Save results
+
+    cat > variables_test.txt << EOF
+
+    Shell Variable (in current shell): $MY_NAME
+
+    Environment Variable: $MY_COURSE
+
+    EOF
+
+
+    # Test environment variable in subshell
+
+    bash -c ''echo "In subshell: $MY_COURSE"'' >> variables_test.txt
+
+
+    cat variables_test.txt
+
+    ```
+
+    '
+  hint: 'Use ''export VAR=value'' to create environment variables. Regular assignment
+
+    (VAR=value) creates shell variables that won''t be passed to child processes.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/env_practice/variables_test.txt
+    matcher: exists
+  title: '**Setting Environment Variables**'
+- id: unsetting-variables
+  description: '**Removing Variables**
+
+
+    You can remove variables with `unset`:
+
+
+    ```bash
+
+    # Set a variable
+
+    TEMP_VAR="temporary"
+
+    echo "Before: $TEMP_VAR"
+
+
+    # Remove it
+
+    unset TEMP_VAR
+
+    echo "After: $TEMP_VAR"  # Empty!
+
+
+    # Works for both shell and environment variables
+
+    export TEMP_ENV="temporary environment"
+
+    echo "Before: $TEMP_ENV"
+
+    unset TEMP_ENV
+
+    echo "After: $TEMP_ENV"  # Empty!
+
+    ```
+
+
+    **Task:** Practice creating and removing variables.
+
+
+    ```bash
+
+    # Create some variables
+
+    VAR1="First"
+
+    export VAR2="Second"
+
+    VAR3="Third"
+
+
+    # Document initial state
+
+    echo "Initial variables:" > unset_test.txt
+
+    echo "VAR1=$VAR1" >> unset_test.txt
+
+    echo "VAR2=$VAR2" >> unset_test.txt
+
+    echo "VAR3=$VAR3" >> unset_test.txt
+
+
+    # Remove VAR1
+
+    unset VAR1
+
+
+    # Document after unset
+
+    echo "" >> unset_test.txt
+
+    echo "After unsetting VAR1:" >> unset_test.txt
+
+    echo "VAR1=$VAR1 (should be empty)" >> unset_test.txt
+
+    echo "VAR2=$VAR2" >> unset_test.txt
+
+    echo "VAR3=$VAR3" >> unset_test.txt
+
+
+    cat unset_test.txt
+
+    ```
+
+    '
+  hint: 'Use ''unset VARIABLE_NAME'' to remove a variable. Don''t use the $ when
+
+    unsetting - just the variable name.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/env_practice/unset_test.txt
+    matcher: exists
+  title: '**Removing Variables**'
+- id: path-introduction
+  description: '**Understanding the PATH Variable**
+
+
+    `PATH` is the most important environment variable. It tells the shell where
+
+    to look for commands.
+
+
+    **View your PATH:**
+
+    ```bash
+
+    echo $PATH
+
+    ```
+
+
+    You''ll see something like:
+
+    ```
+
+    /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    ```
+
+
+    **PATH is a colon-separated list of directories.**
+
+
+    When you type a command like `ls`, the shell searches these directories
+
+    in order until it finds the executable.
+
+
+    **Finding where commands are:**
+
+    ```bash
+
+    # Which shows the full path of a command
+
+    which ls
+
+    which bash
+
+    which cat
+
+
+    # Type shows more details
+
+    type ls
+
+    type cd  # cd is a built-in, not in PATH!
+
+    ```
+
+
+    **Task:** Explore your PATH.
+
+
+    ```bash
+
+    # Save PATH analysis
+
+    cat > path_analysis.txt << ''EOF''
+
+    PATH Analysis
+
+    =============
+
+
+    My PATH directories:
+
+    EOF
+
+
+    # Split PATH into lines (replace : with newline)
+
+    echo "$PATH" | tr '':'' ''\n'' >> path_analysis.txt
+
+
+    echo "" >> path_analysis.txt
+
+    echo "Common command locations:" >> path_analysis.txt
+
+    which ls >> path_analysis.txt
+
+    which bash >> path_analysis.txt
+
+    which cat >> path_analysis.txt
+
+
+    cat path_analysis.txt
+
+    ```
+
+    '
+  hint: 'The PATH variable contains directories separated by colons (:).
+
+    Use ''which command'' to see where a command is located.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/env_practice/path_analysis.txt
+    matcher: exists
+  title: '**Understanding the PATH Variable**'
+- id: variable-best-practices
+  description: "**Environment Variable Best Practices**\n\n**Naming conventions:**\n\
+    ```bash\n# Good - uppercase for environment variables\nexport DATABASE_URL=\"\
+    localhost\"\nexport API_KEY=\"secret123\"\n\n# Good - lowercase for local shell\
+    \ variables\nmy_temp_var=\"temporary\"\ncounter=0\n\n# Valid but avoid - mixed\
+    \ case can be confusing\nMyVariable=\"mixed\"\n```\n\n**Important rules:**\n1.\
+    \ NO spaces around the equals sign\n   - ✓ `VAR=value`\n   - ✗ `VAR = value`\n\
+    \n2. Quote values with spaces\n   - ✓ `MESSAGE=\"Hello World\"`\n   - ✗ `MESSAGE=Hello\
+    \ World`\n\n3. Use braces for clarity\n   - ✓ `echo \"${PATH}/bin\"`\n   - ✓ `echo\
+    \ \"$PATHextra\"` won't work!\n   - ✓ `echo \"${PATH}extra\"` works!\n\n**Task:**\
+    \ Create a summary document.\n\n```bash\ncat > best_practices.txt << 'EOF'\nEnvironment\
+    \ Variables Best Practices\n====================================\n\n1. Naming:\n\
+    \   - Use UPPERCASE for environment variables\n   - Use lowercase for local variables\n\
+    \   - Use underscores for word separation\n\n2. Setting:\n   - No spaces: VAR=value\
+    \ ✓\n   - Quote spaces: VAR=\"multiple words\" ✓\n   - Export for inheritance:\
+    \ export VAR=value\n\n3. Using:\n   - Reference with $: echo $VAR\n   - Use braces\
+    \ for clarity: ${VAR}\n   - Check if set: [ -z \"$VAR\" ]\n\n4. Unsetting:\n \
+    \  - Remove variable: unset VAR\n   - No dollar sign when unsetting\n\n5. Common\
+    \ Variables:\n   - PATH: Command search path\n   - HOME: User home directory\n\
+    \   - USER: Current username\n   - SHELL: Default shell\n   - EDITOR: Default\
+    \ text editor\nEOF\n\n# Add current environment snapshot\necho \"\" >> best_practices.txt\n\
+    echo \"Current Environment Snapshot:\" >> best_practices.txt\necho \"USER=$USER\"\
+    \ >> best_practices.txt\necho \"HOME=$HOME\" >> best_practices.txt\necho \"SHELL=$SHELL\"\
+    \ >> best_practices.txt\n\ncat best_practices.txt\n```\n\n**Congratulations!**\
+    \ You now understand environment variable fundamentals.\n\n**You learned:**\n\
+    - What environment variables are and why they matter\n- How to view variables\
+    \ (env, printenv, echo)\n- The difference between shell and environment variables\n\
+    - How to set and export variables\n- How to unset variables\n- Understanding the\
+    \ PATH variable\n- Best practices for naming and using variables\n\nThese skills\
+    \ are essential for configuring programs and managing your shell!\n"
+  hint: 'Remember: no spaces around = when setting variables, and always quote
+
+    values that contain spaces.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/env_practice/best_practices.txt
+    matcher: exists
+  title: '**Environment Variable Best Practices**'
+completion:
+  message: Congratulations! You've completed this beginner mission.
+  xp: 200
+  unlocks: []

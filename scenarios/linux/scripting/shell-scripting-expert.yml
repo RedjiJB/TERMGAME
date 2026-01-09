@@ -1,0 +1,253 @@
+mission:
+  id: shell-scripting-expert
+  title: 'Expert Shell Scripting: System Tools and Automation'
+  difficulty: advanced
+  description: 'Build sophisticated system administration tools using advanced bash
+    features.
+
+    Create deployment automation, log analyzers, and system health monitors that
+
+    professionals use in production environments.
+
+
+    Master expert-level scripting for real-world system administration!
+
+    '
+  estimated_time: 60
+  xp_reward: 750
+  tags:
+  - shell-scripting
+  - bash
+  - automation
+  - system-admin
+  - expert
+  - scripting
+environment:
+  setup:
+  - apt-get update && apt-get install -y \
+  - bash \
+  - coreutils \
+  - procps \
+  - curl \
+  - jq
+  image: ubuntu:22.04
+steps:
+- id: log-analyzer
+  description: "**Building a Log Analyzer**\n\n**Task:** Create a comprehensive log\
+    \ analysis tool.\n\n```bash\nmkdir -p ~/expert_scripting\ncd ~/expert_scripting\n\
+    \n# Create sample logs\ncat > application.log << 'EOF'\n2024-01-09 10:00:15 INFO\
+    \ User login: alice from 192.168.1.100\n2024-01-09 10:01:22 ERROR Database connection\
+    \ failed: timeout\n2024-01-09 10:01:25 INFO Retry attempt 1\n2024-01-09 10:01:30\
+    \ ERROR Database connection failed: timeout\n2024-01-09 10:02:10 INFO User login:\
+    \ bob from 192.168.1.101\n2024-01-09 10:03:45 WARNING High memory usage: 85%\n\
+    2024-01-09 10:04:12 ERROR API request failed: 500 Internal Server Error\n2024-01-09\
+    \ 10:05:00 INFO User logout: alice\n2024-01-09 10:06:33 ERROR Database connection\
+    \ failed: timeout\n2024-01-09 10:07:15 WARNING Disk usage above 80%\nEOF\n\ncat\
+    \ > log_analyzer.sh << 'EOF'\n#!/bin/bash\n# Advanced log analyzer\n\nset -euo\
+    \ pipefail\n\nLOG_FILE=\"${1:-application.log}\"\nREPORT_FILE=\"log_analysis_report.txt\"\
+    \n\n# Initialize report\ncat > \"$REPORT_FILE\" << 'HEADER'\n========================================\n\
+    LOG ANALYSIS REPORT\n========================================\nHEADER\n\necho\
+    \ \"Generated: $(date)\" >> \"$REPORT_FILE\"\necho \"Log file: $LOG_FILE\" >>\
+    \ \"$REPORT_FILE\"\necho \"\" >> \"$REPORT_FILE\"\n\n# Overall statistics\n{\n\
+    \  echo \"=== OVERALL STATISTICS ===\"\n  echo \"Total lines: $(wc -l < \"$LOG_FILE\"\
+    )\"\n  echo \"ERROR count: $(grep -c \"ERROR\" \"$LOG_FILE\" || echo 0)\"\n  echo\
+    \ \"WARNING count: $(grep -c \"WARNING\" \"$LOG_FILE\" || echo 0)\"\n  echo \"\
+    INFO count: $(grep -c \"INFO\" \"$LOG_FILE\" || echo 0)\"\n  echo \"\"\n} >> \"\
+    $REPORT_FILE\"\n\n# Error breakdown\n{\n  echo \"=== ERROR BREAKDOWN ===\"\n \
+    \ grep \"ERROR\" \"$LOG_FILE\" | \\\n    awk -F': ' '{print $2}' | \\\n    sort\
+    \ | uniq -c | sort -rn | \\\n    awk '{printf \"  %3d × %s\\n\", $1, substr($0,\
+    \ index($0,$2))}'\n  echo \"\"\n} >> \"$REPORT_FILE\"\n\n# Timeline analysis\n\
+    {\n  echo \"=== EVENTS PER HOUR ===\"\n  awk '{print $2}' \"$LOG_FILE\" | \\\n\
+    \    cut -d: -f1 | \\\n    sort | uniq -c | \\\n    awk '{printf \"  %s:00 - %3d\
+    \ events\\n\", $2, $1}'\n  echo \"\"\n} >> \"$REPORT_FILE\"\n\n# IP analysis\n\
+    {\n  echo \"=== UNIQUE IPS ===\"\n  grep -oP '\\d+\\.\\d+\\.\\d+\\.\\d+' \"$LOG_FILE\"\
+    \ | \\\n    sort -u | \\\n    awk '{printf \"  %s\\n\", $1}'\n  echo \"\"\n} >>\
+    \ \"$REPORT_FILE\"\n\n# Critical issues\n{\n  echo \"=== CRITICAL ISSUES (Repeated\
+    \ Errors) ===\"\n  grep \"ERROR\" \"$LOG_FILE\" | \\\n    awk -F': ' '{print $2}'\
+    \ | \\\n    sort | uniq -c | \\\n    awk '$1 >= 2 {printf \"  ⚠️  %s (occurred\
+    \ %d times)\\n\", substr($0, index($0,$2)), $1}'\n  echo \"\"\n} >> \"$REPORT_FILE\"\
+    \n\necho \"Analysis complete: $REPORT_FILE\"\nEOF\n\nchmod +x log_analyzer.sh\n\
+    \necho \"Log Analyzer Output\" > analyzer_demo.txt\necho \"===================\"\
+    \ >> analyzer_demo.txt\n./log_analyzer.sh >> analyzer_demo.txt\necho \"\" >> analyzer_demo.txt\n\
+    echo \"Generated report:\" >> analyzer_demo.txt\ncat log_analysis_report.txt >>\
+    \ analyzer_demo.txt\n\ncat analyzer_demo.txt\n```\n"
+  hint: 'Combine grep, awk, sort, uniq for analysis. Use awk -F to split on custom
+
+    delimiters. Build reports incrementally, testing each section separately.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/expert_scripting/analyzer_demo.txt
+    matcher: exists
+  title: '**Building a Log Analyzer**'
+- id: deployment-automation
+  description: "**Deployment Automation Script**\n\n**Task:** Create a deployment\
+    \ automation tool.\n\n```bash\ncat > deploy.sh << 'EOF'\n#!/bin/bash\n# Deployment\
+    \ automation script\n\nset -euo pipefail\n\n# Configuration\nAPP_NAME=\"myapp\"\
+    \nDEPLOY_DIR=\"/tmp/deploy\"\nBACKUP_DIR=\"/tmp/backups\"\nROLLBACK_ENABLED=true\n\
+    \n# Colors\nGREEN='\\033[0;32m'\nRED='\\033[0;31m'\nYELLOW='\\033[0;33m'\nNC='\\\
+    033[0m'\n\n# Logging\nlog() {\n  echo -e \"${GREEN}[$(date '+%H:%M:%S')]${NC}\
+    \ $*\"\n}\n\nerror() {\n  echo -e \"${RED}[ERROR]${NC} $*\" >&2\n}\n\nwarn() {\n\
+    \  echo -e \"${YELLOW}[WARN]${NC} $*\"\n}\n\n# Pre-flight checks\npreflight_checks()\
+    \ {\n  log \"Running pre-flight checks...\"\n\n  # Check dependencies\n  local\
+    \ deps=(tar gzip)\n  for cmd in \"${deps[@]}\"; do\n    if ! command -v \"$cmd\"\
+    \ &> /dev/null; then\n      error \"Missing dependency: $cmd\"\n      return 1\n\
+    \    fi\n  done\n\n  # Check directories\n  mkdir -p \"$DEPLOY_DIR\" \"$BACKUP_DIR\"\
+    \n\n  log \"✓ Pre-flight checks passed\"\n  return 0\n}\n\n# Backup current version\n\
+    backup_current() {\n  log \"Creating backup...\"\n\n  local backup_name=\"${APP_NAME}_$(date\
+    \ +%Y%m%d_%H%M%S).tar.gz\"\n\n  if [ -d \"$DEPLOY_DIR/$APP_NAME\" ]; then\n  \
+    \  tar -czf \"$BACKUP_DIR/$backup_name\" -C \"$DEPLOY_DIR\" \"$APP_NAME\" 2>/dev/null\n\
+    \    log \"✓ Backup created: $backup_name\"\n    echo \"$backup_name\" > \"$BACKUP_DIR/latest_backup.txt\"\
+    \n  else\n    warn \"No existing deployment to backup\"\n  fi\n\n  return 0\n\
+    }\n\n# Deploy new version\ndeploy_new_version() {\n  log \"Deploying new version...\"\
+    \n\n  # Create new app directory\n  mkdir -p \"$DEPLOY_DIR/$APP_NAME\"\n\n  #\
+    \ Simulate deployment\n  echo \"version: 2.0\" > \"$DEPLOY_DIR/$APP_NAME/version.txt\"\
+    \n  echo \"deployed: $(date)\" >> \"$DEPLOY_DIR/$APP_NAME/version.txt\"\n\n  log\
+    \ \"✓ Deployment complete\"\n  return 0\n}\n\n# Health check\nhealth_check() {\n\
+    \  log \"Running health check...\"\n\n  if [ -f \"$DEPLOY_DIR/$APP_NAME/version.txt\"\
+    \ ]; then\n    log \"✓ Health check passed\"\n    return 0\n  else\n    error\
+    \ \"Health check failed\"\n    return 1\n  fi\n}\n\n# Rollback\nrollback() {\n\
+    \  warn \"Initiating rollback...\"\n\n  if [ ! -f \"$BACKUP_DIR/latest_backup.txt\"\
+    \ ]; then\n    error \"No backup available for rollback\"\n    return 1\n  fi\n\
+    \n  local backup_file=$(cat \"$BACKUP_DIR/latest_backup.txt\")\n\n  rm -rf \"\
+    $DEPLOY_DIR/$APP_NAME\"\n  tar -xzf \"$BACKUP_DIR/$backup_file\" -C \"$DEPLOY_DIR\"\
+    \ 2>/dev/null\n\n  log \"✓ Rollback complete\"\n  return 0\n}\n\n# Main deployment\
+    \ flow\nmain() {\n  log \"Starting deployment of $APP_NAME\"\n  echo \"\"\n\n\
+    \  # Pre-flight\n  if ! preflight_checks; then\n    error \"Pre-flight checks\
+    \ failed\"\n    exit 1\n  fi\n\n  # Backup\n  if ! backup_current; then\n    error\
+    \ \"Backup failed\"\n    exit 1\n  fi\n\n  # Deploy\n  if ! deploy_new_version;\
+    \ then\n    error \"Deployment failed\"\n    if [ \"$ROLLBACK_ENABLED\" = true\
+    \ ]; then\n      rollback\n    fi\n    exit 1\n  fi\n\n  # Health check\n  if\
+    \ ! health_check; then\n    error \"Health check failed\"\n    if [ \"$ROLLBACK_ENABLED\"\
+    \ = true ]; then\n      rollback\n      exit 1\n    fi\n  fi\n\n  echo \"\"\n\
+    \  log \"\U0001F389 Deployment successful!\"\n  log \"Application: $APP_NAME\"\
+    \n  log \"Location: $DEPLOY_DIR/$APP_NAME\"\n}\n\nmain \"$@\"\nEOF\n\nchmod +x\
+    \ deploy.sh\n\necho \"Deployment Script Output\" > deploy_demo.txt\necho \"========================\"\
+    \ >> deploy_demo.txt\n./deploy.sh >> deploy_demo.txt 2>&1\n\ncat deploy_demo.txt\n\
+    ```\n"
+  hint: 'Deployment scripts need: pre-flight checks, backups, health checks, and
+
+    rollback capability. Always validate before executing destructive operations.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/expert_scripting/deploy_demo.txt
+    matcher: exists
+  title: '**Deployment Automation Script**'
+- id: system-health-monitor
+  description: "**Comprehensive System Health Monitor**\n\n**Task:** Build a complete\
+    \ system health monitoring tool.\n\n```bash\ncat > health_monitor.sh << 'EOF'\n\
+    #!/bin/bash\n# System health monitoring tool\n\nset -euo pipefail\n\n# Thresholds\n\
+    declare -A THRESHOLDS=(\n  [cpu]=80\n  [memory]=80\n  [disk]=80\n  [load]=4.0\n\
+    )\n\n# Status tracking\ndeclare -A STATUS\ndeclare -a ALERTS=()\n\n# Get CPU usage\n\
+    check_cpu() {\n  local cpu_idle=$(top -bn1 | grep \"Cpu(s)\" | awk '{print $8}'\
+    \ | cut -d'%' -f1 2>/dev/null || echo \"100\")\n  local cpu_used=$(echo \"100\
+    \ - $cpu_idle\" | bc 2>/dev/null || echo \"0\")\n  local cpu_int=${cpu_used%.*}\n\
+    \n  if (( cpu_int > THRESHOLDS[cpu] )); then\n    STATUS[cpu]=\"CRITICAL\"\n \
+    \   ALERTS+=(\"CPU usage at ${cpu_int}%\")\n  else\n    STATUS[cpu]=\"OK\"\n \
+    \ fi\n\n  echo \"$cpu_int\"\n}\n\n# Get memory usage\ncheck_memory() {\n  local\
+    \ mem_info=$(free | grep Mem)\n  local total=$(echo \"$mem_info\" | awk '{print\
+    \ $2}')\n  local used=$(echo \"$mem_info\" | awk '{print $3}')\n  local percent=$((used\
+    \ * 100 / total))\n\n  if (( percent > THRESHOLDS[memory] )); then\n    STATUS[memory]=\"\
+    CRITICAL\"\n    ALERTS+=(\"Memory usage at ${percent}%\")\n  else\n    STATUS[memory]=\"\
+    OK\"\n  fi\n\n  echo \"$percent\"\n}\n\n# Get disk usage\ncheck_disk() {\n  local\
+    \ disk_percent=$(df -h / | awk 'NR==2 {print $5}' | tr -d '%')\n\n  if (( disk_percent\
+    \ > THRESHOLDS[disk] )); then\n    STATUS[disk]=\"CRITICAL\"\n    ALERTS+=(\"\
+    Disk usage at ${disk_percent}%\")\n  else\n    STATUS[disk]=\"OK\"\n  fi\n\n \
+    \ echo \"$disk_percent\"\n}\n\n# Get load average\ncheck_load() {\n  local load=$(uptime\
+    \ | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',')\n  STATUS[load]=\"\
+    OK\"\n  echo \"$load\"\n}\n\n# Generate JSON report\ngenerate_json_report() {\n\
+    \  local cpu_val=\"$1\"\n  local mem_val=\"$2\"\n  local disk_val=\"$3\"\n  local\
+    \ load_val=\"$4\"\n\n  cat << JSON\n{\n  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"\
+    ,\n  \"hostname\": \"$(hostname)\",\n  \"metrics\": {\n    \"cpu_percent\": $cpu_val,\n\
+    \    \"memory_percent\": $mem_val,\n    \"disk_percent\": $disk_val,\n    \"load_average\"\
+    : $load_val\n  },\n  \"status\": {\n    \"cpu\": \"${STATUS[cpu]}\",\n    \"memory\"\
+    : \"${STATUS[memory]}\",\n    \"disk\": \"${STATUS[disk]}\",\n    \"load\": \"\
+    ${STATUS[load]}\"\n  },\n  \"alerts\": [\n$(printf '    \"%s\"' \"${ALERTS[@]}\"\
+    \ | paste -sd, -)\n  ]\n}\nJSON\n}\n\n# Main\nmain() {\n  echo \"=== SYSTEM HEALTH\
+    \ MONITOR ===\"\n  echo \"Time: $(date)\"\n  echo \"\"\n\n  # Collect metrics\n\
+    \  local cpu=$(check_cpu)\n  local mem=$(check_memory)\n  local disk=$(check_disk)\n\
+    \  local load=$(check_load)\n\n  # Display\n  printf \"CPU Usage:    %3d%% [%s]\\\
+    n\" \"$cpu\" \"${STATUS[cpu]}\"\n  printf \"Memory Usage: %3d%% [%s]\\n\" \"$mem\"\
+    \ \"${STATUS[memory]}\"\n  printf \"Disk Usage:   %3d%% [%s]\\n\" \"$disk\" \"\
+    ${STATUS[disk]}\"\n  printf \"Load Average: %s [%s]\\n\" \"$load\" \"${STATUS[load]}\"\
+    \n\n  # Alerts\n  if [ ${#ALERTS[@]} -gt 0 ]; then\n    echo \"\"\n    echo \"\
+    ⚠️  ALERTS:\"\n    for alert in \"${ALERTS[@]}\"; do\n      echo \"  - $alert\"\
+    \n    done\n  fi\n\n  # JSON report\n  echo \"\"\n  echo \"JSON Report:\"\n  generate_json_report\
+    \ \"$cpu\" \"$mem\" \"$disk\" \"$load\"\n}\n\nmain \"$@\"\nEOF\n\nchmod +x health_monitor.sh\n\
+    \necho \"Health Monitor Output\" > health_demo.txt\necho \"=====================\"\
+    \ >> health_demo.txt\n./health_monitor.sh >> health_demo.txt 2>&1\n\ncat health_demo.txt\n\
+    ```\n"
+  hint: 'Use associative arrays for structured data. Collect all metrics first,
+
+    then generate reports. Support multiple output formats (text, JSON).
+
+    '
+  validation:
+    type: file-exists
+    path: ~/expert_scripting/health_demo.txt
+    matcher: exists
+  title: '**Comprehensive System Health Monitor**'
+- id: expert-integration
+  description: "**Building an Integration Framework**\n\n**Task:** Create a tool that\
+    \ ties everything together.\n\n```bash\ncat > ops_toolkit.sh << 'EOF'\n#!/bin/bash\n\
+    # Operations toolkit - master script\n\nset -euo pipefail\n\nTOOLKIT_VERSION=\"\
+    1.0.0\"\n\nusage() {\n  cat << 'USAGE'\nOperations Toolkit v1.0.0\n==========================\n\
+    \nUsage: ops_toolkit.sh <command> [options]\n\nCommands:\n  analyze <logfile>\
+    \    - Analyze log files\n  deploy               - Run deployment\n  health  \
+    \             - System health check\n  report               - Generate full report\n\
+    \nOptions:\n  -h, --help          - Show this help\n  -v, --version       - Show\
+    \ version\n\nExamples:\n  ops_toolkit.sh analyze application.log\n  ops_toolkit.sh\
+    \ health\n  ops_toolkit.sh report\nUSAGE\n}\n\n# Generate comprehensive report\n\
+    generate_report() {\n  local report=\"ops_report_$(date +%Y%m%d_%H%M%S).txt\"\n\
+    \n  {\n    echo \"========================================\"\n    echo \"  OPERATIONS\
+    \ REPORT\"\n    echo \"========================================\"\n    echo \"\
+    Generated: $(date)\"\n    echo \"Hostname: $(hostname)\"\n    echo \"\"\n\n  \
+    \  echo \"=== SYSTEM HEALTH ===\"\n    if [ -x \"./health_monitor.sh\" ]; then\n\
+    \      ./health_monitor.sh 2>&1 | head -10\n    else\n      echo \"Health monitor\
+    \ not available\"\n    fi\n\n    echo \"\"\n    echo \"=== DISK USAGE ===\"\n\
+    \    df -h / | tail -1\n\n    echo \"\"\n    echo \"=== TOP PROCESSES ===\"\n\
+    \    ps aux --sort=-%cpu | head -4 | tail -3\n\n    echo \"\"\n    echo \"===\
+    \ RECOMMENDATIONS ===\"\n    echo \"✓ Regular backups configured\"\n    echo \"\
+    ✓ Monitoring active\"\n    echo \"⚠ Review disk usage monthly\"\n\n    echo \"\
+    \"\n    echo \"Report saved: $report\"\n  } | tee \"$report\"\n}\n\n# Main dispatcher\n\
+    main() {\n  case \"${1:-}\" in\n    analyze)\n      shift\n      if [ -x \"./log_analyzer.sh\"\
+    \ ]; then\n        ./log_analyzer.sh \"$@\"\n      else\n        echo \"Log analyzer\
+    \ not available\"\n        exit 1\n      fi\n      ;;\n    deploy)\n      if [\
+    \ -x \"./deploy.sh\" ]; then\n        ./deploy.sh\n      else\n        echo \"\
+    Deploy script not available\"\n        exit 1\n      fi\n      ;;\n    health)\n\
+    \      if [ -x \"./health_monitor.sh\" ]; then\n        ./health_monitor.sh\n\
+    \      else\n        echo \"Health monitor not available\"\n        exit 1\n \
+    \     fi\n      ;;\n    report)\n      generate_report\n      ;;\n    -h|--help)\n\
+    \      usage\n      ;;\n    -v|--version)\n      echo \"Operations Toolkit v$TOOLKIT_VERSION\"\
+    \n      ;;\n    *)\n      echo \"Unknown command: ${1:-}\"\n      echo \"\"\n\
+    \      usage\n      exit 1\n      ;;\n  esac\n}\n\nmain \"$@\"\nEOF\n\nchmod +x\
+    \ ops_toolkit.sh\n\necho \"Operations Toolkit Demo\" > toolkit_demo.txt\necho\
+    \ \"=======================\" >> toolkit_demo.txt\necho \"\" >> toolkit_demo.txt\n\
+    echo \"Running: ops_toolkit.sh report\" >> toolkit_demo.txt\necho \"\" >> toolkit_demo.txt\n\
+    ./ops_toolkit.sh report >> toolkit_demo.txt 2>&1\n\ncat toolkit_demo.txt\n```\n\
+    \n**Congratulations!** You've mastered expert shell scripting!\n\n**You built:**\n\
+    - Log analyzer with statistics and patterns\n- Deployment automation with rollback\n\
+    - System health monitor with alerts\n- Integrated operations toolkit\n\n**Expert\
+    \ techniques:**\n- Comprehensive error handling\n- Structured logging\n- Multi-format\
+    \ output (text, JSON)\n- Backup and rollback strategies\n- Health checks and validation\n\
+    - Integration frameworks\n\n**Production checklist:**\n✓ Error handling (set -euo\
+    \ pipefail)\n✓ Logging and timestamps\n✓ Input validation\n✓ Backup before changes\n\
+    ✓ Health checks\n✓ Rollback capability\n✓ Documentation\n✓ Exit codes\n\nYou can\
+    \ now build production-grade system tools!\n"
+  hint: 'Master scripts dispatch to specialized tools. Use consistent interfaces,
+
+    proper exit codes, and comprehensive error handling throughout.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/expert_scripting/toolkit_demo.txt
+    matcher: exists
+  title: '**Building an Integration Framework**'
+completion:
+  message: Congratulations! You've completed this advanced mission.
+  xp: 550
+  unlocks: []

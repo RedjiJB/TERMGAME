@@ -1,0 +1,666 @@
+mission:
+  id: disk-analysis-intermediate
+  title: Advanced Disk Analysis and Optimization
+  difficulty: intermediate
+  description: 'Go beyond basics with advanced disk analysis techniques. Learn to
+    use ncdu
+
+    for interactive exploration, understand inodes, and optimize disk usage with
+
+    compression and deduplication strategies.
+
+
+    Essential skills for proactive disk space management!
+
+    '
+  estimated_time: 35
+  xp_reward: 300
+  tags:
+  - disk
+  - storage
+  - optimization
+  - ncdu
+  - analysis
+  - disk-management
+environment:
+  setup:
+  - apt-get update && apt-get install -y \
+  - coreutils \
+  - ncdu \
+  - tree \
+  - bzip2 \
+  - xz-utils
+  image: ubuntu:22.04
+steps:
+- id: interactive-analysis-ncdu
+  description: '**Interactive Disk Analysis with ncdu**
+
+
+    `ncdu` (NCurses Disk Usage) is an interactive disk usage analyzer with a
+
+    friendly interface.
+
+
+    **Why ncdu is better than du:**
+
+    - Interactive navigation
+
+    - Visual representation
+
+    - Quick deletion of files
+
+    - Sorts by size automatically
+
+    - Shows percentages
+
+
+    **Basic usage:**
+
+    ```bash
+
+    ncdu /path              # Analyze path
+
+    ncdu                    # Analyze current directory
+
+    ```
+
+
+    **Navigation:**
+
+    - Arrow keys: Navigate
+
+    - Enter: Enter directory
+
+    - ''d'': Delete selected item
+
+    - ''q'': Quit
+
+
+    **Task:** Use ncdu for analysis.
+
+
+    ```bash
+
+    mkdir -p ~/disk_analysis
+
+    cd ~/disk_analysis
+
+
+    # Create test directory structure
+
+    mkdir -p projects/{proj1,proj2,proj3}/{src,docs,build}
+
+
+    # Create files of various sizes
+
+    dd if=/dev/zero of=projects/proj1/build/output.bin bs=1M count=15 2>/dev/null
+
+    dd if=/dev/zero of=projects/proj2/build/output.bin bs=1M count=8 2>/dev/null
+
+    dd if=/dev/zero of=projects/proj3/build/output.bin bs=1M count=12 2>/dev/null
+
+
+    echo "Source code" > projects/proj1/src/main.c
+
+    echo "Documentation" > projects/proj1/docs/README.md
+
+
+    # Since ncdu is interactive, we''ll document its usage
+
+    echo "NCurses Disk Usage (ncdu) Guide" > ncdu_guide.txt
+
+    echo "===============================" >> ncdu_guide.txt
+
+    echo "" >> ncdu_guide.txt
+
+
+    echo "To analyze the projects directory:" >> ncdu_guide.txt
+
+    echo "  ncdu projects" >> ncdu_guide.txt
+
+    echo "" >> ncdu_guide.txt
+
+
+    echo "Navigation:" >> ncdu_guide.txt
+
+    echo "  ↑/↓      Navigate items" >> ncdu_guide.txt
+
+    echo "  Enter    Enter directory" >> ncdu_guide.txt
+
+    echo "  n        Sort by name" >> ncdu_guide.txt
+
+    echo "  s        Sort by size" >> ncdu_guide.txt
+
+    echo "  d        Delete item (careful!)" >> ncdu_guide.txt
+
+    echo "  q        Quit" >> ncdu_guide.txt
+
+    echo "" >> ncdu_guide.txt
+
+
+    echo "Advantages over du:" >> ncdu_guide.txt
+
+    echo "  ✓ Visual percentage bars" >> ncdu_guide.txt
+
+    echo "  ✓ Interactive navigation" >> ncdu_guide.txt
+
+    echo "  ✓ Quick file deletion" >> ncdu_guide.txt
+
+    echo "  ✓ Automatic sorting" >> ncdu_guide.txt
+
+
+    # Alternative: Show du output for comparison
+
+    echo "" >> ncdu_guide.txt
+
+    echo "Comparison with du -sh:" >> ncdu_guide.txt
+
+    du -sh projects/* >> ncdu_guide.txt
+
+
+    cat ncdu_guide.txt
+
+    ```
+
+    '
+  hint: 'ncdu is interactive and much easier than du for exploring large directory
+
+    trees. It scans once, then lets you navigate quickly.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/disk_analysis/ncdu_guide.txt
+    matcher: exists
+  title: '**Interactive Disk Analysis with ncdu**'
+- id: inode-usage-analysis
+  description: "**Understanding and Monitoring Inodes**\n\nInodes store file metadata.\
+    \ A filesystem can run out of inodes before\nrunning out of disk space!\n\n**Checking\
+    \ inode usage:**\n```bash\ndf -i           # Show inode usage\ndf -ih        \
+    \  # Human-readable\n```\n\n**When do you run out of inodes?**\n- Millions of\
+    \ small files (each file needs 1 inode)\n- Email servers (many small messages)\n\
+    - Development directories (node_modules, build artifacts)\n\n**Finding directories\
+    \ with many files:**\n```bash\n# Count files in subdirectories\nfor dir in */;\
+    \ do\n  echo \"$dir: $(find \"$dir\" -type f | wc -l) files\"\ndone | sort -t:\
+    \ -k2 -rn\n```\n\n**Task:** Analyze inode usage.\n\n```bash\n# Create scenario\
+    \ with many small files\nmkdir -p manyfiles\nfor i in {1..100}; do\n  echo \"\
+    file $i\" > manyfiles/file_$i.txt\ndone\n\nmkdir -p fewfiles\ndd if=/dev/zero\
+    \ of=fewfiles/large.bin bs=1M count=10 2>/dev/null\n\n# Analyze\necho \"Inode\
+    \ Usage Analysis\" > inode_analysis.txt\necho \"====================\" >> inode_analysis.txt\n\
+    echo \"\" >> inode_analysis.txt\n\necho \"Filesystem inode usage:\" >> inode_analysis.txt\n\
+    df -ih . >> inode_analysis.txt\n\necho \"\" >> inode_analysis.txt\necho \"Comparison:\"\
+    \ >> inode_analysis.txt\n\necho \"Directory with many small files:\" >> inode_analysis.txt\n\
+    echo \"  Files: $(find manyfiles -type f | wc -l)\" >> inode_analysis.txt\necho\
+    \ \"  Disk: $(du -sh manyfiles | awk '{print $1}')\" >> inode_analysis.txt\necho\
+    \ \"  Inodes: $(find manyfiles -type f | wc -l)\" >> inode_analysis.txt\n\necho\
+    \ \"\" >> inode_analysis.txt\necho \"Directory with few large files:\" >> inode_analysis.txt\n\
+    echo \"  Files: $(find fewfiles -type f | wc -l)\" >> inode_analysis.txt\necho\
+    \ \"  Disk: $(du -sh fewfiles | awk '{print $1}')\" >> inode_analysis.txt\necho\
+    \ \"  Inodes: $(find fewfiles -type f | wc -l)\" >> inode_analysis.txt\n\necho\
+    \ \"\" >> inode_analysis.txt\necho \"Key insight: Small files use same inodes\
+    \ as large files!\" >> inode_analysis.txt\necho \"100 small files = 100 inodes\
+    \ (regardless of size)\" >> inode_analysis.txt\n\ncat inode_analysis.txt\n```\n"
+  hint: 'Use ''df -i'' to check inode usage. Each file (regardless of size) uses
+
+    exactly one inode. Many small files can exhaust inodes.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/disk_analysis/inode_analysis.txt
+    matcher: exists
+  title: '**Understanding and Monitoring Inodes**'
+- id: compression-strategies
+  description: "**Using Compression to Save Space**\n\nCompression reduces file size\
+    \ at the cost of CPU time.\n\n**Common compression tools:**\n```bash\ngzip file.txt\
+    \           # Creates file.txt.gz\nbzip2 file.txt          # Creates file.txt.bz2\
+    \ (better compression)\nxz file.txt             # Creates file.txt.xz (best compression)\n\
+    \ngunzip file.txt.gz      # Decompress gzip\nbunzip2 file.txt.bz2    # Decompress\
+    \ bzip2\nunxz file.txt.xz        # Decompress xz\n```\n\n**Compression comparison:**\n\
+    - gzip: Fast, good compression (most common)\n- bzip2: Slower, better compression\n\
+    - xz: Slowest, best compression\n\n**For directories:**\n```bash\ntar -czf archive.tar.gz\
+    \ directory/      # gzip\ntar -cjf archive.tar.bz2 directory/     # bzip2\ntar\
+    \ -cJf archive.tar.xz directory/      # xz\n```\n\n**Task:** Compare compression\
+    \ methods.\n\n```bash\ncd ~/disk_analysis\n\n# Create test file\ndd if=/dev/zero\
+    \ of=testfile.bin bs=1M count=10 2>/dev/null\n\n# Copy for each compression test\n\
+    cp testfile.bin test_gzip.bin\ncp testfile.bin test_bzip2.bin\ncp testfile.bin\
+    \ test_xz.bin\n\n# Compress with different methods\ngzip test_gzip.bin\nbzip2\
+    \ test_bzip2.bin\nxz test_xz.bin\n\n# Compare sizes\necho \"Compression Comparison\"\
+    \ > compression_test.txt\necho \"======================\" >> compression_test.txt\n\
+    echo \"\" >> compression_test.txt\n\necho \"Original file:\" >> compression_test.txt\n\
+    ls -lh testfile.bin >> compression_test.txt\n\necho \"\" >> compression_test.txt\n\
+    echo \"Compressed versions:\" >> compression_test.txt\nls -lh test_*.bin.* >>\
+    \ compression_test.txt\n\necho \"\" >> compression_test.txt\necho \"Compression\
+    \ ratios:\" >> compression_test.txt\n\norig_size=$(stat -f%z testfile.bin 2>/dev/null\
+    \ || stat -c%s testfile.bin)\n\nfor compressed in test_*.bin.*; do\n  comp_size=$(stat\
+    \ -f%z \"$compressed\" 2>/dev/null || stat -c%s \"$compressed\")\n  ratio=$(echo\
+    \ \"scale=2; ($orig_size - $comp_size) * 100 / $orig_size\" | bc 2>/dev/null ||\
+    \ echo \"N/A\")\n  echo \"$compressed: ${ratio}% reduction\" >> compression_test.txt\n\
+    done\n\ncat compression_test.txt\n```\n"
+  hint: 'Use gzip for speed, xz for maximum compression. tar with -z (gzip),
+
+    -j (bzip2), or -J (xz) compresses archives automatically.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/disk_analysis/compression_test.txt
+    matcher: exists
+  title: '**Using Compression to Save Space**'
+- id: finding-duplicates
+  description: "**Identifying Duplicate Files**\n\nDuplicate files waste space. Finding\
+    \ them can free up significant storage.\n\n**Simple duplicate detection:**\n```bash\n\
+    # Find files with same size\nfind /path -type f -exec ls -l {} \\; | awk '{print\
+    \ $5, $9}' | sort -n\n\n# Find files with same name\nfind /path -type f -printf\
+    \ \"%f\\n\" | sort | uniq -d\n```\n\n**Using checksums (more accurate):**\n```bash\n\
+    # MD5 checksum to identify identical files\nfind /path -type f -exec md5sum {}\
+    \ \\; | sort | uniq -w32 -D\n\n# Group by checksum\nfind /path -type f -exec md5sum\
+    \ {} \\; | sort | awk '{\n  if (checksum == $1) {\n    print prev;\n    print\
+    \ $0;\n  }\n  checksum = $1;\n  prev = $0;\n}'\n```\n\n**Task:** Detect duplicates.\n\
+    \n```bash\ncd ~/disk_analysis\n\n# Create test files with duplicates\nmkdir duplicates\n\
+    echo \"Unique content 1\" > duplicates/file1.txt\necho \"Unique content 2\" >\
+    \ duplicates/file2.txt\necho \"Duplicate content\" > duplicates/file3.txt\necho\
+    \ \"Duplicate content\" > duplicates/file4.txt\necho \"Duplicate content\" > duplicates/file5.txt\n\
+    \n# Find duplicates\necho \"Duplicate File Detection\" > duplicate_report.txt\n\
+    echo \"=======================\" >> duplicate_report.txt\necho \"\" >> duplicate_report.txt\n\
+    \necho \"All files in directory:\" >> duplicate_report.txt\nls -lh duplicates/\
+    \ >> duplicate_report.txt\n\necho \"\" >> duplicate_report.txt\necho \"File checksums\
+    \ (MD5):\" >> duplicate_report.txt\nmd5sum duplicates/* >> duplicate_report.txt\n\
+    \necho \"\" >> duplicate_report.txt\necho \"Grouping by checksum:\" >> duplicate_report.txt\n\
+    md5sum duplicates/* | sort | awk '{\n  if (checksum == $1) {\n    if (!printed)\
+    \ {\n      print \"Duplicate group:\";\n      print prev;\n      printed = 1;\n\
+    \    }\n    print $0;\n  } else {\n    checksum = $1;\n    prev = $0;\n    printed\
+    \ = 0;\n  }\n}' >> duplicate_report.txt\n\necho \"\" >> duplicate_report.txt\n\
+    echo \"Space savings potential:\" >> duplicate_report.txt\necho \"file3.txt, file4.txt,\
+    \ file5.txt are identical\" >> duplicate_report.txt\necho \"Keep 1, remove 2 =\
+    \ $(du -sh duplicates/file3.txt | awk '{print $1}') x 2 saved\" >> duplicate_report.txt\n\
+    \ncat duplicate_report.txt\n```\n"
+  hint: 'md5sum creates a unique fingerprint for each file. Files with identical
+
+    checksums are duplicates. Use ''sort'' to group them together.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/disk_analysis/duplicate_report.txt
+    matcher: exists
+  title: '**Identifying Duplicate Files**'
+- id: disk-usage-trends
+  description: '**Tracking Disk Usage Over Time**
+
+
+    Proactive monitoring helps prevent emergencies.
+
+
+    **Creating baseline snapshots:**
+
+    ```bash
+
+    # Save current state
+
+    du -sh /important/dirs/* > disk_snapshot_$(date +%Y%m%d).txt
+
+
+    # Compare snapshots
+
+    diff disk_snapshot_20240101.txt disk_snapshot_20240201.txt
+
+    ```
+
+
+    **Growth rate analysis:**
+
+    ```bash
+
+    # Find directories growing fastest
+
+    # Run weekly and compare
+
+    ```
+
+
+    **Task:** Create monitoring tools.
+
+
+    ```bash
+
+    cd ~/disk_analysis
+
+
+    # Create monitoring script
+
+    cat > disk_monitor.sh << ''EOF''
+
+    #!/bin/bash
+
+    # Disk usage monitoring script
+
+
+    SNAPSHOT_DIR="$HOME/disk_analysis/snapshots"
+
+    DATE=$(date +%Y%m%d_%H%M%S)
+
+
+    mkdir -p "$SNAPSHOT_DIR"
+
+
+    echo "=== Disk Usage Snapshot: $(date) ===" > "$SNAPSHOT_DIR/snapshot_$DATE.txt"
+
+    echo "" >> "$SNAPSHOT_DIR/snapshot_$DATE.txt"
+
+
+    # Overall filesystem usage
+
+    echo "Filesystem Usage:" >> "$SNAPSHOT_DIR/snapshot_$DATE.txt"
+
+    df -h / >> "$SNAPSHOT_DIR/snapshot_$DATE.txt"
+
+    echo "" >> "$SNAPSHOT_DIR/snapshot_$DATE.txt"
+
+
+    # Top directories
+
+    echo "Top 10 Directories by Size:" >> "$SNAPSHOT_DIR/snapshot_$DATE.txt"
+
+    du -sh ~/* 2>/dev/null | sort -rh | head -10 >> "$SNAPSHOT_DIR/snapshot_$DATE.txt"
+
+
+    echo "" >> "$SNAPSHOT_DIR/snapshot_$DATE.txt"
+
+    echo "Snapshot saved to: $SNAPSHOT_DIR/snapshot_$DATE.txt"
+
+    EOF
+
+
+    chmod +x disk_monitor.sh
+
+
+    # Run the monitor
+
+    ./disk_monitor.sh
+
+
+    # Create analysis report
+
+    echo "Disk Usage Monitoring Strategy" > monitoring_strategy.txt
+
+    echo "==============================" >> monitoring_strategy.txt
+
+    echo "" >> monitoring_strategy.txt
+
+
+    echo "Monitoring script created: disk_monitor.sh" >> monitoring_strategy.txt
+
+    echo "" >> monitoring_strategy.txt
+
+
+    echo "Usage:" >> monitoring_strategy.txt
+
+    echo "  ./disk_monitor.sh    # Create snapshot" >> monitoring_strategy.txt
+
+    echo "" >> monitoring_strategy.txt
+
+
+    echo "Schedule with cron:" >> monitoring_strategy.txt
+
+    echo "  # Daily at 2 AM" >> monitoring_strategy.txt
+
+    echo "  0 2 * * * $HOME/disk_analysis/disk_monitor.sh" >> monitoring_strategy.txt
+
+    echo "" >> monitoring_strategy.txt
+
+
+    echo "Analysis workflow:" >> monitoring_strategy.txt
+
+    echo "  1. Run daily/weekly snapshots" >> monitoring_strategy.txt
+
+    echo "  2. Compare snapshots to identify growth" >> monitoring_strategy.txt
+
+    echo "  3. Investigate rapidly growing directories" >> monitoring_strategy.txt
+
+    echo "  4. Clean up proactively before space runs out" >> monitoring_strategy.txt
+
+
+    echo "" >> monitoring_strategy.txt
+
+    echo "Snapshot created at:" >> monitoring_strategy.txt
+
+    ls -1t snapshots/ | head -1 >> monitoring_strategy.txt
+
+
+    cat monitoring_strategy.txt
+
+    ```
+
+    '
+  hint: 'Save du output regularly with timestamps. Use diff to compare and identify
+
+    which directories are growing. Automate with cron for regular monitoring.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/disk_analysis/monitoring_strategy.txt
+    matcher: exists
+  title: '**Tracking Disk Usage Over Time**'
+- id: optimization-best-practices
+  description: '**Disk Optimization Best Practices**
+
+
+    **Proactive strategies:**
+
+
+    **1. Regular cleanup schedule:**
+
+    - Logs: Keep 30 days max
+
+    - Temp files: Clean weekly
+
+    - Old backups: Archive or delete
+
+    - Package caches: Clean monthly
+
+
+    **2. Compression:**
+
+    - Compress old logs: `gzip /var/log/*.log`
+
+    - Archive inactive projects: `tar -czf project.tar.gz project/`
+
+    - Compress backups
+
+
+    **3. Monitoring thresholds:**
+
+    - Warning at 80% full
+
+    - Critical at 90% full
+
+    - Emergency at 95% full
+
+
+    **4. Efficient file organization:**
+
+    - Delete duplicates
+
+    - Consolidate scattered data
+
+    - Use symlinks for shared files
+
+
+    **Task:** Create optimization guide.
+
+
+    ```bash
+
+    cd ~/disk_analysis
+
+
+    cat > optimization_guide.txt << ''EOF''
+
+    Disk Optimization Best Practices
+
+    =================================
+
+
+    DAILY CHECKS:
+
+    □ df -h /                    # Check disk space
+
+    □ Review alerts/warnings
+
+
+    WEEKLY TASKS:
+
+    □ Clean /tmp directory
+
+    □ Review recent large files
+
+    □ Check log file sizes
+
+    □ Run duplicate finder
+
+
+    MONTHLY TASKS:
+
+    □ Deep directory analysis (ncdu)
+
+    □ Clean package cache (apt clean)
+
+    □ Archive old projects
+
+    □ Compress old logs
+
+    □ Review and delete old backups
+
+
+    THRESHOLDS:
+
+    - < 80%: Normal operation
+
+    - 80-90%: Warning, schedule cleanup
+
+    - 90-95%: Critical, immediate action
+
+    - > 95%: Emergency, aggressive cleanup
+
+
+    QUICK WIN COMMANDS:
+
+    # Find and remove old files
+
+    find /tmp -mtime +30 -delete
+
+
+    # Compress old logs
+
+    find /var/log -name "*.log" -mtime +7 -exec gzip {} \;
+
+
+    # Clean package cache
+
+    apt clean
+
+
+    # Find largest directories
+
+    du -sh /* 2>/dev/null | sort -rh | head -10
+
+
+    # Find largest files
+
+    find / -type f -size +100M 2>/dev/null
+
+
+    AUTOMATION:
+
+    - Set up cron jobs for monitoring
+
+    - Configure logrotate for automatic log compression
+
+    - Use tmpwatch/tmpreaper for /tmp cleanup
+
+    - Schedule regular backup cleanups
+
+
+    PREVENTION:
+
+    ✓ Monitor growth trends
+
+    ✓ Set up alerts before emergencies
+
+    ✓ Educate users about space usage
+
+    ✓ Implement quotas if needed
+
+    ✓ Regular capacity planning
+
+    EOF
+
+
+    cat optimization_guide.txt
+
+    ```
+
+
+    **Congratulations!** You''ve mastered advanced disk analysis and optimization!
+
+
+    **You learned:**
+
+    - Using ncdu for interactive disk exploration
+
+    - Understanding and monitoring inode usage
+
+    - Compression strategies (gzip, bzip2, xz)
+
+    - Detecting duplicate files with checksums
+
+    - Tracking disk usage trends over time
+
+    - Best practices for proactive optimization
+
+
+    **Key skills:**
+
+    - ncdu for quick visual analysis
+
+    - df -i for inode monitoring
+
+    - md5sum for duplicate detection
+
+    - Compression for space savings
+
+    - Automated monitoring with scripts
+
+
+    **Remember:**
+
+    - Proactive > Reactive (monitor before problems occur)
+
+    - Automate routine checks
+
+    - Set thresholds and alerts
+
+    - Document cleanup procedures
+
+    - Regular maintenance prevents emergencies
+
+
+    You''re now equipped for professional disk space management!
+
+    '
+  hint: 'Create a maintenance schedule and stick to it. Proactive monitoring and
+
+    regular cleanup prevent most disk space emergencies.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/disk_analysis/optimization_guide.txt
+    matcher: exists
+  title: '**Disk Optimization Best Practices**'
+completion:
+  message: Congratulations! You've completed this intermediate mission.
+  xp: 300
+  unlocks: []

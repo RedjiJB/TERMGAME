@@ -1,0 +1,485 @@
+mission:
+  id: linux/scripting/shell-scripting-beginner
+  title: Introduction to Shell Scripting
+  difficulty: beginner
+  description: Learn the fundamentals of bash shell scripting including variables,
+    conditionals, loops, and functions
+  estimated_time: 30
+  tags:
+  - linux
+  - bash
+  - scripting
+  - beginner
+environment:
+  image: ubuntu:22.04
+  workdir: /home/learner
+  setup:
+  - mkdir -p /home/learner/scripts
+  - mkdir -p /home/learner/data
+  - echo 'test data' > /home/learner/data/file1.txt
+  - echo 'more data' > /home/learner/data/file2.txt
+  - echo 'sample' > /home/learner/data/file3.txt
+steps:
+- id: first-script
+  title: Create Your First Shell Script
+  description: '**What is a Shell Script?**
+
+
+    A shell script is a text file containing commands that the shell executes.
+
+
+    **Why write shell scripts?**
+
+    - Automate repetitive tasks
+
+    - Combine multiple commands
+
+    - Schedule tasks (with cron)
+
+    - System administration
+
+    - Deployment automation
+
+
+    **Creating a script:**
+
+
+    1. Create file
+
+    2. Add shebang line
+
+    3. Write commands
+
+    4. Make executable
+
+    5. Run it!
+
+
+    **Your first script:**
+
+
+    cat > scripts/hello.sh << ''EOF''
+
+    #!/bin/bash
+
+    # My first shell script
+
+
+    echo "Hello, World!"
+
+    echo "Today is $(date)"
+
+    echo "Current directory: $(pwd)"
+
+    EOF
+
+
+    **The shebang (#!):**
+
+    #!/bin/bash tells the system to use bash to execute the script.
+
+
+    **Make executable:**
+
+    chmod +x scripts/hello.sh
+
+
+    **Run the script:**
+
+    ./scripts/hello.sh
+
+
+    Or:
+
+    bash scripts/hello.sh
+
+
+    **Script execution:**
+
+    - ./script.sh requires execute permission (+x)
+
+    - bash script.sh doesn''t need +x permission
+
+
+    **Practice:**
+
+    Create and run your first script as shown above.
+
+    '
+  hint: 'Create script with #!/bin/bash shebang, make executable with chmod +x'
+  validation:
+    type: file-exists
+    path: /home/learner/scripts/hello.sh
+    matcher: exists
+- id: variables
+  title: Working with Variables
+  description: '**Variables: Store Data**
+
+
+    Variables hold values that can change.
+
+
+    **Creating variables:**
+
+    name="John"
+
+    age=25
+
+    city="Toronto"
+
+
+    **Important:** No spaces around =
+
+
+    ✓ name="John"
+
+    ✗ name = "John"  # Wrong!
+
+
+    **Using variables:**
+
+    echo $name
+
+    echo "My name is $name"
+
+    echo "I am $age years old"
+
+
+    **Curly braces (good practice):**
+
+    echo "${name}''s age is ${age}"
+
+
+    **Command substitution:**
+
+    current_date=$(date)
+
+    files=$(ls)
+
+
+    Or older syntax:
+
+    current_date=`date`
+
+
+    **Special variables:**
+
+    $0 - Script name
+
+    $1, $2, $3 - Command-line arguments
+
+    $# - Number of arguments
+
+    $@ - All arguments
+
+    $? - Exit status of last command
+
+    $$ - Process ID
+
+
+    **Example script:**
+
+
+    cat > scripts/variables.sh << ''EOF''
+
+    #!/bin/bash
+
+
+    # Define variables
+
+    name="Student"
+
+    course="CST8207"
+
+    semester="Winter 2026"
+
+
+    # Use variables
+
+    echo "Name: $name"
+
+    echo "Course: $course"
+
+    echo "Semester: $semester"
+
+
+    # Command substitution
+
+    current_dir=$(pwd)
+
+    file_count=$(ls -1 | wc -l)
+
+
+    echo "Current directory: $current_dir"
+
+    echo "Files here: $file_count"
+
+
+    # Using arguments
+
+    echo "Script name: $0"
+
+    echo "First argument: $1"
+
+    echo "All arguments: $@"
+
+    EOF
+
+
+    chmod +x scripts/variables.sh
+
+
+    **Test:**
+
+    ./scripts/variables.sh arg1 arg2 arg3
+
+
+    **Practice:**
+
+    Create the variables.sh script and run it with different arguments.
+
+    '
+  hint: Assign variables with name=value (no spaces), use with $name
+  validation:
+    type: command-output
+    command: cat /home/learner/scripts/variables.sh 2>/dev/null | grep -E '^[a-z_]+='
+    matcher: contains
+    expected: '='
+- id: conditionals
+  title: Conditional Statements (if/else)
+  description: "**If Statements: Make Decisions**\n\n**Basic syntax:**\n```bash\n\
+    if [ condition ]; then\n  commands\nfi\n```\n\n**With else:**\n```bash\nif [ condition\
+    \ ]; then\n  commands\nelse\n  other commands\nfi\n```\n\n**With elif:**\n```bash\n\
+    if [ condition1 ]; then\n  commands\nelif [ condition2 ]; then\n  other commands\n\
+    else\n  default commands\nfi\n```\n\n**Test operators:**\n\n**String comparison:**\n\
+    [ \"$a\" = \"$b\" ]     # Equal\n[ \"$a\" != \"$b\" ]    # Not equal\n[ -z \"\
+    $a\" ]         # Empty string\n[ -n \"$a\" ]         # Not empty\n\n**Numeric\
+    \ comparison:**\n[ $a -eq $b ]       # Equal\n[ $a -ne $b ]       # Not equal\n\
+    [ $a -lt $b ]       # Less than\n[ $a -le $b ]       # Less or equal\n[ $a -gt\
+    \ $b ]       # Greater than\n[ $a -ge $b ]       # Greater or equal\n\n**File\
+    \ tests:**\n[ -f file ]         # File exists\n[ -d directory ]    # Directory\
+    \ exists\n[ -r file ]         # Readable\n[ -w file ]         # Writable\n[ -x\
+    \ file ]         # Executable\n\n**Example script:**\n\ncat > scripts/check.sh\
+    \ << 'EOF'\n#!/bin/bash\n\n# Check if argument provided\nif [ $# -eq 0 ]; then\n\
+    \  echo \"Error: No arguments provided\"\n  echo \"Usage: $0 <filename>\"\n  exit\
+    \ 1\nfi\n\nfilename=$1\n\n# Check if file exists\nif [ -f \"$filename\" ]; then\n\
+    \  echo \"✓ File exists: $filename\"\n\n  # Check if readable\n  if [ -r \"$filename\"\
+    \ ]; then\n    echo \"✓ File is readable\"\n    echo \"Contents:\"\n    cat \"\
+    $filename\"\n  else\n    echo \"✗ File is not readable\"\n  fi\nelse\n  echo \"\
+    ✗ File does not exist: $filename\"\nfi\nEOF\n\nchmod +x scripts/check.sh\n\n**Test:**\n\
+    ./scripts/check.sh data/file1.txt\n./scripts/check.sh nonexistent.txt\n\n**Logical\
+    \ operators:**\n[ condition1 ] && [ condition2 ]  # AND\n[ condition1 ] || [ condition2\
+    \ ]  # OR\n! [ condition ]                   # NOT\n\n**Practice:**\nCreate the\
+    \ check.sh script and test with existing and non-existing files.\n"
+  hint: Use [ condition ] for tests, remember spaces around brackets
+  validation:
+    type: command-output
+    command: cat /home/learner/scripts/check.sh 2>/dev/null | grep -E 'if.*\[.*\]'
+    matcher: contains
+    expected: if
+- id: loops-for
+  title: 'For Loops: Iterate Over Lists'
+  description: "**For Loops: Repeat Actions**\n\n**Basic syntax:**\n```bash\nfor variable\
+    \ in list; do\n  commands\ndone\n```\n\n**Examples:**\n\n**List of values:**\n\
+    ```bash\nfor name in Alice Bob Charlie; do\n  echo \"Hello, $name!\"\ndone\n```\n\
+    \n**Range of numbers:**\n```bash\nfor i in {1..5}; do\n  echo \"Number: $i\"\n\
+    done\n```\n\n**Files in directory:**\n```bash\nfor file in *.txt; do\n  echo \"\
+    Processing: $file\"\ndone\n```\n\n**Command output:**\n```bash\nfor user in $(cat\
+    \ /etc/passwd | cut -d: -f1); do\n  echo \"User: $user\"\ndone\n```\n\n**C-style\
+    \ for loop:**\n```bash\nfor ((i=1; i<=5; i++)); do\n  echo \"Count: $i\"\ndone\n\
+    ```\n\n**Example script:**\n\ncat > scripts/process_files.sh << 'EOF'\n#!/bin/bash\n\
+    \necho \"Processing files in data directory...\"\n\nfor file in data/*.txt; do\n\
+    \  if [ -f \"$file\" ]; then\n    echo \"---\"\n    echo \"File: $file\"\n   \
+    \ echo \"Size: $(wc -c < \"$file\") bytes\"\n    echo \"Lines: $(wc -l < \"$file\"\
+    )\"\n    echo \"First line: $(head -n 1 \"$file\")\"\n  fi\ndone\n\necho \"---\"\
+    \necho \"Processing complete!\"\nEOF\n\nchmod +x scripts/process_files.sh\n\n\
+    **Test:**\n./scripts/process_files.sh\n\n**Practice with numbers:**\n\ncat > scripts/countdown.sh\
+    \ << 'EOF'\n#!/bin/bash\n\necho \"Countdown:\"\nfor i in {5..1}; do\n  echo \"\
+    $i...\"\n  sleep 1\ndone\necho \"Blast off! \U0001F680\"\nEOF\n\nchmod +x scripts/countdown.sh\n\
+    ./scripts/countdown.sh\n\n**Practice:**\nCreate both scripts and run them. The\
+    \ countdown script is fun!\n"
+  hint: Use for var in list; do ... done
+  validation:
+    type: command-output
+    command: cat /home/learner/scripts/process_files.sh 2>/dev/null | grep 'for.*in.*do'
+    matcher: contains
+    expected: for
+- id: loops-while
+  title: 'While Loops: Conditional Repetition'
+  description: "**While Loops: Repeat While Condition True**\n\n**Basic syntax:**\n\
+    ```bash\nwhile [ condition ]; do\n  commands\ndone\n```\n\n**Examples:**\n\n**Counter\
+    \ loop:**\n```bash\ncounter=1\nwhile [ $counter -le 5 ]; do\n  echo \"Count: $counter\"\
+    \n  counter=$((counter + 1))\ndone\n```\n\n**Read file line by line:**\n```bash\n\
+    while read line; do\n  echo \"Line: $line\"\ndone < file.txt\n```\n\n**Infinite\
+    \ loop (use Ctrl+C to stop):**\n```bash\nwhile true; do\n  echo \"Running...\"\
+    \n  sleep 1\ndone\n```\n\n**Until loop (opposite of while):**\n```bash\ncounter=1\n\
+    until [ $counter -gt 5 ]; do\n  echo \"Count: $counter\"\n  counter=$((counter\
+    \ + 1))\ndone\n```\n\n**Example script:**\n\ncat > scripts/menu.sh << 'EOF'\n\
+    #!/bin/bash\n\nchoice=\"\"\n\nwhile [ \"$choice\" != \"3\" ]; do\n  echo \"==========\"\
+    \n  echo \"Menu:\"\n  echo \"1. Show date\"\n  echo \"2. Show files\"\n  echo\
+    \ \"3. Exit\"\n  echo \"==========\"\n  read -p \"Enter choice: \" choice\n\n\
+    \  case $choice in\n    1)\n      date\n      ;;\n    2)\n      ls -la\n     \
+    \ ;;\n    3)\n      echo \"Goodbye!\"\n      ;;\n    *)\n      echo \"Invalid\
+    \ choice!\"\n      ;;\n  esac\n  echo \"\"\ndone\nEOF\n\nchmod +x scripts/menu.sh\n\
+    \n**Read file line by line:**\n\ncat > scripts/read_file.sh << 'EOF'\n#!/bin/bash\n\
+    \nif [ ! -f \"$1\" ]; then\n  echo \"Usage: $0 <filename>\"\n  exit 1\nfi\n\n\
+    line_num=1\nwhile read line; do\n  echo \"Line $line_num: $line\"\n  line_num=$((line_num\
+    \ + 1))\ndone < \"$1\"\nEOF\n\nchmod +x scripts/read_file.sh\n\n**Test:**\n./scripts/read_file.sh\
+    \ data/file1.txt\n\n**Break and continue:**\n```bash\nfor i in {1..10}; do\n \
+    \ if [ $i -eq 5 ]; then\n    continue  # Skip 5\n  fi\n  if [ $i -eq 8 ]; then\n\
+    \    break     # Stop at 8\n  fi\n  echo $i\ndone\n```\n\n**Practice:**\nCreate\
+    \ the read_file.sh script and test it with your data files.\n"
+  hint: Use while [ condition ]; do ... done
+  validation:
+    type: command-output
+    command: cat /home/learner/scripts/read_file.sh 2>/dev/null | grep 'while.*read'
+    matcher: contains
+    expected: while
+- id: functions
+  title: 'Functions: Reusable Code Blocks'
+  description: "**Functions: Organize Your Code**\n\n**Define a function:**\n```bash\n\
+    function_name() {\n  commands\n}\n```\n\nOr:\n```bash\nfunction function_name\
+    \ {\n  commands\n}\n```\n\n**Call a function:**\n```bash\nfunction_name\n```\n\
+    \n**With arguments:**\n```bash\ngreet() {\n  echo \"Hello, $1!\"\n}\n\ngreet \"\
+    Alice\"\ngreet \"Bob\"\n```\n\n**Return values:**\n\nFunctions return exit status\
+    \ (0-255):\n```bash\ncheck_file() {\n  if [ -f \"$1\" ]; then\n    return 0  #\
+    \ Success\n  else\n    return 1  # Failure\n  fi\n}\n\nif check_file \"myfile.txt\"\
+    ; then\n  echo \"File exists\"\nfi\n```\n\nFor other values, use echo:\n```bash\n\
+    add() {\n  result=$(($1 + $2))\n  echo $result\n}\n\nsum=$(add 5 3)\necho \"Sum:\
+    \ $sum\"\n```\n\n**Example script with functions:**\n\ncat > scripts/utilities.sh\
+    \ << 'EOF'\n#!/bin/bash\n\n# Function to display header\nshow_header() {\n  echo\
+    \ \"================================\"\n  echo \"$1\"\n  echo \"================================\"\
+    \n}\n\n# Function to check if file exists\nfile_exists() {\n  if [ -f \"$1\" ];\
+    \ then\n    echo \"✓ File exists: $1\"\n    return 0\n  else\n    echo \"✗ File\
+    \ not found: $1\"\n    return 1\n  fi\n}\n\n# Function to count lines in file\n\
+    count_lines() {\n  if file_exists \"$1\"; then\n    lines=$(wc -l < \"$1\")\n\
+    \    echo \"Lines in $1: $lines\"\n  fi\n}\n\n# Function to display file info\n\
+    file_info() {\n  local file=$1\n\n  if [ ! -f \"$file\" ]; then\n    echo \"File\
+    \ not found: $file\"\n    return 1\n  fi\n\n  echo \"File Information:\"\n  echo\
+    \ \"  Name: $(basename \"$file\")\"\n  echo \"  Size: $(wc -c < \"$file\") bytes\"\
+    \n  echo \"  Lines: $(wc -l < \"$file\")\"\n  echo \"  Words: $(wc -w < \"$file\"\
+    )\"\n}\n\n# Main script\nshow_header \"File Utilities\"\n\nif [ $# -eq 0 ]; then\n\
+    \  echo \"Usage: $0 <filename>\"\n  exit 1\nfi\n\nfile_info \"$1\"\nEOF\n\nchmod\
+    \ +x scripts/utilities.sh\n\n**Test:**\n./scripts/utilities.sh data/file1.txt\n\
+    \n**Local variables:**\n```bash\nmy_function() {\n  local temp=\"local value\"\
+    \  # Only visible in function\n  global=\"global value\"     # Visible everywhere\n\
+    }\n```\n\n**Best practices:**\n- Use descriptive function names\n- Comment complex\
+    \ functions\n- Use local variables when possible\n- Return meaningful exit codes\n\
+    - Keep functions focused (one task)\n\n**Practice:**\nCreate the utilities.sh\
+    \ script and test it with different files.\n"
+  hint: Define function with name() { ... }, call with name
+  validation:
+    type: command-output
+    command: cat /home/learner/scripts/utilities.sh 2>/dev/null | grep -E '^[a-z_]+\(\).*\{|^function
+      [a-z_]+'
+    matcher: contains
+    expected: (
+- id: input-output
+  title: User Input and Output
+  description: "**Reading User Input:**\n\n**read command:**\n```bash\necho \"Enter\
+    \ your name:\"\nread name\necho \"Hello, $name!\"\n```\n\n**With prompt:**\n```bash\n\
+    read -p \"Enter your name: \" name\necho \"Hello, $name!\"\n```\n\n**Multiple\
+    \ inputs:**\n```bash\nread -p \"Enter first and last name: \" first last\necho\
+    \ \"First: $first, Last: $last\"\n```\n\n**Silent input (passwords):**\n```bash\n\
+    read -sp \"Enter password: \" password\necho \"\"  # New line after hidden input\n\
+    echo \"Password saved (hidden)\"\n```\n\n**With timeout:**\n```bash\nif read -t\
+    \ 5 -p \"Enter name (5s): \" name; then\n  echo \"Hello, $name!\"\nelse\n  echo\
+    \ \"Timeout!\"\nfi\n```\n\n**Example interactive script:**\n\ncat > scripts/survey.sh\
+    \ << 'EOF'\n#!/bin/bash\n\necho \"=== Quick Survey ===\"\necho \"\"\n\n# Get name\n\
+    read -p \"What is your name? \" name\n\n# Get age\nread -p \"What is your age?\
+    \ \" age\n\n# Get favorite color\necho \"What is your favorite color?\"\necho\
+    \ \"1. Red\"\necho \"2. Blue\"\necho \"3. Green\"\nread -p \"Choice (1-3): \"\
+    \ color_choice\n\ncase $color_choice in\n  1) color=\"Red\" ;;\n  2) color=\"\
+    Blue\" ;;\n  3) color=\"Green\" ;;\n  *) color=\"Unknown\" ;;\nesac\n\n# Confirm\n\
+    echo \"\"\necho \"Summary:\"\necho \"  Name: $name\"\necho \"  Age: $age\"\necho\
+    \ \"  Favorite Color: $color\"\necho \"\"\n\nread -p \"Is this correct? (y/n):\
+    \ \" confirm\n\nif [ \"$confirm\" = \"y\" ] || [ \"$confirm\" = \"Y\" ]; then\n\
+    \  echo \"Thank you for completing the survey!\"\n  # Save to file\n  echo \"\
+    $name,$age,$color\" >> data/survey_results.txt\n  echo \"Results saved!\"\nelse\n\
+    \  echo \"Survey cancelled.\"\nfi\nEOF\n\nchmod +x scripts/survey.sh\n\n**Test:**\n\
+    ./scripts/survey.sh\n\n**Formatted output:**\n```bash\nprintf \"Name: %-10s Age:\
+    \ %3d\\n\" \"Alice\" 25\nprintf \"%-20s %10s\\n\" \"Description\" \"Value\"\n\
+    printf \"%-20s %10d\\n\" \"Count\" 42\n```\n\n**Colors in output:**\n```bash\n\
+    RED='\\033[0;31m'\nGREEN='\\033[0;32m'\nNC='\\033[0m'  # No Color\n\necho -e \"\
+    ${RED}Error message${NC}\"\necho -e \"${GREEN}Success message${NC}\"\n```\n\n\
+    **Practice:**\nCreate and run the survey.sh script. Try different inputs!\n"
+  hint: Use read command to get user input, read -p for prompt
+  validation:
+    type: command-output
+    command: cat /home/learner/scripts/survey.sh 2>/dev/null | grep 'read'
+    matcher: contains
+    expected: read
+- id: practical-script
+  title: Build a Practical Script
+  description: "**Final Challenge: File Backup Script**\n\nCreate a practical backup\
+    \ script combining all concepts learned.\n\n**Requirements:**\n- Accept directory\
+    \ path as argument\n- Validate input\n- Create timestamped backup\n- Show progress\n\
+    - Verify backup success\n- Display summary\n\n**Template:**\n\ncat > scripts/backup.sh\
+    \ << 'EOF'\n#!/bin/bash\n\n# Backup Script\n# Usage: ./backup.sh <directory>\n\
+    \n# Colors\nGREEN='\\033[0;32m'\nRED='\\033[0;31m'\nYELLOW='\\033[1;33m'\nNC='\\\
+    033[0m'\n\n# Functions\nshow_usage() {\n  echo \"Usage: $0 <directory>\"\n  echo\
+    \ \"Example: $0 /home/user/documents\"\n}\n\nlog_info() {\n  echo -e \"${GREEN}[INFO]${NC}\
+    \ $1\"\n}\n\nlog_error() {\n  echo -e \"${RED}[ERROR]${NC} $1\"\n}\n\nlog_warning()\
+    \ {\n  echo -e \"${YELLOW}[WARNING]${NC} $1\"\n}\n\n# Main script\necho \"===\
+    \ Backup Script ===\"\n\n# Check arguments\nif [ $# -eq 0 ]; then\n  log_error\
+    \ \"No directory specified\"\n  show_usage\n  exit 1\nfi\n\nsource_dir=$1\n\n\
+    # Validate directory\nif [ ! -d \"$source_dir\" ]; then\n  log_error \"Directory\
+    \ not found: $source_dir\"\n  exit 1\nfi\n\n# Create backup\ntimestamp=$(date\
+    \ +%Y%m%d_%H%M%S)\nbackup_name=\"backup_${timestamp}.tar.gz\"\nbackup_dir=\"$HOME/backups\"\
+    \n\nmkdir -p \"$backup_dir\"\n\nlog_info \"Starting backup of $source_dir\"\n\
+    log_info \"Backup file: $backup_name\"\n\n# Create archive\nif tar -czf \"$backup_dir/$backup_name\"\
+    \ \"$source_dir\" 2>/dev/null; then\n  log_info \"Backup created successfully\"\
+    \nelse\n  log_error \"Backup failed!\"\n  exit 1\nfi\n\n# Verify\nif tar -tzf\
+    \ \"$backup_dir/$backup_name\" > /dev/null 2>&1; then\n  log_info \"Backup verified\
+    \ successfully\"\nelse\n  log_warning \"Backup verification failed\"\nfi\n\n#\
+    \ Summary\nbackup_size=$(du -h \"$backup_dir/$backup_name\" | cut -f1)\necho \"\
+    \"\necho \"=== Backup Summary ===\"\necho \"  Source: $source_dir\"\necho \" \
+    \ Backup: $backup_dir/$backup_name\"\necho \"  Size: $backup_size\"\necho \" \
+    \ Timestamp: $timestamp\"\necho \"\"\nlog_info \"Backup complete!\"\nEOF\n\nchmod\
+    \ +x scripts/backup.sh\n\n**Test the backup script:**\n./scripts/backup.sh data\n\
+    \n**Verify backup created:**\nls -lh ~/backups/\n\n**Test with invalid input:**\n\
+    ./scripts/backup.sh /nonexistent\n\n**Enhance the script:**\n- Add option to keep\
+    \ only last N backups\n- Add progress indicator\n- Add email notification\n- Add\
+    \ remote backup option\n- Add exclusion patterns\n\n**Practice:**\nCreate and\
+    \ test the backup script. Try enhancing it with additional features!\n"
+  hint: Combine functions, conditionals, loops, and variables in one script
+  validation:
+    type: file-exists
+    path: /home/learner/scripts/backup.sh
+    matcher: exists
+completion:
+  message: "\U0001F389 SHELL SCRIPTING FUNDAMENTALS MASTERED! \U0001F389\n\nYou've\
+    \ learned the essential skills for bash shell scripting!\n\n**What You've Learned:**\n\
+    \n✓ Creating and executing shell scripts\n✓ Variables and command substitution\n\
+    ✓ Conditional statements (if/else/elif)\n✓ For loops for iteration\n✓ While loops\
+    \ for conditional repetition\n✓ Functions for code reuse\n✓ User input with read\
+    \ command\n✓ Practical script development\n\n**Quick Reference:**\n\n**Script\
+    \ Structure:**\n```bash\n#!/bin/bash\n# Comments\n\n# Variables\nname=\"value\"\
+    \n\n# Use variables\necho \"$name\"\n```\n\n**Conditionals:**\n```bash\nif [ condition\
+    \ ]; then\n  commands\nelif [ condition2 ]; then\n  commands\nelse\n  commands\n\
+    fi\n```\n\n**Loops:**\n```bash\nfor item in list; do\n  echo \"$item\"\ndone\n\
+    \nwhile [ condition ]; do\n  commands\ndone\n```\n\n**Functions:**\n```bash\n\
+    my_function() {\n  echo \"Hello $1\"\n  return 0\n}\n\nmy_function \"World\"\n\
+    ```\n\n**Test Operators:**\nString: =, !=, -z, -n\nNumber: -eq, -ne, -lt, -le,\
+    \ -gt, -ge\nFile: -f, -d, -r, -w, -x\n\n**Special Variables:**\n$0    Script name\n\
+    $1-$9 Arguments\n$#    Argument count\n$@    All arguments\n$?    Exit status\n\
+    $$    Process ID\n\n**Best Practices:**\n\n☑ Start with #!/bin/bash shebang\n\
+    ☑ Comment your code\n☑ Use meaningful variable names\n☑ Quote variables: \"$var\"\
+    \n☑ Check for errors\n☑ Validate user input\n☑ Use functions for repeated code\n\
+    ☑ Make scripts executable (chmod +x)\n☑ Test thoroughly\n☑ Handle edge cases\n\
+    \n**Common Patterns:**\n\nCheck arguments:\nif [ $# -eq 0 ]; then\n  echo \"Usage:\
+    \ $0 <args>\"\n  exit 1\nfi\n\nCheck file exists:\nif [ -f \"$file\" ]; then\n\
+    \  process_file \"$file\"\nfi\n\nProcess files:\nfor file in *.txt; do\n  [ -f\
+    \ \"$file\" ] || continue\n  process \"$file\"\ndone\n\nError handling:\ncommand\
+    \ || {\n  echo \"Error!\"\n  exit 1\n}\n\n**Next Steps:**\n\n- Advanced scripting\
+    \ techniques\n- Regular expressions in bash\n- Array and associative arrays\n\
+    - Advanced parameter expansion\n- Process management\n- Signal handling\n- Debugging\
+    \ techniques (set -x)\n- Best practices and style guides\n\n**Practical Applications:**\n\
+    \n✓ System administration tasks\n✓ Backup automation\n✓ Log processing\n✓ File\
+    \ management\n✓ Deployment scripts\n✓ Monitoring scripts\n✓ User management\n\
+    ✓ Scheduled maintenance\n\nYou now have a solid foundation in shell scripting!\n\
+    \nGREAT WORK!\n"
+  xp: 250
+  unlocks:
+  - linux/week11/shell-scripting-intermediate
+  - linux/week12/shell-scripting-advanced

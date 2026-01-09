@@ -1,0 +1,1004 @@
+mission:
+  id: linux/networking/regex-intermediate
+  title: Advanced Pattern Matching with Regex
+  difficulty: intermediate
+  description: Master alternation, grouping, backreferences, and advanced grep/egrep
+    techniques
+  estimated_time: 35
+  tags:
+  - linux
+  - regex
+  - grep
+  - egrep
+  - intermediate
+  - networking
+environment:
+  image: ubuntu:22.04
+  workdir: /home/learner
+  setup:
+  - apt-get update -qq && apt-get install -y -qq grep
+  - mkdir -p /home/learner/data
+  - 'cat > /home/learner/data/access.log << ''EOF''
+
+    192.168.1.100 - - [09/Jan/2026:10:15:23 +0000] "GET /index.html HTTP/1.1" 200
+    1234
+
+    192.168.1.101 - - [09/Jan/2026:10:16:45 +0000] "POST /api/login HTTP/1.1" 200
+    89
+
+    10.0.0.55 - - [09/Jan/2026:10:17:12 +0000] "GET /images/logo.png HTTP/1.1" 200
+    5432
+
+    192.168.1.102 - - [09/Jan/2026:10:18:55 +0000] "GET /admin/panel HTTP/1.1" 403
+    156
+
+    172.16.0.10 - - [09/Jan/2026:10:19:03 +0000] "POST /api/data HTTP/1.1" 500 78
+
+    192.168.1.100 - - [09/Jan/2026:10:20:31 +0000] "GET /about.html HTTP/1.1" 200
+    2341
+
+    10.0.0.56 - - [09/Jan/2026:10:21:47 +0000] "GET /api/users HTTP/1.1" 200 9876
+
+    192.168.1.103 - - [09/Jan/2026:10:22:18 +0000] "GET /nonexistent HTTP/1.1" 404
+    234
+
+    172.16.0.11 - - [09/Jan/2026:10:23:56 +0000] "POST /api/upload HTTP/1.1" 201 45
+
+    192.168.1.101 - - [09/Jan/2026:10:24:42 +0000] "DELETE /api/user/5 HTTP/1.1" 200
+    12
+
+    EOF
+
+    '
+  - "cat > /home/learner/data/code.py << 'EOF'\ndef calculate(x, y):\n    return x\
+    \ + y\n\ndef process_data(data):\n    return data.strip()\n\nclass UserManager:\n\
+    \    def __init__(self):\n        self.users = []\n\n    def add_user(self, user):\n\
+    \        self.users.append(user)\n\n# Function to validate email\ndef validate_email(email):\n\
+    \    pattern = r'^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'\n    return\
+    \ re.match(pattern, email)\n\n# TODO: Implement error handling\n# FIXME: Bug in\
+    \ user authentication\n# NOTE: This needs optimization\nEOF\n"
+  - 'cat > /home/learner/data/config.ini << ''EOF''
+
+    [database]
+
+    host=localhost
+
+    port=5432
+
+    user=admin
+
+    password=secret123
+
+
+    [application]
+
+    debug=true
+
+    log_level=INFO
+
+    max_connections=100
+
+
+    [cache]
+
+    enabled=yes
+
+    ttl=3600
+
+    backend=redis
+
+    EOF
+
+    '
+  - 'cat > /home/learner/data/mixed.txt << ''EOF''
+
+    Colors: red, blue, green, yellow
+
+    Numbers: 42, 123, 7, 999
+
+    Booleans: true, false, yes, no
+
+    URLs: http://example.com, https://secure.org
+
+    Dates: 2026-01-09, 01/09/2026, Jan 9, 2026
+
+    Prices: $19.99, $100.00, $5.50
+
+    Percentages: 50%, 99.9%, 12.5%
+
+    EOF
+
+    '
+steps:
+- id: alternation
+  title: Alternation with | (OR)
+  description: '**Alternation: Match This OR That**
+
+
+    Use | to match multiple alternatives (requires grep -E or egrep).
+
+
+    **Syntax:**
+
+    pattern1|pattern2|pattern3
+
+
+    **Examples:**
+
+
+    Match "cat" OR "dog":
+
+    grep -E ''cat|dog'' file.txt
+
+
+    Match "ERROR" OR "WARN" OR "CRITICAL":
+
+    grep -E ''ERROR|WARN|CRITICAL'' file.txt
+
+
+    Match HTTP methods:
+
+    grep -E ''GET|POST|PUT|DELETE'' access.log
+
+
+    **Order matters when alternatives overlap:**
+
+
+    Pattern: ''test|testing''
+
+    Finds "test" in "testing" (matches first alternative)
+
+
+    Better: ''testing|test''
+
+    Finds "testing" first, then "test"
+
+
+    **With other regex features:**
+
+
+    Match .com OR .org domains:
+
+    grep -E ''\.com$|\.org$'' file.txt
+
+
+    Match success OR error codes:
+
+    grep -E ''200|201|404|500'' access.log
+
+
+    **Practice:**
+
+
+    Find GET or POST requests:
+
+    grep -E ''GET|POST'' data/access.log
+
+
+    Find 200 or 404 status codes:
+
+    grep -E '' 200 | 404 '' data/access.log
+
+
+    Find true/false or yes/no:
+
+    grep -E ''true|false|yes|no'' data/mixed.txt
+
+
+    **Try finding all HTTP methods:**
+
+    grep -E ''GET|POST|DELETE'' data/access.log
+
+    '
+  hint: 'Use | for OR: pattern1|pattern2'
+  validation:
+    type: command-output
+    command: grep -E 'GET|POST' /home/learner/data/access.log | wc -l
+    matcher: regex
+    expected: '[5-9]|10'
+- id: grouping
+  title: Grouping with ()
+  description: '**Grouping: Treat Multiple Characters as Unit**
+
+
+    Parentheses () group patterns together (requires grep -E).
+
+
+    **Basic grouping:**
+
+
+    Without grouping:
+
+    abc+  matches: abc, abcc, abccc (+ applies to ''c'' only)
+
+
+    With grouping:
+
+    (abc)+ matches: abc, abcabc, abcabcabc (+ applies to entire group)
+
+
+    **Grouping with alternation:**
+
+
+    Match "color" or "colour":
+
+    colou?r  works, but less clear
+
+
+    col(o|ou)r  clearer: col + (o OR ou) + r
+
+
+    Match file extensions:
+
+    \.(jpg|png|gif)$
+
+
+    Matches: .jpg, .png, .gif at end of line
+
+
+    **Grouping with quantifiers:**
+
+
+    Match repeated patterns:
+
+    (ha)+  matches: ha, haha, hahaha
+
+
+    ([0-9]{3}-)+ matches: 555-, 555-123-, etc.
+
+
+    **Practical examples:**
+
+
+    Match http or https:
+
+    https?://  works (? = optional s)
+
+    http(s)?://  also works (grouped optional s)
+
+
+    Match repeated words:
+
+    (word )+  matches: "word word word "
+
+
+    Match domain endings:
+
+    \.(com|org|net|edu)$
+
+
+    **Practice:**
+
+
+    Find http:// or https:// URLs:
+
+    grep -E ''https?://'' data/mixed.txt
+
+
+    Find functions starting with "def " or "class ":
+
+    grep -E ''(def|class) '' data/code.py
+
+
+    Find IP addresses (simplified):
+
+    grep -E ''([0-9]{1,3}\.){3}[0-9]{1,3}'' data/access.log
+
+
+    **Try finding def or class statements:**
+
+    grep -E ''(def|class) '' data/code.py
+
+    '
+  hint: 'Use () to group: (pattern1|pattern2)'
+  validation:
+    type: command-output
+    command: grep -E '(def|class) ' /home/learner/data/code.py | wc -l
+    matcher: regex
+    expected: '[4-9]'
+- id: quantifier-ranges
+  title: 'Exact Quantifiers: {n}, {n,m}'
+  description: '**Precise Repetition Control**
+
+
+    Control exact number of repetitions (requires grep -E).
+
+
+    **Syntax:**
+
+
+    {n}     Exactly n times
+
+    {n,}    n or more times
+
+    {n,m}   Between n and m times
+
+
+    **Examples:**
+
+
+    Pattern: [0-9]{3}
+
+    Matches: Exactly 3 digits (123, 456, 999)
+
+
+    Pattern: [0-9]{2,4}
+
+    Matches: 2 to 4 digits (12, 123, 1234)
+
+
+    Pattern: [a-z]{5,}
+
+    Matches: 5 or more lowercase letters
+
+
+    **Comparison with other quantifiers:**
+
+
+    a*      = a{0,}   (zero or more)
+
+    a+      = a{1,}   (one or more)
+
+    a?      = a{0,1}  (zero or one, optional)
+
+
+    **Practical uses:**
+
+
+    Phone number XXX-XXX-XXXX:
+
+    [0-9]{3}-[0-9]{3}-[0-9]{4}
+
+
+    Date YYYY-MM-DD:
+
+    [0-9]{4}-[0-9]{2}-[0-9]{2}
+
+
+    Zip code (5 or 9 digits):
+
+    [0-9]{5}(-[0-9]{4})?
+
+
+    Credit card (16 digits):
+
+    [0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}
+
+
+    **IP address octets (1-3 digits):**
+
+    [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}
+
+
+    **Practice:**
+
+
+    Find dates in YYYY-MM-DD format:
+
+    grep -E ''[0-9]{4}-[0-9]{2}-[0-9]{2}'' data/access.log
+
+
+    Find 3-digit status codes:
+
+    grep -E '' [0-9]{3} '' data/access.log
+
+
+    Find 3-digit numbers in mixed text:
+
+    grep -E ''\b[0-9]{3}\b'' data/mixed.txt
+
+
+    Find IP addresses:
+
+    grep -E ''([0-9]{1,3}\.){3}[0-9]{1,3}'' data/access.log
+
+
+    **Try finding dates:**
+
+    grep -E ''[0-9]{4}-[0-9]{2}-[0-9]{2}'' data/mixed.txt
+
+    '
+  hint: Use {n} for exact count, {n,m} for range
+  validation:
+    type: command-output
+    command: grep -E '[0-9]{4}-[0-9]{2}-[0-9]{2}' /home/learner/data/access.log |
+      wc -l
+    matcher: regex
+    expected: '[5-9]|10'
+- id: optional-quantifier
+  title: 'Optional Quantifier: ?'
+  description: '**The ? Quantifier: Zero or One (Optional)**
+
+
+    ? means "zero or one time" = optional (requires grep -E).
+
+
+    **Examples:**
+
+
+    Pattern: colou?r
+
+    Matches: color (u appears 0 times), colour (u appears 1 time)
+
+
+    Pattern: https?
+
+    Matches: http, https (s is optional)
+
+
+    Pattern: [0-9]+\.?[0-9]*
+
+    Matches: 42, 42.5, 42., .5 (dot is optional)
+
+
+    **Difference from * and +:**
+
+
+    a*   matches: "", a, aa, aaa... (0 or more)
+
+    a+   matches:     a, aa, aaa... (1 or more)
+
+    a?   matches: "", a             (0 or 1, optional)
+
+
+    **Practical uses:**
+
+
+    Optional protocol:
+
+    https?://
+
+
+    Matches: http:// or https://
+
+
+    Optional plural:
+
+    errors?
+
+
+    Matches: error or errors
+
+
+    Optional area code:
+
+    \(?[0-9]{3}\)?-?[0-9]{3}-[0-9]{4}
+
+
+    Matches various phone formats:
+
+    - 555-123-4567
+
+    - (555)123-4567
+
+    - (555)-123-4567
+
+    - 5551234567
+
+
+    **Optional whitespace:**
+
+
+    : ?
+
+    Matches colon with optional space
+
+
+    **Practice:**
+
+
+    Find http or https URLs:
+
+    grep -E ''https?://'' data/mixed.txt
+
+
+    Find "user" or "users":
+
+    grep -E ''users?'' data/code.py
+
+
+    Find numbers with optional decimal:
+
+    grep -E ''[0-9]+\.?[0-9]*%?'' data/mixed.txt
+
+
+    Find config values (with optional quotes):
+
+    grep -E ''="?[a-zA-Z0-9]+"?'' data/config.ini
+
+
+    **Try finding http(s) URLs:**
+
+    grep -E ''https?://'' data/mixed.txt
+
+    '
+  hint: 'Use ? for optional (zero or one): pattern?'
+  validation:
+    type: command-output
+    command: grep -E 'https?://' /home/learner/data/mixed.txt | wc -l
+    matcher: regex
+    expected: '[1-9]'
+- id: greedy-vs-lazy
+  title: Greedy vs Non-Greedy Matching
+  description: '**Quantifier Behavior: Greedy by Default**
+
+
+    Quantifiers (*, +, ?) are GREEDY - they match as much as possible.
+
+
+    **Example of greedy matching:**
+
+
+    Text: <div>Hello</div><div>World</div>
+
+    Pattern: <div>.*</div>
+
+
+    Greedy match: <div>Hello</div><div>World</div>
+
+    (matches everything from first < to last >)
+
+
+    **Non-greedy (lazy) matching:**
+
+
+    Add ? after quantifier to make it non-greedy:
+
+    *? +? ??
+
+
+    Pattern: <div>.*?</div>
+
+
+    Non-greedy matches:
+
+    - <div>Hello</div>
+
+    - <div>World</div>
+
+    (stops at first </div>)
+
+
+    **Note:** grep doesn''t fully support non-greedy quantifiers!
+
+    Use sed, perl, or python for non-greedy matching.
+
+
+    **Understanding greedy behavior in grep:**
+
+
+    Text: "aaa"
+
+    Pattern: a+
+
+
+    Matches: "aaa" (all three a''s, not just one)
+
+
+    Text: word1 word2 word3
+
+    Pattern: w.*d
+
+
+    Matches: "word1 word2 word3" (from first w to last d)
+
+
+    **Practical implications:**
+
+
+    Finding quoted strings:
+
+    Greedy: ".*"
+
+    In: "hello" and "world"
+
+    Matches: "hello" and "world" (entire thing!)
+
+
+    Better approach in grep:
+
+    "[^"]*"
+
+    Matches: "hello" then "world" separately
+
+    (matches quote + non-quotes + quote)
+
+
+    **Practice:**
+
+
+    The greedy problem:
+
+    echo ''<tag>content</tag><tag>more</tag>'' | grep -oE ''<tag>.*</tag>''
+
+
+    Better approach:
+
+    echo ''<tag>content</tag><tag>more</tag>'' | grep -oE ''<tag>[^<]*</tag>''
+
+
+    Find quoted strings properly:
+
+    grep -E ''"[^"]*"'' data/config.ini
+
+
+    Find values between = and end of line:
+
+    grep -E ''=[^ ].*'' data/config.ini
+
+
+    **Try extracting quoted values:**
+
+    grep -oE ''="[^"]*"'' data/config.ini || grep -E ''=[a-z]+'' data/config.ini
+
+    '
+  hint: Use [^X]* instead of .* to avoid greedy matching
+  validation:
+    type: command-output
+    command: grep -E '=[a-zA-Z0-9]+' /home/learner/data/config.ini | wc -l
+    matcher: regex
+    expected: '[5-9]|1[0-9]'
+- id: posix-classes
+  title: POSIX Character Classes
+  description: "**POSIX Classes: Readable Character Sets**\n\nPOSIX classes are readable\
+    \ alternatives to character ranges.\n\n**Common POSIX classes:**\n\n[:alnum:]\
+    \   Alphanumeric [a-zA-Z0-9]\n[:alpha:]   Alphabetic [a-zA-Z]\n[:digit:]   Digits\
+    \ [0-9]\n[:lower:]   Lowercase [a-z]\n[:upper:]   Uppercase [A-Z]\n[:space:] \
+    \  Whitespace (space, tab, newline)\n[:punct:]   Punctuation\n[:xdigit:]  Hexadecimal\
+    \ [0-9A-Fa-f]\n\n**Usage:** Must use double brackets!\n\nWrong: [:digit:]\nCorrect:\
+    \ [[:digit:]]\n\n**Examples:**\n\nFind lines with digits:\ngrep '[[:digit:]]'\
+    \ file.txt\n\nFind lines with only letters:\ngrep '^[[:alpha:]]+$' file.txt\n\n\
+    Find lines with punctuation:\ngrep '[[:punct:]]' file.txt\n\n**Why use POSIX classes?**\n\
+    \n1. More readable:\n   [[:digit:]] vs [0-9]\n\n2. Locale-aware:\n   [[:alpha:]]\
+    \ includes accented characters (é, ñ, etc.)\n   [a-zA-Z] doesn't\n\n3. No range\
+    \ errors:\n   [a-Z] is WRONG (invalid range)\n   [[:alpha:]] always works\n\n\
+    **Combining POSIX classes:**\n\nAlphanumeric with underscore:\n[[:alnum:]_]\n\n\
+    Letters and spaces:\n[[:alpha:][:space:]]\n\nNot a digit:\n[^[:digit:]]\n\n**Practice:**\n\
+    \nFind lines with any digit:\ngrep '[[:digit:]]' data/access.log\n\nFind lines\
+    \ with uppercase letters:\ngrep '[[:upper:]]' data/code.py\n\nFind config keys\
+    \ (letters/numbers/underscore):\ngrep '^[[:alnum:]_]+=' data/config.ini\n\nFind\
+    \ lines with punctuation:\ngrep '[[:punct:]]' data/mixed.txt\n\n**Try finding\
+    \ config keys:**\ngrep '^[[:alpha:]]+=' data/config.ini\n"
+  hint: 'POSIX classes must use double brackets: [[:class:]]'
+  validation:
+    type: command-output
+    command: grep '^[[:alpha:]]+=' /home/learner/data/config.ini | wc -l
+    matcher: regex
+    expected: '[5-9]|1[0-9]'
+- id: advanced-grep-options
+  title: Advanced grep Options
+  description: '**grep Power Features:**
+
+
+    **-o: Show only matching part**
+
+
+    Normal grep shows entire line:
+
+    $ echo "Error: file not found" | grep ''Error''
+
+    Error: file not found
+
+
+    With -o, shows only match:
+
+    $ echo "Error: file not found" | grep -o ''Error''
+
+    Error
+
+
+    **Extract all emails:**
+
+    grep -oE ''[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+'' file.txt
+
+
+    **Extract all numbers:**
+
+    grep -oE ''[0-9]+'' file.txt
+
+
+    **-A N: Show N lines After match**
+
+    **-B N: Show N lines Before match**
+
+    **-C N: Show N lines of Context (before and after)**
+
+
+    grep -A 2 ''ERROR'' log.txt      # Show ERROR + 2 lines after
+
+    grep -B 1 ''ERROR'' log.txt      # Show ERROR + 1 line before
+
+    grep -C 2 ''ERROR'' log.txt      # Show ERROR + 2 lines around
+
+
+    **-w: Match whole words only**
+
+
+    grep ''cat'' matches: cat, category, concatenate
+
+    grep -w ''cat'' matches: cat only
+
+
+    Equivalent to: grep ''\bcat\b''
+
+
+    **-v: Invert match (non-matching lines)**
+
+
+    grep -v ''ERROR'' log.txt        # Lines NOT containing ERROR
+
+
+    **-c: Count matches**
+
+
+    grep -c ''ERROR'' log.txt        # Number of lines with ERROR
+
+
+    **-l: List filenames only**
+
+
+    grep -l ''pattern'' *.txt        # Files containing pattern
+
+
+    **-n: Show line numbers**
+
+
+    grep -n ''ERROR'' log.txt        # Show line numbers
+
+
+    **Combining options:**
+
+
+    grep -in ''error'' log.txt       # Case-insensitive with line numbers
+
+    grep -ioE ''[0-9]+'' file.txt    # Extract all numbers (one per line)
+
+    grep -vE ''^#|^$'' config        # Remove comments and empty lines
+
+
+    **Practice:**
+
+
+    Extract all IP addresses:
+
+    grep -oE ''([0-9]{1,3}\.){3}[0-9]{1,3}'' data/access.log
+
+
+    Extract all status codes:
+
+    grep -oE '' [0-9]{3} '' data/access.log
+
+
+    Show GET requests with 2 lines context:
+
+    grep -C 2 ''GET'' data/access.log | head -15
+
+
+    Count ERROR vs INFO:
+
+    grep -c ''GET'' data/access.log
+
+    grep -c ''POST'' data/access.log
+
+
+    **Try extracting IP addresses:**
+
+    grep -oE ''([0-9]{1,3}\.){3}[0-9]{1,3}'' data/access.log
+
+    '
+  hint: Use -o to extract only matches, -A/-B/-C for context
+  validation:
+    type: command-output
+    command: grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' /home/learner/data/access.log
+      | wc -l
+    matcher: regex
+    expected: '[5-9]|10'
+- id: practical-patterns
+  title: Real-World Pattern Library
+  description: "**Common Regex Patterns:**\n\n**Email address (comprehensive):**\n\
+    ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$\n\n**URL:**\nhttps?://[a-zA-Z0-9.-]+\\\
+    .[a-zA-Z]{2,}(/[^ ]*)?\n\n**IPv4 address:**\n([0-9]{1,3}\\.){3}[0-9]{1,3}\n\n\
+    Better (validates ranges):\n((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\n\
+    \n**Phone numbers:**\n\\(? [0-9]{3}\\)?[-. ]?[0-9]{3}[-. ]?[0-9]{4}\n\nMatches:\
+    \ 555-123-4567, (555) 123-4567, 555.123.4567\n\n**Credit card (simplified):**\n\
+    [0-9]{4}[-\\s]?[0-9]{4}[-\\s]?[0-9]{4}[-\\s]?[0-9]{4}\n\n**Date patterns:**\n\n\
+    YYYY-MM-DD:\n[0-9]{4}-[0-9]{2}-[0-9]{2}\n\nMM/DD/YYYY:\n[0-9]{2}/[0-9]{2}/[0-9]{4}\n\
+    \nMonth DD, YYYY:\n(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) [0-9]{1,2},\
+    \ [0-9]{4}\n\n**Time patterns:**\n\nHH:MM:SS:\n[0-9]{2}:[0-9]{2}:[0-9]{2}\n\n\
+    HH:MM AM/PM:\n[0-9]{1,2}:[0-9]{2} (AM|PM)\n\n**File paths:**\n\nUnix path:\n^/([a-zA-Z0-9_-]+/)*[a-zA-Z0-9_-]+\\\
+    .[a-z]+$\n\nWindows path:\n^[A-Z]:\\\\([a-zA-Z0-9_-]+\\\\)*[a-zA-Z0-9_-]+\\.[a-z]+$\n\
+    \n**HTML tags (simplified):**\n<[^>]+>\n\n**Comments:**\n\nPython/Bash:\n^\\s*#.*$\n\
+    \nC/Java:\n^\\s*//.*$\n\nCSS:\n/\\*.*\\*/\n\n**Practice with access logs:**\n\n\
+    1. Extract all IPs:\n   grep -oE '([0-9]{1,3}\\.){3}[0-9]{1,3}' data/access.log\n\
+    \n2. Find 4xx or 5xx errors:\n   grep -E ' [45][0-9]{2} ' data/access.log\n\n\
+    3. Extract request methods:\n   grep -oE 'GET|POST|PUT|DELETE' data/access.log\n\
+    \n4. Extract URLs requested:\n   grep -oE '\"[A-Z]+ [^ ]+ ' data/access.log\n\n\
+    5. Find specific date requests:\n   grep '09/Jan/2026' data/access.log\n\n**Create\
+    \ a pattern library file:**\ncat > patterns.txt << 'EOF'\n# Email\n[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\
+    .[a-zA-Z]{2,}\n\n# IP address\n([0-9]{1,3}\\.){3}[0-9]{1,3}\n\n# URL\nhttps?://[^\
+    \ ]+\n\n# Date YYYY-MM-DD\n[0-9]{4}-[0-9]{2}-[0-9]{2}\nEOF\n\n**Try finding all\
+    \ error status codes (4xx, 5xx):**\ngrep -E ' [45][0-9]{2} ' data/access.log\n"
+  hint: Combine patterns to match complex real-world data
+  validation:
+    type: command-output
+    command: grep -E ' [45][0-9]{2} ' /home/learner/data/access.log | wc -l
+    matcher: regex
+    expected: '[2-9]'
+completion:
+  message: '🎉 INTERMEDIATE REGEX MASTERED! 🎉
+
+
+    You''ve mastered advanced regular expression techniques!
+
+
+    **What You''ve Learned:**
+
+
+    ✓ Alternation: pattern1|pattern2 (OR)
+
+    ✓ Grouping: (pattern) for units
+
+    ✓ Exact quantifiers: {n}, {n,m}, {n,}
+
+    ✓ Optional quantifier: ? (zero or one)
+
+    ✓ Greedy vs non-greedy matching
+
+    ✓ POSIX character classes
+
+    ✓ Advanced grep options (-o, -A, -B, -C)
+
+    ✓ Real-world pattern library
+
+
+    **Extended Regex Features (grep -E):**
+
+
+    |       Alternation (OR)
+
+    ()      Grouping
+
+    +       One or more
+
+    ?       Zero or one (optional)
+
+    {n}     Exactly n
+
+    {n,m}   Between n and m
+
+    {n,}    n or more
+
+
+    **Advanced grep Options:**
+
+
+    -E      Extended regex (same as egrep)
+
+    -o      Show only matching part
+
+    -A N    N lines After
+
+    -B N    N lines Before
+
+    -C N    N lines Context
+
+    -w      Whole words only
+
+    -v      Invert match
+
+    -c      Count matches
+
+    -l      List filenames
+
+    -n      Line numbers
+
+    -i      Case-insensitive
+
+
+    **POSIX Character Classes:**
+
+
+    [[:alnum:]]   Alphanumeric
+
+    [[:alpha:]]   Alphabetic
+
+    [[:digit:]]   Digits
+
+    [[:lower:]]   Lowercase
+
+    [[:upper:]]   Uppercase
+
+    [[:space:]]   Whitespace
+
+    [[:punct:]]   Punctuation
+
+
+    **Pattern Library:**
+
+
+    Email:
+
+    [a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}
+
+
+    IP Address:
+
+    ([0-9]{1,3}\.){3}[0-9]{1,3}
+
+
+    URL:
+
+    https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/[^ ]*)?
+
+
+    Phone:
+
+    \(?[0-9]{3}\)?[-. ]?[0-9]{3}[-. ]?[0-9]{4}
+
+
+    Date YYYY-MM-DD:
+
+    [0-9]{4}-[0-9]{2}-[0-9]{2}
+
+
+    Time HH:MM:SS:
+
+    [0-9]{2}:[0-9]{2}:[0-9]{2}
+
+
+    **Best Practices:**
+
+
+    ☑ Use -E for extended features
+
+    ☑ Test patterns incrementally
+
+    ☑ Use -o to verify exact matches
+
+    ☑ Anchor patterns when matching complete strings
+
+    ☑ Use [^X]* instead of .* for non-greedy behavior
+
+    ☑ Escape special characters: \. \$ \* \+
+
+    ☑ Use POSIX classes for locale-awareness
+
+
+    **Common Pitfalls:**
+
+
+    ✗ Forgetting -E for +, ?, |, {}
+
+    ✗ Greedy matching with .*
+
+    ✗ Not escaping special characters
+
+    ✗ Wrong range order [a-Z] instead of [a-zA-Z]
+
+    ✗ Forgetting double brackets in POSIX: [[:digit:]]
+
+
+    **Next Steps:**
+
+
+    - sed for find/replace with backreferences
+
+    - awk for advanced text processing
+
+    - Perl-compatible regex (PCRE)
+
+    - Lookahead and lookbehind assertions
+
+    - Backreferences and capturing groups
+
+
+    You can now handle complex pattern matching in real-world scenarios!
+
+
+    EXCELLENT WORK!
+
+    '
+  xp: 300
+  unlocks:
+  - linux/week13/sed-basics-advanced
+  - linux/week13/practice-log-parsing

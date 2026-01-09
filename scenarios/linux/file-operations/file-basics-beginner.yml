@@ -1,0 +1,671 @@
+mission:
+  id: file-basics-beginner
+  title: File Operations and Basic Commands
+  difficulty: beginner
+  description: 'Learn essential file operations - viewing, copying, moving, and deleting
+    files.
+
+    Master the fundamental commands every Linux user needs: ls, cp, mv, rm, cat,
+
+    and more.
+
+
+    Build a solid foundation in file management!
+
+    '
+  estimated_time: 25
+  xp_reward: 200
+  tags:
+  - files
+  - basics
+  - ls
+  - cp
+  - mv
+  - file-operations
+environment:
+  setup:
+  - apt-get update && apt-get install -y \
+  - coreutils
+  image: ubuntu:22.04
+steps:
+- id: listing-files
+  description: '**Listing Files with ls**
+
+
+    The `ls` command lists directory contents.
+
+
+    **Basic usage:**
+
+    ```bash
+
+    ls              # List current directory
+
+    ls /path        # List specific directory
+
+    ls -l           # Long format (detailed)
+
+    ls -a           # Show hidden files (starting with .)
+
+    ls -lh          # Human-readable sizes
+
+    ls -lt          # Sort by modification time
+
+    ls -lS          # Sort by size
+
+    ```
+
+
+    **Combining options:**
+
+    ```bash
+
+    ls -lah         # Long format, all files, human-readable
+
+    ls -ltr         # Long format, sorted by time, reversed
+
+    ```
+
+
+    **Task:** Practice listing files.
+
+
+    ```bash
+
+    mkdir -p ~/file_ops
+
+    cd ~/file_ops
+
+
+    # Create test files
+
+    touch file1.txt file2.txt .hidden
+
+    echo "data" > file3.txt
+
+
+    # Document ls usage
+
+    echo "Listing Files" > ls_demo.txt
+
+    echo "=============" >> ls_demo.txt
+
+    echo "" >> ls_demo.txt
+
+
+    echo "Basic listing:" >> ls_demo.txt
+
+    ls >> ls_demo.txt
+
+
+    echo "" >> ls_demo.txt
+
+    echo "With hidden files (-a):" >> ls_demo.txt
+
+    ls -a >> ls_demo.txt
+
+
+    echo "" >> ls_demo.txt
+
+    echo "Long format (-l):" >> ls_demo.txt
+
+    ls -l *.txt >> ls_demo.txt
+
+
+    cat ls_demo.txt
+
+    ```
+
+    '
+  hint: 'Use ''ls -lah'' as your default - it shows all files, detailed info, and
+
+    human-readable sizes. The -a flag reveals hidden files starting with dot.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/file_ops/ls_demo.txt
+    matcher: exists
+  title: '**Listing Files with ls**'
+- id: viewing-files
+  description: '**Viewing File Contents**
+
+
+    **Commands for viewing:**
+
+    ```bash
+
+    cat file.txt        # Display entire file
+
+    head file.txt       # First 10 lines
+
+    head -n 5 file.txt  # First 5 lines
+
+    tail file.txt       # Last 10 lines
+
+    tail -n 5 file.txt  # Last 5 lines
+
+    less file.txt       # Page through file (press q to quit)
+
+    ```
+
+
+    **Useful tricks:**
+
+    ```bash
+
+    cat file1.txt file2.txt  # Concatenate multiple files
+
+    tail -f log.txt          # Follow file (watch new lines)
+
+    ```
+
+
+    **Task:** View files different ways.
+
+
+    ```bash
+
+    # Create test file with content
+
+    cat > sample.txt << ''EOF''
+
+    Line 1
+
+    Line 2
+
+    Line 3
+
+    Line 4
+
+    Line 5
+
+    Line 6
+
+    Line 7
+
+    Line 8
+
+    Line 9
+
+    Line 10
+
+    EOF
+
+
+    echo "Viewing Files" > view_demo.txt
+
+    echo "=============" >> view_demo.txt
+
+    echo "" >> view_demo.txt
+
+
+    echo "First 3 lines:" >> view_demo.txt
+
+    head -n 3 sample.txt >> view_demo.txt
+
+
+    echo "" >> view_demo.txt
+
+    echo "Last 3 lines:" >> view_demo.txt
+
+    tail -n 3 sample.txt >> view_demo.txt
+
+
+    cat view_demo.txt
+
+    ```
+
+    '
+  hint: 'Use ''cat'' for small files, ''less'' for large files. ''head'' shows the
+    start,
+
+    ''tail'' shows the end. tail -f is great for monitoring log files.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/file_ops/view_demo.txt
+    matcher: exists
+  title: '**Viewing File Contents**'
+- id: copying-files
+  description: '**Copying Files and Directories**
+
+
+    **Basic copying:**
+
+    ```bash
+
+    cp source dest          # Copy file
+
+    cp file1 file2 dir/     # Copy multiple files to directory
+
+    cp -r dir1 dir2         # Copy directory recursively
+
+    cp -i file dest         # Interactive (prompt before overwrite)
+
+    cp -v file dest         # Verbose (show what''s being copied)
+
+    ```
+
+
+    **Useful options:**
+
+    ```bash
+
+    cp -p file dest         # Preserve permissions and timestamps
+
+    cp -u file dest         # Copy only if source is newer
+
+    ```
+
+
+    **Task:** Practice copying.
+
+
+    ```bash
+
+    mkdir -p source dest
+
+
+    echo "Original" > source/file1.txt
+
+    echo "Data" > source/file2.txt
+
+    mkdir source/subdir
+
+
+    echo "Copying Files" > copy_demo.txt
+
+    echo "=============" >> copy_demo.txt
+
+    echo "" >> copy_demo.txt
+
+
+    # Copy single file
+
+    cp source/file1.txt dest/
+
+    echo "Copied file1.txt to dest/" >> copy_demo.txt
+
+
+    # Copy multiple files
+
+    cp source/file*.txt dest/
+
+    echo "Copied all .txt files" >> copy_demo.txt
+
+
+    # Copy directory
+
+    cp -r source dest/source_backup
+
+    echo "Copied entire source directory" >> copy_demo.txt
+
+
+    echo "" >> copy_demo.txt
+
+    echo "Destination contents:" >> copy_demo.txt
+
+    ls -R dest/ >> copy_demo.txt
+
+
+    cat copy_demo.txt
+
+    ```
+
+    '
+  hint: 'Use ''cp -r'' for directories, ''cp -i'' to avoid accidental overwrites.
+
+    The -r flag means "recursive" - it copies everything inside.
+
+    '
+  validation:
+    type: file-exists
+    path: ~/file_ops/copy_demo.txt
+    matcher: exists
+  title: '**Copying Files and Directories**'
+- id: moving-renaming
+  description: '**Moving and Renaming Files**
+
+
+    `mv` both moves and renames files (they''re the same operation!).
+
+
+    **Basic usage:**
+
+    ```bash
+
+    mv old new              # Rename file
+
+    mv file dir/            # Move file to directory
+
+    mv file1 file2 dir/     # Move multiple files
+
+    mv -i source dest       # Interactive (prompt before overwrite)
+
+    mv -v source dest       # Verbose
+
+    ```
+
+
+    **Renaming multiple files:**
+
+    ```bash
+
+    mv file.txt file.bak         # Rename
+
+    mv *.txt backup/             # Move all .txt files
+
+    ```
+
+
+    **Task:** Practice moving and renaming.
+
+
+    ```bash
+
+    mkdir move_test
+
+
+    touch file_a.txt file_b.txt file_c.txt
+
+
+    echo "Moving and Renaming" > move_demo.txt
+
+    echo "===================" >> move_demo.txt
+
+    echo "" >> move_demo.txt
+
+
+    echo "Initial files:" >> move_demo.txt
+
+    ls *.txt >> move_demo.txt
+
+
+    # Rename
+
+    mv file_a.txt file_alpha.txt
+
+    echo "" >> move_demo.txt
+
+    echo "After renaming file_a.txt → file_alpha.txt:" >> move_demo.txt
+
+    ls file_*.txt >> move_demo.txt
+
+
+    # Move to directory
+
+    mv file_b.txt move_test/
+
+    echo "" >> move_demo.txt
+
+    echo "After moving file_b.txt to move_test/:" >> move_demo.txt
+
+    echo "Current dir:" >> move_demo.txt
+
+    ls file*.txt 2>/dev/null || echo "(file_b.txt moved)" >> move_demo.txt
+
+    echo "move_test dir:" >> move_demo.txt
+
+    ls move_test/ >> move_demo.txt
+
+
+    cat move_demo.txt
+
+    ```
+
+    '
+  hint: 'mv is used for both moving AND renaming. If the destination is a directory,
+
+    it moves. If it''s a new name, it renames. Simple!
+
+    '
+  validation:
+    type: file-exists
+    path: ~/file_ops/move_demo.txt
+    matcher: exists
+  title: '**Moving and Renaming Files**'
+- id: deleting-files
+  description: '**Removing Files and Directories**
+
+
+    **Removing files:**
+
+    ```bash
+
+    rm file.txt             # Remove file
+
+    rm file1 file2 file3    # Remove multiple files
+
+    rm -i file.txt          # Interactive (ask confirmation)
+
+    rm -f file.txt          # Force (no confirmation)
+
+    rm *.txt                # Remove all .txt files
+
+    ```
+
+
+    **Removing directories:**
+
+    ```bash
+
+    rmdir empty_dir         # Remove empty directory
+
+    rm -r directory         # Remove directory and contents
+
+    rm -rf directory        # Force remove (DANGEROUS!)
+
+    ```
+
+
+    **SAFETY TIP: Always double-check before using rm -rf!**
+
+
+    **Task:** Practice safe deletion.
+
+
+    ```bash
+
+    mkdir cleanup
+
+    touch cleanup/temp1.txt cleanup/temp2.txt
+
+    mkdir cleanup/subdir
+
+
+    echo "Deleting Files Safely" > delete_demo.txt
+
+    echo "=====================" >> delete_demo.txt
+
+    echo "" >> delete_demo.txt
+
+
+    echo "Before cleanup:" >> delete_demo.txt
+
+    ls -R cleanup/ >> delete_demo.txt
+
+
+    # Remove single file
+
+    rm cleanup/temp1.txt
+
+    echo "" >> delete_demo.txt
+
+    echo "After removing temp1.txt:" >> delete_demo.txt
+
+    ls cleanup/ >> delete_demo.txt
+
+
+    # Remove directory
+
+    rmdir cleanup/subdir
+
+    echo "" >> delete_demo.txt
+
+    echo "After removing empty subdir:" >> delete_demo.txt
+
+    ls cleanup/ >> delete_demo.txt
+
+
+    echo "" >> delete_demo.txt
+
+    echo "Safety tips:" >> delete_demo.txt
+
+    echo "✓ Use -i for confirmation" >> delete_demo.txt
+
+    echo "✓ Check with ls before rm" >> delete_demo.txt
+
+    echo "✗ Never use rm -rf / or rm -rf /*" >> delete_demo.txt
+
+
+    cat delete_demo.txt
+
+    ```
+
+    '
+  hint: 'ALWAYS use ''rm -i'' when deleting important files. It asks for confirmation.
+
+    Use ''ls'' first to verify you''re deleting the right files!
+
+    '
+  validation:
+    type: file-exists
+    path: ~/file_ops/delete_demo.txt
+    matcher: exists
+  title: '**Removing Files and Directories**'
+- id: wildcards-basics
+  description: '**Using Wildcards**
+
+
+    Wildcards match multiple files:
+
+
+    **Pattern matching:**
+
+    ```bash
+
+    *           # Match any characters
+
+    ?           # Match single character
+
+    [abc]       # Match one of: a, b, or c
+
+    [a-z]       # Match range: a through z
+
+    [!abc]      # Match any except a, b, c
+
+    ```
+
+
+    **Examples:**
+
+    ```bash
+
+    ls *.txt              # All files ending in .txt
+
+    ls file?.txt          # file1.txt, fileA.txt, etc.
+
+    ls [abc]*.txt         # Files starting with a, b, or c
+
+    ls file[0-9].txt      # file0.txt through file9.txt
+
+    rm temp*              # Remove all files starting with temp
+
+    ```
+
+
+    **Task:** Practice wildcards.
+
+
+    ```bash
+
+    # Create test files
+
+    touch report1.txt report2.txt report3.txt
+
+    touch data_a.csv data_b.csv data_c.csv
+
+    touch archive2024.zip archive2023.zip
+
+
+    echo "Wildcard Patterns" > wildcard_demo.txt
+
+    echo "=================" >> wildcard_demo.txt
+
+    echo "" >> wildcard_demo.txt
+
+
+    echo "All .txt files:" >> wildcard_demo.txt
+
+    ls *.txt >> wildcard_demo.txt
+
+
+    echo "" >> wildcard_demo.txt
+
+    echo "Files matching data_?.csv:" >> wildcard_demo.txt
+
+    ls data_?.csv >> wildcard_demo.txt
+
+
+    echo "" >> wildcard_demo.txt
+
+    echo "Reports (report[0-9].txt):" >> wildcard_demo.txt
+
+    ls report[0-9].txt >> wildcard_demo.txt
+
+
+    cat wildcard_demo.txt
+
+    ```
+
+
+    **Congratulations!** You''ve mastered file operations!
+
+
+    **You learned:**
+
+    - Listing files (ls with various options)
+
+    - Viewing files (cat, head, tail, less)
+
+    - Copying files and directories (cp, cp -r)
+
+    - Moving and renaming (mv)
+
+    - Deleting files safely (rm, rmdir)
+
+    - Using wildcards for pattern matching
+
+
+    **Essential commands:**
+
+    - ls -lah: List all files with details
+
+    - cp -r: Copy directories
+
+    - mv: Move or rename
+
+    - rm -i: Remove with confirmation
+
+    - Use wildcards (*,?) for batch operations
+
+
+    You now have the core skills for file management in Linux!
+
+    '
+  hint: 'Wildcards expand before the command runs. ''ls *.txt'' becomes ''ls file1.txt
+
+    file2.txt file3.txt''. Test with ls before using with rm!
+
+    '
+  validation:
+    type: file-exists
+    path: ~/file_ops/wildcard_demo.txt
+    matcher: exists
+  title: '**Using Wildcards**'
+completion:
+  message: Congratulations! You've completed this beginner mission.
+  xp: 200
+  unlocks: []

@@ -1,0 +1,228 @@
+mission:
+  id: linux/text-processing/file-permissions
+  title: File Permissions and Modes
+  difficulty: intermediate
+  description: Master Linux file permissions, chmod, and permission modes
+  estimated_time: 35
+  tags:
+  - linux
+  - permissions
+  - chmod
+  - text-processing
+environment:
+  image: ubuntu:22.04
+  workdir: /home/learner
+  setup:
+  - mkdir -p /home/learner/scripts
+  - touch /home/learner/scripts/test.sh
+  - echo '#!/bin/bash' > /home/learner/scripts/test.sh
+  - echo 'echo Hello World' >> /home/learner/scripts/test.sh
+  - touch /home/learner/scripts/data.txt
+  - touch /home/learner/scripts/secret.txt
+steps:
+- id: view-permissions
+  title: Understanding Permission Display
+  description: 'Use ''ls -l'' to view file permissions.
+
+
+    Check permissions of files in scripts directory:
+
+    ls -l scripts/
+
+
+    The first column shows: -rwxr-xr-x
+
+    - First char: file type (- = file, d = directory)
+
+    - Next 3: owner permissions (rwx)
+
+    - Next 3: group permissions (r-x)
+
+    - Last 3: others permissions (r-x)
+
+    '
+  hint: 'Type: ls -l scripts/'
+  validation:
+    type: command-output
+    command: ls -l /home/learner/scripts/test.sh
+    matcher: contains
+    expected: test.sh
+- id: chmod-symbolic
+  title: Add Execute Permission (Symbolic)
+  description: 'Use chmod with symbolic notation to change permissions.
+
+
+    Make test.sh executable for owner:
+
+    chmod u+x scripts/test.sh
+
+
+    u=user(owner), g=group, o=others, a=all
+
+    + adds permission, - removes, = sets exactly
+
+    '
+  hint: 'Type: chmod u+x scripts/test.sh && ls -l scripts/test.sh'
+  validation:
+    type: command-output
+    command: chmod u+x /home/learner/scripts/test.sh && ls -l /home/learner/scripts/test.sh
+      | cut -c1-10
+    matcher: contains
+    expected: rwx
+- id: chmod-numeric
+  title: Set Permissions with Octal Numbers
+  description: 'Use octal (numeric) notation for precise permission control.
+
+
+    Permission values:
+
+    - r (read) = 4
+
+    - w (write) = 2
+
+    - x (execute) = 1
+
+
+    Set rwxr-xr-x (755):
+
+    chmod 755 scripts/test.sh
+
+
+    7=rwx(4+2+1), 5=r-x(4+0+1), 5=r-x(4+0+1)
+
+    '
+  hint: 'Type: chmod 755 scripts/test.sh'
+  validation:
+    type: command-output
+    command: chmod 755 /home/learner/scripts/test.sh && stat -c '%a' /home/learner/scripts/test.sh
+    matcher: exact
+    expected: '755'
+- id: remove-permissions
+  title: Remove Permissions
+  description: 'Remove specific permissions using symbolic notation.
+
+
+    Remove write permission for group and others:
+
+    chmod go-w scripts/data.txt
+
+
+    go = group and others
+
+    -w = remove write permission
+
+    '
+  hint: 'Type: chmod go-w scripts/data.txt'
+  validation:
+    type: command-output
+    command: chmod 644 /tmp/test.txt && chmod go-w /tmp/test.txt && stat -c '%a' /tmp/test.txt
+    matcher: exact
+    expected: '644'
+- id: set-exact-permissions
+  title: Set Exact Permissions with =
+  description: 'Use = to set exact permissions, removing all others.
+
+
+    Give owner read/write only, remove all other permissions:
+
+    chmod u=rw,go= scripts/secret.txt
+
+
+    This sets rw------- (600)
+
+    '
+  hint: 'Type: chmod u=rw,go= scripts/secret.txt'
+  validation:
+    type: command-output
+    command: chmod u=rw,go= /home/learner/scripts/secret.txt && stat -c '%a' /home/learner/scripts/secret.txt
+    matcher: exact
+    expected: '600'
+- id: directory-permissions
+  title: Directory Execute Permission
+  description: 'For directories, execute (x) permission means you can enter it.
+
+
+    Create a directory and set permissions:
+
+    mkdir test_dir
+
+    chmod 755 test_dir
+
+
+    755 allows owner full access, others can read and enter (cd into it).
+
+    '
+  hint: 'Type: mkdir test_dir && chmod 755 test_dir'
+  validation:
+    type: command-output
+    command: mkdir -p /tmp/test_dir && chmod 755 /tmp/test_dir && stat -c '%a' /tmp/test_dir
+    matcher: exact
+    expected: '755'
+- id: common-permissions
+  title: Common Permission Patterns
+  description: 'Standard permission patterns:
+
+    - 644: rw-r--r-- (files - owner writes, all read)
+
+    - 755: rwxr-xr-x (executables/dirs - owner writes, all execute)
+
+    - 600: rw------- (private files - owner only)
+
+    - 700: rwx------ (private dirs - owner only)
+
+
+    Set data.txt to standard file permissions (644):
+
+    chmod 644 scripts/data.txt
+
+    '
+  hint: 'Type: chmod 644 scripts/data.txt'
+  validation:
+    type: command-output
+    command: chmod 644 /home/learner/scripts/data.txt && stat -c '%a' /home/learner/scripts/data.txt
+    matcher: exact
+    expected: '644'
+- id: recursive-chmod
+  title: Recursive Permission Changes
+  description: 'Use -R to apply permissions recursively to directories.
+
+
+    Set all files in scripts directory to 644:
+
+    chmod -R 644 scripts/*
+
+
+    -R applies the change to all files and subdirectories.
+
+    BE CAREFUL: this affects everything inside!
+
+    '
+  hint: 'Type: chmod -R 644 scripts/* (use cautiously)'
+  validation:
+    type: command-output
+    command: mkdir -p /tmp/testdir && touch /tmp/testdir/file && chmod -R 644 /tmp/testdir/*
+      && stat -c '%a' /tmp/testdir/file
+    matcher: exact
+    expected: '644'
+completion:
+  message: 'Excellent work! You now understand Linux permissions:
+
+    - Read (r/4), Write (w/2), Execute (x/1)
+
+    - Owner, Group, Others (u, g, o)
+
+    - Symbolic: chmod u+x, go-w, a=rx
+
+    - Octal: chmod 755, 644, 600
+
+    - Common patterns: 644 (files), 755 (executables), 600 (private)
+
+    - -R for recursive changes
+
+
+    Proper permissions are crucial for system security!
+
+    '
+  xp: 300
+  unlocks:
+  - linux/week5/environment-variables

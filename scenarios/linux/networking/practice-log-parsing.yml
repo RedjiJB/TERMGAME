@@ -1,0 +1,963 @@
+mission:
+  id: linux/networking/practice-log-parsing
+  title: Production Log Analysis and Transformation
+  difficulty: advanced
+  description: Parse, analyze, and transform production logs using regex, grep, sed,
+    and shell scripting
+  estimated_time: 55
+  tags:
+  - linux
+  - practice
+  - regex
+  - grep
+  - sed
+  - awk
+  - expert
+  - networking
+environment:
+  image: ubuntu:22.04
+  workdir: /opt/log-analyzer
+  setup:
+  - apt-get update -qq && apt-get install -y -qq grep sed gawk
+  - mkdir -p /opt/log-analyzer /var/log/application /var/log/processed
+  - '# Generate realistic application log
+
+    cat > /var/log/application/app.log << ''EOF''
+
+    2026-01-09 10:15:23.456 [INFO] com.app.service.UserService - User john.doe@example.com
+    logged in from 192.168.1.100
+
+    2026-01-09 10:16:45.789 [ERROR] com.app.database.ConnectionPool - Connection timeout
+    to db-prod-01.internal:5432 after 30000ms
+
+    2026-01-09 10:17:12.234 [INFO] com.app.api.AuthController - Authentication successful
+    for user_id=12345
+
+    2026-01-09 10:18:55.678 [WARN] com.app.cache.RedisClient - Cache miss rate: 45.5%
+    (threshold: 30%)
+
+    2026-01-09 10:19:03.123 [ERROR] com.app.service.PaymentService - Payment processing
+    failed: java.lang.NullPointerException at line 234
+
+    2026-01-09 10:20:31.456 [INFO] com.app.api.UserController - GET /api/users?page=1&limit=50
+    responded 200 in 145ms
+
+    2026-01-09 10:21:47.789 [DEBUG] com.app.util.CacheHelper - Cache key user:12345:profile
+    retrieved in 2ms
+
+    2026-01-09 10:22:18.234 [ERROR] com.app.external.EmailService - SMTP connection
+    failed to smtp.provider.com:587
+
+    2026-01-09 10:23:56.567 [INFO] com.app.scheduler.BackupJob - Backup completed
+    successfully, size: 2.3GB, duration: 450s
+
+    2026-01-09 10:24:42.890 [WARN] com.app.monitor.HealthCheck - Disk usage on /data
+    partition: 87% (critical threshold: 85%)
+
+    2026-01-09 10:25:19.123 [INFO] com.app.service.UserService - User jane.smith@company.org
+    logged out after 3600s session
+
+    2026-01-09 10:26:34.456 [ERROR] com.app.api.OrderController - Order creation failed
+    for customer_id=67890, error: insufficient_inventory
+
+    2026-01-09 10:27:51.789 [INFO] com.app.security.AuditLogger - Failed login attempt
+    from 203.0.113.45 for user: admin
+
+    2026-01-09 10:28:12.234 [CRITICAL] com.app.database.HealthMonitor - Database connection
+    pool exhausted (0/100 available)
+
+    2026-01-09 10:29:45.567 [INFO] com.app.api.ProductController - POST /api/products
+    responded 201 in 234ms
+
+    2026-01-09 10:30:23.890 [WARN] com.app.service.RateLimiter - Rate limit exceeded
+    for IP 192.168.1.150, requests: 1050/1000
+
+    2026-01-09 10:31:56.123 [ERROR] com.app.external.PaymentGateway - Transaction
+    declined: card_expired, transaction_id=TXN-98765
+
+    2026-01-09 10:32:19.456 [INFO] com.app.messaging.KafkaConsumer - Processed 5000
+    messages from topic orders.created in 12000ms
+
+    2026-01-09 10:33:42.789 [DEBUG] com.app.util.TokenValidator - JWT token validated
+    for user_id=12345, expires_in=3600s
+
+    2026-01-09 10:34:18.234 [ERROR] com.app.service.NotificationService - Push notification
+    failed: device_token_invalid for user_id=11111
+
+    EOF
+
+    '
+  - '# Generate access log
+
+    cat > /var/log/application/access.log << ''EOF''
+
+    192.168.1.100 - john.doe [09/Jan/2026:10:15:23 +0000] "GET /dashboard HTTP/1.1"
+    200 15234 "https://app.example.com/login" "Mozilla/5.0"
+
+    192.168.1.101 - jane.smith [09/Jan/2026:10:16:45 +0000] "POST /api/login HTTP/1.1"
+    200 456 "-" "axios/0.21.1"
+
+    10.0.0.55 - - [09/Jan/2026:10:17:12 +0000] "GET /api/users/12345 HTTP/1.1" 200
+    1234 "-" "curl/7.68.0"
+
+    192.168.1.102 - admin [09/Jan/2026:10:18:55 +0000] "GET /admin/panel HTTP/1.1"
+    403 234 "-" "Mozilla/5.0"
+
+    172.16.0.10 - service [09/Jan/2026:10:19:03 +0000] "POST /api/payments HTTP/1.1"
+    500 123 "-" "Java/11.0.2"
+
+    192.168.1.100 - john.doe [09/Jan/2026:10:20:31 +0000] "GET /api/users?page=1&limit=50
+    HTTP/1.1" 200 8765 "-" "Mozilla/5.0"
+
+    203.0.113.45 - - [09/Jan/2026:10:27:51 +0000] "POST /api/login HTTP/1.1" 401 89
+    "-" "python-requests/2.25.1"
+
+    192.168.1.150 - user [09/Jan/2026:10:30:23 +0000] "GET /api/products HTTP/1.1"
+    429 156 "-" "Mozilla/5.0"
+
+    10.0.0.56 - system [09/Jan/2026:10:32:19 +0000] "POST /api/webhooks/kafka HTTP/1.1"
+    200 45 "-" "KafkaProducer/2.8.0"
+
+    192.168.1.103 - bob [09/Jan/2026:10:35:42 +0000] "DELETE /api/users/99999 HTTP/1.1"
+    404 234 "-" "curl/7.68.0"
+
+    EOF
+
+    '
+steps:
+- id: understand-requirements
+  title: Analyze Requirements
+  description: "**SCENARIO: Production Log Analysis**\n\nYou're a DevOps engineer\
+    \ investigating production issues and preparing\nlogs for security audit. You\
+    \ must parse, analyze, and transform logs using\nregex, grep, and sed.\n\n**Available\
+    \ logs:**\n/var/log/application/app.log     - Application logs (structured)\n\
+    /var/log/application/access.log  - HTTP access logs (Apache format)\n\n**Your\
+    \ Tasks:**\n\n1. **Error Analysis**\n   - Extract all ERROR and CRITICAL entries\n\
+    \   - Count errors by category\n   - Identify top error sources\n   - Calculate\
+    \ error rate\n\n2. **Security Audit**\n   - Anonymize PII (emails, IPs)\n   -\
+    \ Identify failed authentication attempts\n   - Find rate-limiting violations\n\
+    \   - Detect suspicious patterns\n\n3. **Performance Metrics**\n   - Extract API\
+    \ response times\n   - Identify slow endpoints (>200ms)\n   - Calculate average\
+    \ response time\n   - Find status code distribution\n\n4. **Report Generation**\n\
+    \   - Create executive summary\n   - Generate anonymized logs for audit\n   -\
+    \ Produce metrics dashboard\n   - Alert on critical issues\n\n**Tools available:**\n\
+    - grep (with extended regex)\n- sed (stream editor)\n- awk (text processing)\n\
+    - Basic shell commands\n\n**Deliverables:**\n- error_summary.txt\n- anonymized_logs.txt\n\
+    - security_report.txt\n- performance_metrics.txt\n- critical_alerts.txt\n\n**Explore\
+    \ the logs first:**\nwc -l /var/log/application/*.log\nhead -5 /var/log/application/app.log\n\
+    head -5 /var/log/application/access.log\n\n**No step-by-step guidance!**\nThis\
+    \ is real-world log analysis. Plan and execute your solution.\n"
+  hint: Analyze log structure before building patterns
+  validation:
+    type: command-output
+    command: wc -l /var/log/application/*.log | tail -1
+    matcher: contains
+    expected: total
+- id: extract-errors
+  title: Extract and Analyze Errors
+  description: '**Task: Create comprehensive error analysis**
+
+
+    Create: /opt/log-analyzer/error_summary.txt
+
+
+    **Requirements:**
+
+
+    ✓ Extract all ERROR and CRITICAL level entries
+
+    ✓ Count total errors vs total log entries (error rate)
+
+    ✓ Group errors by service/component
+
+    ✓ List unique error messages
+
+    ✓ Identify top 3 error sources
+
+    ✓ Extract stack traces or error details
+
+    ✓ Timestamp range of errors
+
+    ✓ Format as readable report
+
+
+    **Report format:**
+
+    ```
+
+    ==============================================
+
+    ERROR ANALYSIS REPORT
+
+    Generated: YYYY-MM-DD HH:MM:SS
+
+    ==============================================
+
+
+    SUMMARY:
+
+    - Total log entries: X
+
+    - Error entries: X (X.X%)
+
+    - Critical entries: X
+
+    - Time range: HH:MM:SS to HH:MM:SS
+
+
+    ERROR DISTRIBUTION:
+
+    com.app.database: X errors
+
+    com.app.external: X errors
+
+    com.app.service: X errors
+
+
+    TOP ERRORS:
+
+    1. [ERROR] com.app.database.ConnectionPool - Connection timeout (2 occurrences)
+
+    2. [ERROR] com.app.service.PaymentService - Payment processing failed (1 occurrence)
+
+    ...
+
+
+    CRITICAL ISSUES:
+
+    [CRITICAL] com.app.database.HealthMonitor - Database connection pool exhausted
+
+
+    RECOMMENDATIONS:
+
+    - Investigate database connectivity
+
+    - Review payment service error handling
+
+    - Monitor connection pool usage
+
+    ==============================================
+
+    ```
+
+
+    **Hints:**
+
+    - Use grep -E for pattern matching
+
+    - Use wc -l for counting
+
+    - Use sed to extract components
+
+    - Use sort | uniq -c for frequency
+
+    - Combine commands with pipes
+
+
+    **Success criteria:**
+
+    - File exists with proper format
+
+    - Accurate error counts
+
+    - Proper grouping by component
+
+    - Actionable insights included
+
+
+    **Test your analysis:**
+
+    cat /opt/log-analyzer/error_summary.txt
+
+    '
+  hint: Use grep for extraction, sed for parsing, pipes for analysis
+  validation:
+    type: file-exists
+    path: /opt/log-analyzer/error_summary.txt
+    matcher: exists
+- id: anonymize-logs
+  title: Anonymize Sensitive Data
+  description: '**Task: Create anonymized log file**
+
+
+    Create: /var/log/processed/anonymized_app.log
+
+
+    **Requirements:**
+
+
+    ✓ Redact all email addresses: user@domain.com → user@REDACTED
+
+    ✓ Anonymize IP addresses: 192.168.1.100 → XXX.XXX.XXX.XXX
+
+    ✓ Mask user IDs: user_id=12345 → user_id=XXXXX
+
+    ✓ Redact sensitive paths: db-prod-01.internal → db-REDACTED
+
+    ✓ Keep log structure intact
+
+    ✓ Preserve timestamps
+
+    ✓ Maintain log level markers
+
+    ✓ Keep error messages readable
+
+
+    **What to anonymize:**
+
+    - Email addresses (PII)
+
+    - IP addresses (can identify users)
+
+    - User IDs (can link to real users)
+
+    - Internal hostnames (security risk)
+
+    - Customer IDs (PII)
+
+    - Transaction IDs (potentially sensitive)
+
+
+    **What to keep:**
+
+    - Timestamps
+
+    - Log levels
+
+    - Component names
+
+    - Error types
+
+    - Metrics (percentages, durations)
+
+    - HTTP status codes
+
+    - HTTP methods
+
+
+    **Example transformation:**
+
+
+    Before:
+
+    2026-01-09 10:15:23.456 [INFO] com.app.service.UserService - User john.doe@example.com
+    logged in from 192.168.1.100
+
+
+    After:
+
+    2026-01-09 10:15:23.456 [INFO] com.app.service.UserService - User REDACTED@REDACTED
+    logged in from XXX.XXX.XXX.XXX
+
+
+    **Use sed for transformations:**
+
+
+    sed ''s/pattern/replacement/g'' input.log > output.log
+
+
+    **Common patterns:**
+
+    Email: [a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+
+
+    IP: ([0-9]{1,3}\.){3}[0-9]{1,3}
+
+    User ID: user_id=[0-9]+
+
+    Customer ID: customer_id=[0-9]+
+
+
+    **Success criteria:**
+
+    - All PII removed
+
+    - Log structure preserved
+
+    - Still analyzable
+
+    - Consistent redaction
+
+
+    **Create anonymized log:**
+
+    Use sed with multiple substitutions
+
+    Verify with: grep -E ''@|[0-9]{1,3}\.[0-9]{1,3}'' anonymized_app.log
+
+    Should show REDACTED or XXX only
+
+    '
+  hint: Chain multiple sed substitutions to redact different patterns
+  validation:
+    type: file-exists
+    path: /var/log/processed/anonymized_app.log
+    matcher: exists
+- id: security-audit
+  title: Generate Security Report
+  description: '**Task: Create security analysis report**
+
+
+    Create: /opt/log-analyzer/security_report.txt
+
+
+    **Requirements:**
+
+
+    ✓ Identify failed authentication attempts
+
+    ✓ List suspicious IP addresses (multiple failures)
+
+    ✓ Find rate-limiting violations
+
+    ✓ Detect 403 Forbidden access attempts
+
+    ✓ Identify unusual HTTP methods
+
+    ✓ Find admin panel access attempts
+
+    ✓ Calculate failed login rate
+
+    ✓ Recommend security actions
+
+
+    **Report format:**
+
+    ```
+
+    ==============================================
+
+    SECURITY AUDIT REPORT
+
+    Generated: YYYY-MM-DD HH:MM:SS
+
+    ==============================================
+
+
+    AUTHENTICATION FAILURES:
+
+    - Failed login attempts: X
+
+    - Unique source IPs: X
+
+    - Targeted accounts: admin, ...
+
+
+    SUSPICIOUS IPs:
+
+    203.0.113.45 - 1 failed authentication attempts
+
+    ...
+
+
+    RATE LIMITING:
+
+    - Rate limit violations: X
+
+    - Affected IPs: ...
+
+    - Max requests: X (limit: 1000)
+
+
+    UNAUTHORIZED ACCESS:
+
+    - 403 Forbidden responses: X
+
+    - Targeted endpoints: /admin/panel, ...
+
+
+    SECURITY EVENTS:
+
+    [10:27:51] Failed login attempt from 203.0.113.45 for user: admin
+
+    [10:30:23] Rate limit exceeded for IP 192.168.1.150
+
+
+    RECOMMENDATIONS:
+
+    - Block IP 203.0.113.45 (failed admin login)
+
+    - Review rate limits for user accounts
+
+    - Enable MFA for admin accounts
+
+    - Investigate 403 patterns
+
+    ==============================================
+
+    ```
+
+
+    **Analysis patterns:**
+
+
+    Failed logins:
+
+    grep -i ''failed login'' app.log
+
+    grep '' 401 '' access.log
+
+
+    Rate limiting:
+
+    grep -i ''rate limit'' app.log
+
+    grep '' 429 '' access.log
+
+
+    Forbidden access:
+
+    grep '' 403 '' access.log
+
+
+    **Extract information:**
+
+    - Use grep to find events
+
+    - Use sed to extract IPs and users
+
+    - Use sort | uniq -c for frequency
+
+    - Use awk for calculations
+
+
+    **Success criteria:**
+
+    - Identifies all security events
+
+    - Calculates accurate statistics
+
+    - Provides actionable recommendations
+
+    - Prioritizes by severity
+
+    '
+  hint: Grep for security events, extract IPs/users, count occurrences
+  validation:
+    type: file-exists
+    path: /opt/log-analyzer/security_report.txt
+    matcher: exists
+- id: performance-metrics
+  title: Extract Performance Metrics
+  description: '**Task: Generate performance analysis**
+
+
+    Create: /opt/log-analyzer/performance_metrics.txt
+
+
+    **Requirements:**
+
+
+    ✓ Extract API response times from logs
+
+    ✓ Calculate average response time
+
+    ✓ Identify slow endpoints (>200ms)
+
+    ✓ Count requests by HTTP status code
+
+    ✓ Calculate success rate (2xx / total)
+
+    ✓ Find 5xx server errors
+
+    ✓ Identify slowest operation
+
+    ✓ Generate performance summary
+
+
+    **Report format:**
+
+    ```
+
+    ==============================================
+
+    PERFORMANCE METRICS REPORT
+
+    Generated: YYYY-MM-DD HH:MM:SS
+
+    ==============================================
+
+
+    API RESPONSE TIMES:
+
+    - Total API calls: X
+
+    - Average response time: XXXms
+
+    - Fastest response: XXms
+
+    - Slowest response: XXms
+
+
+    SLOW ENDPOINTS (>200ms):
+
+    - POST /api/products: 234ms
+
+    - GET /api/users: 145ms (borderline)
+
+
+    HTTP STATUS DISTRIBUTION:
+
+    - 2xx Success: X (XX.X%)
+
+    - 4xx Client Errors: X (XX.X%)
+
+    - 5xx Server Errors: X (XX.X%)
+
+
+    ERROR RATE:
+
+    - Total requests: X
+
+    - Failed requests: X
+
+    - Success rate: XX.X%
+
+
+    TOP ENDPOINTS:
+
+    GET /api/users - X requests
+
+    POST /api/products - X requests
+
+    ...
+
+
+    PERFORMANCE CONCERNS:
+
+    - 1 endpoint exceeding 200ms threshold
+
+    - X 5xx errors requiring investigation
+
+    - Success rate below 95% target
+
+
+    RECOMMENDATIONS:
+
+    - Optimize POST /api/products endpoint
+
+    - Investigate 5xx errors in payments service
+
+    - Add caching for frequently accessed endpoints
+
+    ==============================================
+
+    ```
+
+
+    **Extraction patterns:**
+
+
+    Response times:
+
+    grep -oE ''responded [0-9]+ in [0-9]+ms'' app.log
+
+
+    HTTP status codes:
+
+    grep -oE '' [0-9]{3} '' access.log
+
+
+    **Calculations with awk:**
+
+
+    Average response time:
+
+    grep -oE ''in [0-9]+ms'' app.log | awk -F''[^0-9]+'' ''{sum+=$2; count++} END
+    {print sum/count}''
+
+
+    Status code distribution:
+
+    grep -oE '' [0-9]{3} '' access.log | sort | uniq -c | sort -rn
+
+
+    **Success criteria:**
+
+    - Accurate time calculations
+
+    - Proper status code grouping
+
+    - Identifies performance issues
+
+    - Provides optimization recommendations
+
+    '
+  hint: Extract times with grep, calculate averages with awk
+  validation:
+    type: file-exists
+    path: /opt/log-analyzer/performance_metrics.txt
+    matcher: exists
+- id: critical-alerts
+  title: Generate Critical Alerts
+  description: '**Task: Create critical alert dashboard**
+
+
+    Create: /opt/log-analyzer/critical_alerts.txt
+
+
+    **Requirements:**
+
+
+    ✓ Flag all CRITICAL level entries
+
+    ✓ Identify resource exhaustion (disk, memory, connections)
+
+    ✓ Find cascading failures
+
+    ✓ Detect service outages
+
+    ✓ Calculate downtime duration
+
+    ✓ Assess business impact
+
+    ✓ Prioritize by severity
+
+    ✓ Provide immediate action items
+
+
+    **Report format:**
+
+    ```
+
+    ╔══════════════════════════════════════════════════╗
+
+    ║         CRITICAL ALERTS DASHBOARD                 ║
+
+    ║            IMMEDIATE ACTION REQUIRED             ║
+
+    ╚══════════════════════════════════════════════════╝
+
+
+    SEVERITY: HIGH ■■■■■
+
+
+    [1] DATABASE CONNECTION POOL EXHAUSTED
+
+    Time: 10:28:12
+
+    Impact: All database operations failing
+
+    Affected: All services requiring database
+
+    Action: Restart connection pool / Scale database
+
+    Status: 🔴 ACTIVE
+
+
+    [2] DISK USAGE CRITICAL (87%)
+
+    Time: 10:24:42
+
+    Impact: System may become unresponsive
+
+    Affected: /data partition
+
+    Action: Clean up logs / Expand storage
+
+    Status: 🟡 WARNING
+
+
+    [3] MULTIPLE PAYMENT FAILURES
+
+    Time: 10:19:03, 10:31:56
+
+    Impact: Revenue loss, customer dissatisfaction
+
+    Affected: PaymentService, PaymentGateway
+
+    Action: Investigate payment provider
+
+    Status: 🔴 ACTIVE
+
+
+    CASCADING FAILURES DETECTED:
+
+    Database timeout → Payment failures → Connection pool exhaustion
+
+
+    ESTIMATED IMPACT:
+
+    - Downtime: ~10 minutes (10:19 - 10:29)
+
+    - Failed transactions: 2+
+
+    - Affected users: Unknown (requires correlation)
+
+
+    IMMEDIATE ACTIONS:
+
+    1. Restart database connection pool (URGENT)
+
+    2. Free disk space on /data partition
+
+    3. Contact payment provider support
+
+    4. Enable circuit breaker for payment service
+
+    5. Scale database connections
+
+
+    ONCALL ESCALATION:
+
+    - Database team: PAGED
+
+    - Payment team: NOTIFIED
+
+    - Management: ALERT SENT
+
+
+    FOLLOW-UP:
+
+    - Post-incident review required
+
+    - Update runbooks
+
+    - Improve monitoring thresholds
+
+    ```
+
+
+    **Pattern detection:**
+
+
+    Critical logs:
+
+    grep ''\[CRITICAL\]'' app.log
+
+
+    Resource issues:
+
+    grep -iE ''exhausted|critical|threshold|exceeded'' app.log
+
+
+    Failure patterns:
+
+    grep -E ''ERROR.*failed|ERROR.*timeout'' app.log
+
+
+    **Correlation analysis:**
+
+    - Group related errors by time
+
+    - Identify cause-effect relationships
+
+    - Calculate business impact
+
+
+    **Success criteria:**
+
+    - All critical issues identified
+
+    - Clear prioritization
+
+    - Actionable steps provided
+
+    - Business impact assessed
+
+    - Formatted for executive review
+
+    '
+  hint: Grep for CRITICAL and resource keywords, correlate by time
+  validation:
+    type: file-exists
+    path: /opt/log-analyzer/critical_alerts.txt
+    matcher: exists
+- id: automation-script
+  title: Create Analysis Automation Script
+  description: "**Task: Build automated log analysis tool**\n\nCreate: /opt/log-analyzer/analyze_logs.sh\n\
+    \n**Requirements:**\n\n✓ Accept log file path as argument\n✓ Run all analyses\
+    \ automatically\n✓ Generate all required reports\n✓ Handle errors gracefully\n\
+    ✓ Provide progress indicators\n✓ Support multiple log formats\n✓ Generate summary\
+    \ dashboard\n✓ Exit with appropriate codes\n\n**Script structure:**\n```bash\n\
+    #!/bin/bash\n\n# Log Analysis Automation Script\n# Usage: ./analyze_logs.sh [log_file]\
+    \ [output_dir]\n\nset -euo pipefail\n\n# Configuration\nLOG_FILE=\"${1:-/var/log/application/app.log}\"\
+    \nOUTPUT_DIR=\"${2:-/opt/log-analyzer}\"\nTIMESTAMP=$(date +%Y%m%d_%H%M%S)\n\n\
+    # Functions\nanalyze_errors() {\n  # Extract and analyze errors\n  ...\n}\n\n\
+    anonymize_logs() {\n  # Anonymize sensitive data\n  ...\n}\n\nsecurity_audit()\
+    \ {\n  # Generate security report\n  ...\n}\n\nperformance_metrics() {\n  # Calculate\
+    \ performance metrics\n  ...\n}\n\ncritical_alerts() {\n  # Identify critical\
+    \ issues\n  ...\n}\n\ngenerate_dashboard() {\n  # Create summary dashboard\n \
+    \ ...\n}\n\n# Main execution\nmain() {\n  echo \"Starting log analysis...\"\n\n\
+    \  echo \"[1/6] Analyzing errors...\"\n  analyze_errors\n\n  echo \"[2/6] Anonymizing\
+    \ logs...\"\n  anonymize_logs\n\n  echo \"[3/6] Security audit...\"\n  security_audit\n\
+    \n  echo \"[4/6] Performance metrics...\"\n  performance_metrics\n\n  echo \"\
+    [5/6] Critical alerts...\"\n  critical_alerts\n\n  echo \"[6/6] Generating dashboard...\"\
+    \n  generate_dashboard\n\n  echo \"Analysis complete. Reports in: $OUTPUT_DIR\"\
+    \n}\n\nmain \"$@\"\n```\n\n**Dashboard format:**\n```\n╔══════════════════════════════════════════════╗\n\
+    ║       LOG ANALYSIS DASHBOARD                 ║\n╚══════════════════════════════════════════════╝\n\
+    \nAnalysis Date: 2026-01-09 10:35:00\nLog File: /var/log/application/app.log\n\
+    Total Entries: 20\n\nSTATUS: \U0001F534 CRITICAL ISSUES DETECTED\n\n┌─────────────────────────────────────────────┐\n\
+    │ ERROR SUMMARY                                │\n├─────────────────────────────────────────────┤\n\
+    │ Error Rate: 30.0% (6/20 entries)            │\n│ Critical: 1               \
+    \                   │\n│ Top Source: com.app.database (2 errors)     │\n└─────────────────────────────────────────────┘\n\
+    \n┌─────────────────────────────────────────────┐\n│ SECURITY STATUS         \
+    \                     │\n├─────────────────────────────────────────────┤\n│ Failed\
+    \ Logins: 1                            │\n│ Rate Limit Violations: 1         \
+    \           │\n│ Suspicious IPs: 2                           │\n└─────────────────────────────────────────────┘\n\
+    \n┌─────────────────────────────────────────────┐\n│ PERFORMANCE METRICS     \
+    \                     │\n├─────────────────────────────────────────────┤\n│ Avg\
+    \ Response Time: 189ms                    │\n│ Slow Endpoints: 1             \
+    \              │\n│ Success Rate: 75.0%                         │\n└─────────────────────────────────────────────┘\n\
+    \nGENERATED REPORTS:\n✓ error_summary.txt\n✓ anonymized_app.log\n✓ security_report.txt\n\
+    ✓ performance_metrics.txt\n✓ critical_alerts.txt\n\nNEXT STEPS:\n1. Review critical\
+    \ alerts immediately\n2. Address database connection issues\n3. Investigate security\
+    \ incidents\n4. Optimize slow endpoints\n```\n\n**Make script executable:**\n\
+    chmod +x /opt/log-analyzer/analyze_logs.sh\n\n**Test script:**\n./analyze_logs.sh\
+    \ /var/log/application/app.log\n\n**Success criteria:**\n- Script runs without\
+    \ errors\n- All reports generated\n- Dashboard summarizes findings\n- Proper error\
+    \ handling\n- Reusable and maintainable\n"
+  hint: Combine all analysis functions into one automated script
+  validation:
+    type: command-output
+    command: test -x /opt/log-analyzer/analyze_logs.sh && echo 'executable'
+    matcher: contains
+    expected: executable
+completion:
+  message: "\U0001F389 LOG ANALYSIS EXPERTISE ACHIEVED! \U0001F389\n\nOutstanding\
+    \ work! You've mastered production log analysis!\n\n**What You've Accomplished:**\n\
+    \n✓ Comprehensive error analysis and categorization\n✓ Data anonymization for\
+    \ compliance\n✓ Security audit and threat detection\n✓ Performance metrics extraction\n\
+    ✓ Critical alert identification\n✓ Automated analysis pipeline\n\n**Skills Demonstrated:**\n\
+    \n**Regex Mastery:**\n- Email pattern matching\n- IP address extraction\n- Timestamp\
+    \ parsing\n- Error pattern recognition\n- Multi-pattern matching\n\n**grep Expertise:**\n\
+    - Extended regex (-E)\n- Pattern extraction (-o)\n- Context viewing (-A, -B, -C)\n\
+    - Inverted matching (-v)\n- Case-insensitive search (-i)\n\n**sed Proficiency:**\n\
+    - Global substitution\n- Pattern-based replacement\n- Data anonymization\n- Log\
+    \ transformation\n- Multi-step processing\n\n**Shell Scripting:**\n- Pipeline\
+    \ construction\n- Function organization\n- Error handling\n- Automation\n- Report\
+    \ generation\n\n**Professional Deliverables:**\n\n1. Error Summary Report\n  \
+    \ - Statistical analysis\n   - Component breakdown\n   - Actionable insights\n\
+    \n2. Anonymized Logs\n   - PII redaction\n   - Structure preservation\n   - Audit\
+    \ compliance\n\n3. Security Report\n   - Threat identification\n   - Risk assessment\n\
+    \   - Remediation steps\n\n4. Performance Metrics\n   - Response time analysis\n\
+    \   - Status code distribution\n   - Optimization recommendations\n\n5. Critical\
+    \ Alerts\n   - Severity classification\n   - Impact assessment\n   - Immediate\
+    \ actions\n\n6. Automated Analysis Tool\n   - Reusable script\n   - Consistent\
+    \ reporting\n   - Dashboard generation\n\n**Real-World Applications:**\n\n✓ Incident\
+    \ response\n✓ Security auditing\n✓ Performance monitoring\n✓ Compliance reporting\n\
+    ✓ Capacity planning\n✓ Troubleshooting\n✓ SLA verification\n\n**Professional Workflow:**\n\
+    \n1. Log Collection\n2. Pattern Identification\n3. Data Extraction\n4. Analysis\
+    \ & Correlation\n5. Report Generation\n6. Action Recommendations\n7. Automation\
+    \ & Monitoring\n\n**Key Techniques Mastered:**\n\nPattern Matching:\n- Email:\
+    \ [a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]+\n- IP: ([0-9]{1,3}\\.){3}[0-9]{1,3}\n\
+    - Timestamp: [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\n\nData Anonymization:\n\
+    sed 's/email@domain/REDACTED/g'\nsed 's/[0-9]\\{1,3\\}\\.[0-9]\\{1,3\\}\\.[0-9]\\\
+    {1,3\\}\\.[0-9]\\{1,3\\}/XXX.XXX.XXX.XXX/g'\n\nStatistical Analysis:\ngrep pattern\
+    \ | wc -l\nsort | uniq -c | sort -rn\nawk '{sum+=$1} END {print sum/NR}'\n\n**Production-Ready\
+    \ Skills:**\n\n☑ Regex pattern design\n☑ Log parsing and transformation\n☑ Security\
+    \ analysis\n☑ Performance monitoring\n☑ Report automation\n☑ Data anonymization\n\
+    ☑ Incident detection\n\n**Best Practices Applied:**\n\n☑ Test patterns before\
+    \ automation\n☑ Preserve log structure during anonymization\n☑ Provide actionable\
+    \ recommendations\n☑ Calculate business impact\n☑ Prioritize by severity\n☑ Automate\
+    \ repetitive tasks\n☑ Generate executive summaries\n\n**Next Level Skills:**\n\
+    \n- ELK Stack (Elasticsearch, Logstash, Kibana)\n- Splunk log analysis\n- CloudWatch\
+    \ Logs Insights\n- Real-time log streaming\n- Machine learning for anomaly detection\n\
+    - Distributed tracing\n- Log aggregation at scale\n\nYou now have professional-grade\
+    \ log analysis skills used in\nproduction environments at major tech companies!\n\
+    \nThis expertise is critical for:\n- DevOps Engineers\n- Site Reliability Engineers\
+    \ (SRE)\n- Security Analysts\n- System Administrators\n- Platform Engineers\n\n\
+    EXCEPTIONAL WORK! \U0001F680\n"
+  xp: 700
+  unlocks:
+  - linux/week14/ssh-basics-beginner
+  - linux/week14/ssh-advanced

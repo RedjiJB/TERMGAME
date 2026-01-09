@@ -1,0 +1,205 @@
+mission:
+  id: linux/file-operations/glob-patterns
+  title: Mastering GLOB Patterns
+  difficulty: intermediate
+  description: Learn to use wildcards and GLOB patterns for powerful file matching
+  estimated_time: 30
+  tags:
+  - linux
+  - glob
+  - wildcards
+  - file-operations
+environment:
+  image: ubuntu:22.04
+  workdir: /home/learner
+  setup:
+  - mkdir -p /home/learner/files
+  - touch /home/learner/files/report1.txt
+  - touch /home/learner/files/report2.txt
+  - touch /home/learner/files/report10.txt
+  - touch /home/learner/files/data.csv
+  - touch /home/learner/files/data.txt
+  - touch /home/learner/files/image.png
+  - touch /home/learner/files/photo.jpg
+  - touch /home/learner/files/document.pdf
+  - touch /home/learner/files/test_file.sh
+  - touch /home/learner/files/backup_file.sh
+steps:
+- id: asterisk-wildcard
+  title: The * Wildcard - Match Everything
+  description: 'The asterisk (*) matches zero or more characters.
+
+
+    List all .txt files in the files directory:
+
+    ls files/*.txt
+
+
+    This matches any filename ending in .txt
+
+    '
+  hint: 'Type: ls files/*.txt'
+  validation:
+    type: command-output
+    command: ls /home/learner/files/*.txt | wc -l
+    matcher: contains
+    expected: '4'
+- id: question-mark-wildcard
+  title: The ? Wildcard - Match Single Character
+  description: 'The question mark (?) matches exactly one character.
+
+
+    List files matching ''report?.txt'' (report + single digit + .txt):
+
+    ls files/report?.txt
+
+
+    This matches report1.txt and report2.txt but NOT report10.txt
+
+    '
+  hint: 'Type: ls files/report?.txt'
+  validation:
+    type: command-output
+    command: ls /home/learner/files/report?.txt 2>/dev/null | wc -l
+    matcher: contains
+    expected: '2'
+- id: square-bracket-range
+  title: Character Ranges with []
+  description: 'Square brackets [] match any one character from a set.
+
+
+    List files matching ''report[12].txt'':
+
+    ls files/report[12].txt
+
+
+    This matches report1.txt and report2.txt specifically.
+
+    '
+  hint: 'Type: ls files/report[12].txt'
+  validation:
+    type: command-output
+    command: ls /home/learner/files/report[12].txt 2>/dev/null | wc -l
+    matcher: contains
+    expected: '2'
+- id: character-class-digit
+  title: Character Classes - Digits
+  description: 'Use [0-9] to match any single digit.
+
+
+    List files with a digit in their name:
+
+    ls files/report[0-9].txt
+
+
+    This is more flexible than listing each digit.
+
+    '
+  hint: 'Type: ls files/report[0-9].txt'
+  validation:
+    type: command-output
+    command: ls /home/learner/files/report[0-9].txt 2>/dev/null | wc -l
+    matcher: contains
+    expected: '2'
+- id: negation-pattern
+  title: Negation with [!]
+  description: 'Use [!] to match characters NOT in the set.
+
+
+    List files that don''t start with ''r'':
+
+    ls files/[!r]*
+
+
+    This excludes report files but includes data, image, photo, etc.
+
+    '
+  hint: 'Type: ls files/[!r]* and count the results'
+  validation:
+    type: command-output
+    command: ls /home/learner/files/[!r]* 2>/dev/null | wc -l
+    matcher: contains
+    expected: '6'
+- id: multiple-patterns
+  title: Combining Wildcards
+  description: 'Combine different wildcards for complex patterns.
+
+
+    Find all shell scripts ending with ''_file.sh'':
+
+    ls files/*_file.sh
+
+
+    The * matches any prefix, _file.sh is literal.
+
+    '
+  hint: 'Type: ls files/*_file.sh'
+  validation:
+    type: command-output
+    command: ls /home/learner/files/*_file.sh 2>/dev/null | wc -l
+    matcher: contains
+    expected: '2'
+- id: brace-expansion
+  title: Brace Expansion {}
+  description: 'Braces {} generate multiple patterns.
+
+
+    List all .jpg and .png image files:
+
+    ls files/*.{jpg,png}
+
+
+    This expands to: files/*.jpg files/*.png
+
+    '
+  hint: 'Type: ls files/*.{jpg,png}'
+  validation:
+    type: command-output
+    command: ls /home/learner/files/*.{jpg,png} 2>/dev/null | wc -l
+    matcher: contains
+    expected: '2'
+- id: complex-glob
+  title: Complex GLOB Pattern
+  description: 'Combine multiple wildcard techniques.
+
+
+    Find files that:
+
+    - Start with any letter
+
+    - Have ''a'' somewhere in the name
+
+    - End with .txt or .csv
+
+
+    Try: ls files/*a*.{txt,csv}
+
+    '
+  hint: 'Type: ls files/*a*.{txt,csv}'
+  validation:
+    type: command-output
+    command: ls /home/learner/files/*a*.{txt,csv} 2>/dev/null | wc -l
+    matcher: contains
+    expected: '2'
+completion:
+  message: 'Excellent work! You''ve mastered GLOB patterns:
+
+    - * = matches any characters (zero or more)
+
+    - ? = matches exactly one character
+
+    - [abc] = matches one character from the set
+
+    - [0-9] = matches any digit
+
+    - [!abc] = matches any character NOT in the set
+
+    - {a,b} = brace expansion (multiple patterns)
+
+
+    GLOB patterns make file operations much more powerful and efficient!
+
+    '
+  xp: 250
+  unlocks:
+  - linux/week4/io-redirection

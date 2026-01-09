@@ -1,0 +1,599 @@
+mission:
+  id: linux/text-processing/practice-log-analysis
+  title: 'Practice: Security Log Analysis Challenge'
+  difficulty: advanced
+  description: Analyze web server logs to identify security threats using pipes, filters,
+    and redirection
+  estimated_time: 50
+  tags:
+  - linux
+  - practice
+  - pipes
+  - awk
+  - expert
+  - text-processing
+environment:
+  image: ubuntu:22.04
+  workdir: /home/learner
+  setup:
+  - mkdir -p /home/learner/logs
+  - apt-get update -qq && apt-get install -y -qq gzip
+  - 'cat > /home/learner/logs/access.log << ''EOF''
+
+    192.168.1.100 - - [01/Jan/2026:10:23:45 +0000] "GET /index.html HTTP/1.1" 200
+    1234
+
+    10.0.0.50 - - [01/Jan/2026:10:24:12 +0000] "GET /admin/login.php HTTP/1.1" 200
+    890
+
+    192.168.1.100 - - [01/Jan/2026:10:24:45 +0000] "GET /products.html HTTP/1.1" 200
+    2341
+
+    45.33.12.87 - - [01/Jan/2026:10:25:03 +0000] "GET /admin/login.php HTTP/1.1" 401
+    560
+
+    45.33.12.87 - - [01/Jan/2026:10:25:08 +0000] "GET /admin/login.php HTTP/1.1" 401
+    560
+
+    45.33.12.87 - - [01/Jan/2026:10:25:12 +0000] "GET /admin/login.php HTTP/1.1" 401
+    560
+
+    45.33.12.87 - - [01/Jan/2026:10:25:15 +0000] "GET /admin/login.php HTTP/1.1" 401
+    560
+
+    45.33.12.87 - - [01/Jan/2026:10:25:18 +0000] "GET /admin/login.php HTTP/1.1" 401
+    560
+
+    192.168.1.105 - - [01/Jan/2026:10:26:22 +0000] "GET /contact.html HTTP/1.1" 200
+    1876
+
+    78.129.45.223 - - [01/Jan/2026:10:27:33 +0000] "GET /../../../etc/passwd HTTP/1.1"
+    404 789
+
+    78.129.45.223 - - [01/Jan/2026:10:27:38 +0000] "GET /wp-admin/install.php HTTP/1.1"
+    404 789
+
+    192.168.1.100 - - [01/Jan/2026:10:28:01 +0000] "POST /api/users HTTP/1.1" 201
+    432
+
+    91.200.12.149 - - [01/Jan/2026:10:28:45 +0000] "GET /admin/login.php HTTP/1.1"
+    401 560
+
+    91.200.12.149 - - [01/Jan/2026:10:28:47 +0000] "GET /admin/login.php HTTP/1.1"
+    401 560
+
+    91.200.12.149 - - [01/Jan/2026:10:28:49 +0000] "GET /admin/login.php HTTP/1.1"
+    401 560
+
+    91.200.12.149 - - [01/Jan/2026:10:28:51 +0000] "GET /admin/login.php HTTP/1.1"
+    401 560
+
+    192.168.1.105 - - [01/Jan/2026:10:29:12 +0000] "GET /about.html HTTP/1.1" 200
+    1234
+
+    45.33.12.87 - - [01/Jan/2026:10:30:00 +0000] "GET /phpmyadmin/index.php HTTP/1.1"
+    404 789
+
+    45.33.12.87 - - [01/Jan/2026:10:30:05 +0000] "GET /admin/config.php HTTP/1.1"
+    403 567
+
+    192.168.1.100 - - [01/Jan/2026:10:31:23 +0000] "GET /api/products HTTP/1.1" 200
+    3456
+
+    78.129.45.223 - - [01/Jan/2026:10:32:10 +0000] "GET /wp-content/plugins/evil.php
+    HTTP/1.1" 404 789
+
+    192.168.1.105 - - [01/Jan/2026:10:33:45 +0000] "GET /blog/post-1 HTTP/1.1" 200
+    2234
+
+    45.33.12.87 - - [01/Jan/2026:10:34:12 +0000] "GET /server-status HTTP/1.1" 403
+    567
+
+    91.200.12.149 - - [01/Jan/2026:10:35:00 +0000] "POST /admin/login.php HTTP/1.1"
+    200 890
+
+    192.168.1.100 - - [01/Jan/2026:10:36:23 +0000] "GET /dashboard HTTP/1.1" 200 4321
+
+    EOF
+
+    '
+  - 'cat > /home/learner/logs/error.log << ''EOF''
+
+    [01/Jan/2026:10:25:03] [error] Authentication failure for IP 45.33.12.87
+
+    [01/Jan/2026:10:25:08] [error] Authentication failure for IP 45.33.12.87
+
+    [01/Jan/2026:10:25:12] [error] Authentication failure for IP 45.33.12.87
+
+    [01/Jan/2026:10:25:15] [error] Authentication failure for IP 45.33.12.87
+
+    [01/Jan/2026:10:25:18] [error] Authentication failure for IP 45.33.12.87
+
+    [01/Jan/2026:10:27:33] [error] Path traversal attempt from 78.129.45.223
+
+    [01/Jan/2026:10:27:38] [error] File not found: wp-admin/install.php
+
+    [01/Jan/2026:10:28:45] [error] Authentication failure for IP 91.200.12.149
+
+    [01/Jan/2026:10:28:47] [error] Authentication failure for IP 91.200.12.149
+
+    [01/Jan/2026:10:28:49] [error] Authentication failure for IP 91.200.12.149
+
+    [01/Jan/2026:10:28:51] [error] Authentication failure for IP 91.200.12.149
+
+    [01/Jan/2026:10:30:00] [error] File not found: phpmyadmin/index.php
+
+    [01/Jan/2026:10:30:05] [error] Access denied: admin/config.php for 45.33.12.87
+
+    [01/Jan/2026:10:32:10] [error] Suspicious file request from 78.129.45.223
+
+    [01/Jan/2026:10:34:12] [error] Access denied: server-status for 45.33.12.87
+
+    EOF
+
+    '
+  - "cat > /home/learner/SECURITY_ANALYSIS_REQUIREMENTS.txt << 'EOF'\nSECURITY LOG\
+    \ ANALYSIS - REQUIREMENTS\n===================================\n\nYou are a security\
+    \ analyst investigating potential attacks on a web server.\nAnalyze the logs in\
+    \ ~/logs/ and create reports answering these questions:\n\nREQUIRED REPORTS (create\
+    \ files with these names):\n\n1. suspicious_ips.txt\n   - List all IP addresses\
+    \ that made 4+ failed login attempts (401 status)\n   - Format: One IP per line\n\
+    \   - Sort by number of attempts (highest first)\n\n2. attack_vectors.txt\n  \
+    \ - List all attempted attacks (path traversal, SQL injection, file probing)\n\
+    \   - Include: IP address, timestamp, and requested URL\n   - Look for patterns\
+    \ like: /../, wp-admin, phpmyadmin, config.php\n   - Sort by timestamp\n\n3. traffic_summary.txt\n\
+    \   - Total number of requests\n   - Unique IP addresses\n   - Most requested\
+    \ URL\n   - Most common HTTP status code\n   - Requests from internal network\
+    \ (192.168.x.x) vs external\n\n4. blocked_ips.txt\n   - All IPs that should be\
+    \ blocked (4+ authentication failures OR attack attempts)\n   - One IP per line,\
+    \ sorted, unique\n   - Format for firewall rules\n\n5. top_attackers.txt\n   -\
+    \ Top 3 most aggressive attackers by total suspicious activity\n   - Show: IP,\
+    \ total requests, failed authentications, attack attempts\n   - Sort by combined\
+    \ threat score\n\nBONUS CHALLENGE:\n6. hourly_traffic.txt\n   - Requests per hour\
+    \ (extract hour from timestamp)\n   - Format: HH:00 - Count\n   - Identify peak\
+    \ attack time\n\nTOOLS YOU MUST USE:\n- grep (filtering)\n- awk (field extraction\
+    \ and calculations)\n- sort (ordering data)\n- uniq (counting occurrences)\n-\
+    \ cut (extracting fields)\n- wc (counting)\n- pipes (|) to chain commands\n- redirection\
+    \ (>, >>) to save output\n\nNO STEP-BY-STEP GUIDANCE - Use your pipeline skills!\n\
+    EOF\n"
+steps:
+- id: understand-requirements
+  title: Read Security Analysis Requirements
+  description: '**EXPERT PRACTICE SCENARIO**
+
+
+    You''re a security analyst investigating potential attacks.
+
+
+    Read the requirements:
+
+    cat ~/SECURITY_ANALYSIS_REQUIREMENTS.txt
+
+
+    Examine the log files:
+
+    cat ~/logs/access.log
+
+    cat ~/logs/error.log
+
+
+    **Your Task:**
+
+    Create all required report files using pipes, filters, and redirection.
+
+
+    This is a complex, real-world scenario requiring creative problem-solving.
+
+    No hints provided - combine your skills!
+
+    '
+  hint: Read requirements carefully, understand log format, plan your pipelines
+  validation:
+    type: command-output
+    command: ls ~/logs/*.log | wc -l
+    matcher: contains
+    expected: '2'
+- id: identify-suspicious-ips
+  title: 'Report 1: Find Suspicious IP Addresses'
+  description: 'Create suspicious_ips.txt containing IPs with 4+ failed login attempts.
+
+
+    **Approach:**
+
+    - Filter for 401 status codes
+
+    - Extract IP addresses (first field)
+
+    - Count occurrences per IP
+
+    - Filter IPs with 4+ attempts
+
+    - Sort by count
+
+
+    **Pipeline Strategy:**
+
+    grep "401" → awk ''{print $1}'' → sort → uniq -c → awk ''$1 >= 4'' → sort -nr
+
+
+    Save results to ~/suspicious_ips.txt
+
+
+    **No hints - figure it out!**
+
+    '
+  hint: Filter 401 status, extract IP (awk $1), count with uniq -c, filter >=4
+  validation:
+    type: command-output
+    command: 'grep " 401 " /home/learner/logs/access.log | awk ''{print $1}'' | sort
+      | uniq -c | awk ''$1 >= 4 {print $2}'' | wc -l
+
+      '
+    matcher: contains
+    expected: '2'
+- id: identify-attack-vectors
+  title: 'Report 2: Catalog Attack Vectors'
+  description: 'Create attack_vectors.txt listing all attack attempts.
+
+
+    **Attack Patterns to Find:**
+
+    - Path traversal: ../
+
+    - WordPress probing: wp-admin, wp-content
+
+    - Database probing: phpmyadmin
+
+    - Config file access: config.php
+
+    - Server info: server-status
+
+
+    **Pipeline Strategy:**
+
+    Use grep with -E for multiple patterns (OR):
+
+    grep -E "(\.\.\/|wp-|phpmyadmin|config\.php|server-status)"
+
+
+    Extract relevant fields (IP, timestamp, URL)
+
+
+    Save to ~/attack_vectors.txt
+
+    '
+  hint: Use grep -E for multiple patterns, awk to extract IP ($1), timestamp ($4-$5),
+    URL ($7)
+  validation:
+    type: command-output
+    command: 'grep -E ''(\.\./|wp-|phpmyadmin|config\.php|server-status)'' /home/learner/logs/access.log
+      | wc -l
+
+      '
+    matcher: contains
+    expected: '6'
+- id: traffic-summary
+  title: 'Report 3: Generate Traffic Summary'
+  description: "Create traffic_summary.txt with comprehensive statistics.\n\n**Required\
+    \ Metrics:**\n1. Total requests: wc -l\n2. Unique IPs: awk '{print $1}' | sort\
+    \ -u | wc -l\n3. Most requested URL: awk '{print $7}' | sort | uniq -c | sort\
+    \ -nr | head -n 1\n4. Most common status: awk '{print $9}' | sort | uniq -c |\
+    \ sort -nr | head -n 1\n5. Internal vs External:\n   - Internal: grep '^192\\\
+    .168\\.' | wc -l\n   - External: grep -v '^192\\.168\\.' | wc -l\n\n**Format Output:**\n\
+    Total Requests: X\nUnique IPs: Y\nMost Requested: URL (count)\nCommon Status:\
+    \ CODE (count)\nInternal: X\nExternal: Y\n\nSave to ~/traffic_summary.txt\n"
+  hint: Use multiple pipelines, redirect each result with >>, format with echo
+  validation:
+    type: command-output
+    command: wc -l < /home/learner/logs/access.log
+    matcher: contains
+    expected: '25'
+- id: blocked-ips-list
+  title: 'Report 4: Generate Firewall Block List'
+  description: 'Create blocked_ips.txt with all IPs that should be blocked.
+
+
+    **Criteria for Blocking:**
+
+    - 4+ failed authentication attempts (401)
+
+    - OR any attack attempt (../,  wp-, phpmyadmin, etc.)
+
+
+    **Pipeline Strategy:**
+
+    1. Get IPs with 4+ 401s
+
+    2. Get IPs with attack patterns
+
+    3. Combine both lists
+
+    4. Remove duplicates
+
+    5. Sort
+
+
+    **Combining Commands:**
+
+    (command1; command2) | sort -u
+
+
+    Save to ~/blocked_ips.txt
+
+    '
+  hint: Use (grep 401 | awk...; grep attack_patterns | awk...) | sort -u
+  validation:
+    type: command-output
+    command: '(grep " 401 " /home/learner/logs/access.log | awk ''{print $1}'' | sort
+      | uniq -c | awk ''$1 >= 4 {print $2}''; \
+
+      grep -E ''(\.\./|wp-|phpmyadmin|config\.php|server-status)'' /home/learner/logs/access.log
+      | awk ''{print $1}'') | \
+
+      sort -u | wc -l
+
+      '
+    matcher: contains
+    expected: '3'
+- id: top-attackers-analysis
+  title: 'Report 5: Identify Top Attackers'
+  description: "Create top_attackers.txt showing top 3 most aggressive attackers.\n\
+    \n**For Each Suspicious IP:**\n- Total requests\n- Failed authentication attempts\n\
+    - Attack attempts\n- Threat score (failed_auth * 2 + attacks * 3)\n\n**Advanced\
+    \ Pipeline:**\n1. Get list of all suspicious IPs\n2. For each IP, count:\n   -\
+    \ Total requests: grep \"$ip\" | wc -l\n   - 401s: grep \"$ip\" | grep \" 401\
+    \ \" | wc -l\n   - Attacks: grep \"$ip\" | grep -E \"attack_patterns\" | wc -l\n\
+    3. Calculate score\n4. Sort by score\n5. Take top 3\n\n**Hint on Approach:**\n\
+    Use a combination of awk, sort, and arithmetic\n\nSave to ~/top_attackers.txt\n\
+    \nThis is the most challenging report!\n"
+  hint: For each suspicious IP, use grep -c for counts, calculate score with awk,
+    sort -nr -k4
+  validation:
+    type: command-output
+    command: "for ip in 45.33.12.87 78.129.45.223 91.200.12.149; do\n  total=$(grep\
+      \ \"$ip\" /home/learner/logs/access.log | wc -l)\n  echo \"$ip $total\"\ndone\
+      \ | head -n 1\n"
+    matcher: contains
+    expected: 45.33.12.87
+- id: bonus-hourly-traffic
+  title: 'BONUS: Hourly Traffic Analysis'
+  description: '**BONUS CHALLENGE**
+
+
+    Create hourly_traffic.txt showing requests per hour.
+
+
+    **Extract Hour from Timestamp:**
+
+    Timestamp format: [01/Jan/2026:10:23:45 +0000]
+
+    Hour is: 10
+
+
+    **Pipeline:**
+
+    1. Extract timestamp field: awk -F''[:]'' ''{print $2}''
+
+    2. Count per hour: sort | uniq -c
+
+    3. Format nicely: awk ''{print $2":00 - "$1" requests"}''
+
+
+    **Find Peak Attack Time:**
+
+    Cross-reference hours with suspicious activity
+
+
+    Save to ~/hourly_traffic.txt
+
+
+    This demonstrates your mastery of complex text processing!
+
+    '
+  hint: Use awk -F'[:]' to split on colon, extract hour field, count with uniq -c
+  validation:
+    type: command-output
+    command: 'awk -F''[:]'' ''{print $2}'' /home/learner/logs/access.log | sort |
+      uniq -c | head -n 1
+
+      '
+    matcher: contains
+    expected: '10'
+- id: validate-all-reports
+  title: 'Final Validation: All Reports Complete'
+  description: '**Complete Challenge Validation**
+
+
+    Verify you''ve created all required reports:
+
+
+    ls -la ~/*.txt
+
+
+    Each report should contain meaningful analysis based on the logs.
+
+
+    **Quality Checks:**
+
+    - Files exist and aren''t empty
+
+    - Data is properly formatted
+
+    - IPs are valid format (x.x.x.x)
+
+    - Counts are accurate
+
+    - Sorting is correct
+
+
+    **Professional Skills Demonstrated:**
+
+    ☑ Log parsing and analysis
+
+    ☑ Pattern recognition
+
+    ☑ Pipeline construction
+
+    ☑ Data aggregation
+
+    ☑ Report generation
+
+    ☑ Security threat assessment
+
+
+    **Commands Used:**
+
+    - grep (filtering, patterns, regex)
+
+    - awk (field extraction, calculations)
+
+    - sort (ordering, numeric, reverse)
+
+    - uniq (counting, deduplication)
+
+    - cut (field selection)
+
+    - wc (counting lines, words)
+
+    - pipes (command chaining)
+
+    - redirection (>, >>)
+
+
+    Congratulations on completing this expert-level security analysis!
+
+    '
+  hint: 'Expected files:
+
+    - suspicious_ips.txt (IPs with 4+ failed logins)
+
+    - attack_vectors.txt (attack attempts with details)
+
+    - traffic_summary.txt (comprehensive statistics)
+
+    - blocked_ips.txt (IPs to block)
+
+    - top_attackers.txt (top 3 threats)
+
+    - hourly_traffic.txt (bonus - traffic by hour)
+
+    '
+  validation:
+    type: command-output
+    command: ls ~/*.txt 2>/dev/null | grep -E '(suspicious_ips|attack_vectors|traffic_summary|blocked_ips|top_attackers)'
+      | wc -l
+    matcher: contains
+    expected: '5'
+completion:
+  message: '🎯 EXPERT SECURITY ANALYSIS CHALLENGE COMPLETED! 🎯
+
+
+    You''ve successfully analyzed web server logs and identified security threats!
+
+
+    **What You Accomplished:**
+
+
+    ✓ Parsed Apache access logs
+
+    ✓ Identified brute-force login attempts
+
+    ✓ Detected path traversal attacks
+
+    ✓ Found WordPress and phpMyAdmin probes
+
+    ✓ Calculated traffic statistics
+
+    ✓ Generated firewall block lists
+
+    ✓ Ranked attackers by threat level
+
+    ✓ Analyzed temporal patterns
+
+
+    **Advanced Techniques Used:**
+
+
+    - Complex grep patterns with -E (regex)
+
+    - Multi-stage pipelines (5+ commands)
+
+    - Field extraction with awk
+
+    - Data aggregation with uniq -c
+
+    - Numeric sorting with sort -n
+
+    - Command grouping with ( )
+
+    - Multiple redirections
+
+    - Loop-based analysis
+
+
+    **Real-World Skills:**
+
+
+    This challenge mirrors actual security analyst work:
+
+    - Threat detection
+
+    - Incident response
+
+    - Log aggregation
+
+    - Report generation
+
+    - Firewall rule creation
+
+
+    **Key Insights from Analysis:**
+
+
+    - IP 45.33.12.87: Most aggressive (7 attacks + 5 failed logins)
+
+    - IP 78.129.45.223: Path traversal attempts
+
+    - IP 91.200.12.149: Brute force attack (4 attempts, then success!)
+
+    - Attack peak: 10:30 hour
+
+    - Internal traffic: Safe (192.168.x.x)
+
+    - External threats: 3 IPs to block
+
+
+    **Professional Accomplishment:**
+
+
+    You''ve demonstrated the ability to:
+
+    ☑ Analyze security logs independently
+
+    ☑ Construct complex command pipelines
+
+    ☑ Identify attack patterns
+
+    ☑ Generate actionable intelligence
+
+    ☑ Produce professional reports
+
+
+    These are essential skills for:
+
+    - Security Operations Centers (SOC)
+
+    - DevOps security monitoring
+
+    - Incident response teams
+
+    - System administration
+
+
+    You''re ready for real-world log analysis challenges!
+
+    '
+  xp: 600
+  unlocks:
+  - linux/week5/environment-variables-advanced
+  - linux/week9/process-management-expert

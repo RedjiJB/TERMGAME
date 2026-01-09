@@ -1,0 +1,168 @@
+mission:
+  id: linux/file-operations/absolute-relative-paths
+  title: Absolute vs Relative Paths
+  difficulty: intermediate
+  description: Understand the difference between absolute and relative paths in Linux
+  estimated_time: 25
+  tags:
+  - linux
+  - paths
+  - filesystem
+  - file-operations
+environment:
+  image: ubuntu:22.04
+  workdir: /home/learner
+  setup:
+  - mkdir -p /home/learner/project/src/components
+  - mkdir -p /home/learner/project/docs
+  - mkdir -p /home/learner/data/input
+  - mkdir -p /home/learner/data/output
+  - touch /home/learner/project/README.md
+  - touch /home/learner/project/src/main.py
+  - touch /home/learner/data/input/data.csv
+  - echo 'Important data' > /home/learner/data/input/data.csv
+steps:
+- id: identify-absolute-path
+  title: Understand Absolute Paths
+  description: 'An absolute path starts from the root directory (/) and specifies
+
+    the complete path to a file or directory.
+
+
+    Use an absolute path to display the contents of data.csv:
+
+    cat /home/learner/data/input/data.csv
+
+
+    Absolute paths work from anywhere in the file system.
+
+    '
+  hint: 'Type the full path: cat /home/learner/data/input/data.csv'
+  validation:
+    type: command-output
+    command: cat /home/learner/data/input/data.csv
+    matcher: contains
+    expected: Important data
+- id: use-relative-path
+  title: Navigate with Relative Paths
+  description: 'A relative path starts from your current directory, not from root.
+
+
+    Navigate to the project directory, then use a relative path to list src:
+
+    cd /home/learner/project
+
+    ls src
+
+
+    ''src'' is relative to /home/learner/project
+
+    '
+  hint: 'Type: cd /home/learner/project && ls src'
+  validation:
+    type: command-output
+    command: cd /home/learner/project && ls src
+    matcher: contains
+    expected: main.py
+- id: relative-with-parent
+  title: Use Parent Directory in Relative Paths
+  description: 'Use ''..'' in relative paths to refer to parent directories.
+
+
+    From /home/learner/project/src, access the docs directory:
+
+    cd /home/learner/project/src
+
+    ls ../docs
+
+
+    The .. goes up to ''project'', then into ''docs''.
+
+    '
+  hint: 'Type: cd /home/learner/project/src && ls ../docs'
+  validation:
+    type: command-output
+    command: cd /home/learner/project/src && ls ../docs
+    matcher: exact
+    expected: ''
+- id: current-directory-dot
+  title: Current Directory Reference
+  description: 'A single dot ''.'' represents the current directory.
+
+
+    From the project directory, list the current directory explicitly:
+
+    cd /home/learner/project
+
+    ls .
+
+
+    This is equivalent to just ''ls'' but shows the concept.
+
+    '
+  hint: 'Type: cd /home/learner/project && ls .'
+  validation:
+    type: command-output
+    command: cd /home/learner/project && ls . | grep README
+    matcher: contains
+    expected: README.md
+- id: complex-relative-path
+  title: Complex Relative Navigation
+  description: 'Combine .. and directory names for complex relative paths.
+
+
+    From /home/learner/project/src/components, access the data directory:
+
+    cd /home/learner/project/src/components
+
+    ls ../../../data
+
+
+    This goes up 3 levels then into data.
+
+    '
+  hint: 'Count the levels: components -> src -> project -> learner, then down to data'
+  validation:
+    type: command-output
+    command: cd /home/learner/project/src/components && ls ../../../data
+    matcher: contains
+    expected: input
+- id: home-directory-tilde
+  title: Home Directory Shortcut
+  description: 'The tilde ''~'' represents your home directory.
+
+
+    From anywhere, access a file using ~:
+
+    cat ~/project/README.md
+
+
+    This is equivalent to /home/learner/project/README.md
+
+    '
+  hint: 'Type: cat ~/project/README.md'
+  validation:
+    type: command-output
+    command: ls ~/project/README.md
+    matcher: contains
+    expected: README.md
+completion:
+  message: 'Excellent! You now understand paths:
+
+    - Absolute paths: Start with / (e.g., /home/learner/file.txt)
+
+    - Relative paths: Start from current directory (e.g., ../docs)
+
+    - . = current directory
+
+    - .. = parent directory
+
+    - ~ = home directory
+
+
+    Mastering paths is essential for efficient Linux navigation!
+
+    '
+  xp: 200
+  unlocks:
+  - linux/week3/finding-files
