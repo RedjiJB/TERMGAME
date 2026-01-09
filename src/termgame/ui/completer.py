@@ -61,10 +61,13 @@ class SlashCommandCompleter(Completer):
         """
         text = document.text_before_cursor
 
-        # Don't complete if there's text that's not a command
-        # (e.g., if they're typing a Linux command in mission mode)
-        if text and not text.startswith("/") and " " in text:
-            return []
+        # Only show completions when:
+        # 1. Line starts with "/" (slash command mode)
+        # 2. OR empty/whitespace-only (show all commands on Tab)
+        if not text.startswith("/"):
+            # If not using slash, only complete on explicit Tab press (not while typing)
+            if text.strip() and not complete_event.completion_requested:
+                return []
 
         # Get available commands based on mode
         commands = self.mission_commands if self.in_mission else self.lobby_commands

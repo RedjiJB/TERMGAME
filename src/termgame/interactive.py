@@ -52,7 +52,7 @@ class InteractiveCLI:
         self.completer = SlashCommandCompleter(in_mission=False)
         self.prompt_session: PromptSession[str] = PromptSession(
             completer=self.completer,
-            complete_while_typing=False,  # Only complete on Tab key
+            complete_while_typing=True,  # Show completions as you type
             mouse_support=False,  # Allow normal terminal mouse operations
         )
 
