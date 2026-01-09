@@ -1,0 +1,835 @@
+mission:
+  id: "linux/week10/compression-advanced"
+  title: "Advanced File Compression and Archiving"
+  difficulty: advanced
+  description: "Master advanced compression techniques including multi-format archives, optimization strategies, and automation"
+  estimated_time: 50
+  tags:
+    - linux
+    - compression
+    - tar
+    - archiving
+    - advanced
+    - week10
+    - cst8207
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "apt-get update -qq && apt-get install -y -qq bzip2 gzip xz-utils zip unzip p7zip-full tar file tree pv pigz pbzip2"
+    - "mkdir -p /home/learner/project /home/learner/archives /home/learner/backup"
+    - |
+      # Create a realistic project structure
+      mkdir -p /home/learner/project/{src,docs,tests,config,logs,data}
+    - |
+      # Create source files
+      for i in {1..10}; do
+        cat > /home/learner/project/src/module$i.py << EOF
+      # Module $i
+      def function_$i():
+          """This is function $i"""
+          return "Result from function $i"
+
+      class Class$i:
+          def __init__(self):
+              self.value = $i
+      EOF
+      done
+    - |
+      # Create documentation
+      echo "# Project Documentation" > /home/learner/project/docs/README.md
+      echo "# API Reference" > /home/learner/project/docs/API.md
+      for i in {1..5}; do
+        echo "## Section $i" >> /home/learner/project/docs/README.md
+        echo "Documentation content for section $i" >> /home/learner/project/docs/README.md
+      done
+    - |
+      # Create log files
+      for i in {1..50}; do
+        echo "$(date) - Log entry $i - INFO - Application running normally" >> /home/learner/project/logs/app.log
+      done
+    - |
+      # Create data files
+      dd if=/dev/urandom of=/home/learner/project/data/random.dat bs=1M count=5 2>/dev/null
+      dd if=/dev/zero of=/home/learner/project/data/zeros.dat bs=1M count=10 2>/dev/null
+    - |
+      # Create config files
+      cat > /home/learner/project/config/settings.conf << 'EOF'
+      # Application settings
+      database_host=localhost
+      database_port=5432
+      log_level=INFO
+      max_connections=100
+      EOF
+
+steps:
+  - id: "compression-comparison"
+    title: "Compare Compression Algorithms"
+    description: |
+      **Understanding Compression Trade-offs:**
+
+      Different algorithms optimize for different goals:
+      - Speed vs Compression ratio
+      - Memory usage
+      - Compatibility
+
+      **Major Compression Algorithms:**
+
+      **gzip (.gz)**
+      - Speed: Fast
+      - Ratio: Good (60-70%)
+      - Memory: Low
+      - Compatibility: Excellent
+      - Best for: General use, web content
+
+      **bzip2 (.bz2)**
+      - Speed: Slow
+      - Ratio: Better (70-80%)
+      - Memory: High
+      - Compatibility: Good
+      - Best for: Archival, when size matters
+
+      **xz (.xz)**
+      - Speed: Very slow
+      - Ratio: Best (75-85%)
+      - Memory: Very high
+      - Compatibility: Modern systems
+      - Best for: Distribution packages, long-term archival
+
+      **zip (.zip)**
+      - Speed: Fast
+      - Ratio: Good
+      - Memory: Low
+      - Compatibility: Universal (Windows/Mac/Linux)
+      - Best for: Cross-platform sharing
+
+      **Let's test compression on different data types:**
+
+      Text file (logs):
+      ls -lh project/logs/app.log
+      gzip -k project/logs/app.log
+      ls -lh project/logs/app.log.gz
+
+      Binary data (random):
+      ls -lh project/data/random.dat
+      gzip -k project/data/random.dat
+      ls -lh project/data/random.dat.gz
+
+      Notice: Text compresses well, random data doesn't!
+
+      **Test compression on project logs:**
+      cp project/logs/app.log project/logs/app_test.log
+      gzip -k project/logs/app_test.log
+      ls -lh project/logs/app_test.log*
+    hint: "Compress the test log file and compare sizes"
+    validation:
+      type: "command-output"
+      command: "cp /home/learner/project/logs/app.log /tmp/test.log && gzip /tmp/test.log && ls /tmp/test.log.gz"
+      matcher: "contains"
+      expected: ".gz"
+
+  - id: "tar-exclusions"
+    title: "Selective Archiving with Exclusions"
+    description: |
+      **Excluding Files from Archives:**
+
+      Not everything should be archived!
+
+      **Common exclusions:**
+      - Build artifacts (*.o, *.pyc, __pycache__)
+      - Dependencies (node_modules/, venv/)
+      - Temporary files (*.tmp, *.swp)
+      - Log files (*.log)
+      - System files (.DS_Store, Thumbs.db)
+
+      **tar Exclusion Options:**
+
+      **Exclude pattern:**
+      tar --exclude='*.log' -czf archive.tar.gz project/
+
+      **Multiple exclusions:**
+      tar --exclude='*.log' --exclude='*.tmp' -czf archive.tar.gz project/
+
+      **Exclude directory:**
+      tar --exclude='logs' -czf archive.tar.gz project/
+
+      **Exclude from file:**
+      Create .tarignore:
+      ```
+      *.log
+      *.tmp
+      __pycache__
+      .git
+      node_modules
+      ```
+
+      Use it:
+      tar --exclude-from=.tarignore -czf archive.tar.gz project/
+
+      **Wildcards:**
+      tar --exclude='*.log' --exclude='data/*.dat' -czf archive.tar.gz project/
+
+      **Create archive excluding logs and data:**
+
+      tar --exclude='logs' --exclude='data' -czf archives/project_code.tar.gz project/
+
+      **Verify contents:**
+      tar -tzf archives/project_code.tar.gz | head -20
+
+      You shouldn't see any logs/ or data/ entries!
+
+      **Compare sizes:**
+      tar -czf archives/project_full.tar.gz project/
+      ls -lh archives/project_*.tar.gz
+
+      Notice the size difference!
+    hint: "Use --exclude to skip logs and data directories"
+    validation:
+      type: "command-output"
+      command: "tar --exclude='logs' --exclude='data' -czf /tmp/test.tar.gz /home/learner/project/ 2>/dev/null && tar -tzf /tmp/test.tar.gz | grep -v 'logs\\|data' | head -1"
+      matcher: "contains"
+      expected: "project"
+
+  - id: "incremental-backups"
+    title: "Incremental and Differential Backups"
+    description: |
+      **Backup Strategies:**
+
+      **Full Backup:**
+      - Archives everything
+      - Simple to restore
+      - Large size, slow
+      - Do weekly or monthly
+
+      **Incremental Backup:**
+      - Only files changed since LAST backup
+      - Smallest size
+      - Restore requires all incrementals + full
+      - Do daily
+
+      **Differential Backup:**
+      - Files changed since LAST FULL backup
+      - Medium size
+      - Restore requires only full + latest differential
+      - Do daily
+
+      **Implementing with tar:**
+
+      **Full backup with snapshot:**
+      tar --create --gzip \
+          --file=archives/full_backup.tar.gz \
+          --listed-incremental=archives/backup.snar \
+          project/
+
+      The .snar file tracks what was backed up.
+
+      **Incremental backup:**
+      # Make some changes
+      echo "New content" > project/docs/NEW.md
+
+      # Create incremental
+      tar --create --gzip \
+          --file=archives/incremental.tar.gz \
+          --listed-incremental=archives/backup.snar \
+          project/
+
+      Only NEW.md and changed files are included!
+
+      **Restore process:**
+      # Restore full backup first
+      tar --extract --gzip \
+          --listed-incremental=/dev/null \
+          --file=archives/full_backup.tar.gz
+
+      # Then restore incremental
+      tar --extract --gzip \
+          --listed-incremental=/dev/null \
+          --file=archives/incremental.tar.gz
+
+      **Practice incremental backup:**
+
+      # Full backup
+      tar -czf archives/full.tar.gz --listed-incremental=archives/snap.snar project/
+
+      # Make changes
+      echo "Updated docs" >> project/docs/README.md
+      touch project/src/new_module.py
+
+      # Incremental backup
+      tar -czf archives/incr.tar.gz --listed-incremental=archives/snap.snar project/
+
+      # Compare sizes
+      ls -lh archives/*.tar.gz
+    hint: "Create full backup, make changes, then incremental backup"
+    validation:
+      type: "command-output"
+      command: "tar -czf /tmp/full.tar.gz --listed-incremental=/tmp/snap.snar /home/learner/project 2>/dev/null && echo OK"
+      matcher: "contains"
+      expected: "OK"
+
+  - id: "parallel-compression"
+    title: "Parallel Compression for Speed"
+    description: |
+      **Speed Up Compression with Parallelization:**
+
+      Modern systems have multiple CPU cores. Use them!
+
+      **Parallel Compression Tools:**
+
+      **pigz** - Parallel gzip
+      - Drop-in replacement for gzip
+      - Uses all CPU cores
+      - 2-4x faster on multi-core systems
+
+      **pbzip2** - Parallel bzip2
+      - Parallel version of bzip2
+      - Significant speedup
+      - Same compression ratio
+
+      **xz -T0** - Multithreaded xz
+      - Built-in threading support
+      - Use -T0 for all cores
+
+      **Usage examples:**
+
+      **Standard gzip:**
+      time gzip -k large_file
+
+      **Parallel pigz:**
+      time pigz -k large_file
+
+      **With tar:**
+
+      Standard:
+      tar -czf archive.tar.gz project/
+
+      Parallel with pigz:
+      tar -cf - project/ | pigz > archive.tar.gz
+
+      Or:
+      tar --use-compress-program=pigz -cf archive.tar.gz project/
+
+      **Parallel bzip2:**
+      tar --use-compress-program=pbzip2 -cf archive.tar.bz2 project/
+
+      **Specify core count:**
+      pigz -p 4 file     # Use 4 cores
+      pbzip2 -p2 file    # Use 2 cores
+
+      **Benchmark compression methods:**
+
+      echo "Testing standard gzip..."
+      time tar -czf archives/standard.tar.gz project/ 2>&1 | grep real
+
+      echo "Testing parallel pigz..."
+      time tar --use-compress-program=pigz -cf archives/parallel.tar.gz project/ 2>&1 | grep real
+
+      Compare the times!
+
+      **Create archive with parallel compression:**
+      tar --use-compress-program=pigz -cf archives/project_fast.tar.gz project/
+    hint: "Use pigz for parallel compression with tar"
+    validation:
+      type: "command-output"
+      command: "tar --use-compress-program=pigz -cf /tmp/test.tar.gz /home/learner/project 2>/dev/null && file /tmp/test.tar.gz"
+      matcher: "contains"
+      expected: "gzip"
+
+  - id: "split-archives"
+    title: "Split Large Archives"
+    description: |
+      **Splitting Archives for Transfer:**
+
+      **Why split archives?**
+      - Email attachment size limits
+      - FAT32 file size limit (4GB)
+      - Easier parallel uploads
+      - CD/DVD burning
+
+      **Method 1: tar with split**
+
+      Create and split in one command:
+      tar -czf - project/ | split -b 100M - archives/backup.tar.gz.part
+
+      Creates:
+      - archives/backup.tar.gz.partaa
+      - archives/backup.tar.gz.partab
+      - archives/backup.tar.gz.partac
+      - ...
+
+      **Rejoin:**
+      cat archives/backup.tar.gz.part* | tar -xzf -
+
+      **Method 2: split existing archive**
+
+      Create archive:
+      tar -czf archives/large.tar.gz project/
+
+      Split it:
+      split -b 50M archives/large.tar.gz archives/large.tar.gz.part
+
+      **Rejoin:**
+      cat archives/large.tar.gz.part* > archives/rejoined.tar.gz
+
+      **Method 3: zip split (built-in)**
+
+      zip -r -s 50m archives/split.zip project/
+
+      Creates:
+      - split.z01
+      - split.z02
+      - split.zip
+
+      **Rejoin zip:**
+      zip -F archives/split.zip --out archives/complete.zip
+
+      **Method 4: 7z split**
+
+      7z a -v50m archives/archive.7z project/
+
+      **Split options:**
+
+      -b 50M   # 50 megabytes
+      -b 1G    # 1 gigabyte
+      -b 700m  # CD size
+      -b 4g    # DVD size
+
+      **Practice splitting:**
+
+      # Create multi-part archive (10MB chunks)
+      tar -czf - project/ | split -b 10M - archives/multipart.tar.gz.
+
+      # List parts
+      ls -lh archives/multipart.tar.gz.*
+
+      # Verify by rejoining (don't extract)
+      cat archives/multipart.tar.gz.* | tar -tzf - | head -5
+    hint: "Use tar with split to create multi-part archives"
+    validation:
+      type: "command-output"
+      command: "tar -czf - /home/learner/project 2>/dev/null | split -b 10M - /tmp/test.tar.gz. && ls /tmp/test.tar.gz.* | wc -l"
+      matcher: "regex"
+      expected: "[1-9]"
+
+  - id: "zip-archives"
+    title: "Working with ZIP Archives"
+    description: |
+      **ZIP: Universal Archive Format:**
+
+      ZIP is the most compatible format across platforms.
+
+      **Creating ZIP archives:**
+
+      Basic:
+      zip -r archive.zip directory/
+
+      With compression level (0-9):
+      zip -9 -r archive.zip directory/   # Maximum compression
+      zip -1 -r archive.zip directory/   # Fastest
+
+      **Exclude files:**
+      zip -r archive.zip project/ -x "*.log" "*/__pycache__/*"
+
+      **Encrypt with password:**
+      zip -e -r secure.zip project/
+      (prompts for password)
+
+      Or:
+      zip -P password -r secure.zip project/
+
+      **Update existing archive:**
+      zip -u archive.zip newfile.txt
+
+      **Add to archive:**
+      zip archive.zip file1.txt file2.txt
+
+      **Extract ZIP:**
+
+      Extract all:
+      unzip archive.zip
+
+      Extract to directory:
+      unzip archive.zip -d /path/to/extract/
+
+      List contents:
+      unzip -l archive.zip
+
+      Test integrity:
+      unzip -t archive.zip
+
+      Extract specific file:
+      unzip archive.zip file.txt
+
+      Quiet extraction:
+      unzip -q archive.zip
+
+      **ZIP vs tar.gz:**
+
+      | Feature | ZIP | tar.gz |
+      |---------|-----|--------|
+      | Compatibility | Universal | Unix/Linux |
+      | Compression | Per-file | Whole archive |
+      | Partial extract | Yes | No (must decompress all) |
+      | Metadata | Limited | Full Unix perms |
+
+      **Create ZIP archive of project:**
+      zip -r archives/project.zip project/ -x "project/logs/*" "project/data/*"
+
+      **List contents:**
+      unzip -l archives/project.zip | head -20
+
+      **Test archive:**
+      unzip -t archives/project.zip
+    hint: "Create ZIP archive excluding logs and data"
+    validation:
+      type: "command-output"
+      command: "zip -r /tmp/test.zip /home/learner/project 2>&1 && unzip -l /tmp/test.zip | head -5"
+      matcher: "contains"
+      expected: "Archive:"
+
+  - id: "archive-integrity"
+    title: "Verify Archive Integrity"
+    description: |
+      **Ensuring Archive Integrity:**
+
+      Compressed files can become corrupted. Always verify!
+
+      **Test before extracting:**
+
+      **gzip:**
+      gzip -t file.gz
+      gunzip -t file.gz
+
+      **bzip2:**
+      bzip2 -t file.bz2
+      bunzip2 -t file.bz2
+
+      **xz:**
+      xz -t file.xz
+
+      **tar archives:**
+      tar -tzf archive.tar.gz > /dev/null
+      (Lists contents, fails if corrupted)
+
+      **zip:**
+      unzip -t archive.zip
+
+      **Using checksums:**
+
+      Create checksum before:
+      md5sum archive.tar.gz > archive.tar.gz.md5
+      sha256sum archive.tar.gz > archive.tar.gz.sha256
+
+      Verify later:
+      md5sum -c archive.tar.gz.md5
+      sha256sum -c archive.tar.gz.sha256
+
+      **Create checksums for all archives:**
+      cd archives/
+      for file in *.tar.gz *.zip; do
+        [ -f "$file" ] && sha256sum "$file" >> CHECKSUMS.sha256
+      done
+
+      **Verify all:**
+      sha256sum -c CHECKSUMS.sha256
+
+      **Automated verification script:**
+
+      cat > verify_archive.sh << 'EOF'
+      #!/bin/bash
+      ARCHIVE="$1"
+
+      echo "Verifying $ARCHIVE..."
+
+      case "$ARCHIVE" in
+        *.tar.gz|*.tgz)
+          tar -tzf "$ARCHIVE" > /dev/null && echo "✓ OK"
+          ;;
+        *.tar.bz2)
+          tar -tjf "$ARCHIVE" > /dev/null && echo "✓ OK"
+          ;;
+        *.zip)
+          unzip -t "$ARCHIVE" > /dev/null && echo "✓ OK"
+          ;;
+        *.gz)
+          gzip -t "$ARCHIVE" && echo "✓ OK"
+          ;;
+        *)
+          echo "Unknown format"
+          ;;
+      esac
+      EOF
+
+      chmod +x verify_archive.sh
+
+      **Create checksums for archives:**
+      cd archives/
+      sha256sum *.tar.gz 2>/dev/null > CHECKSUMS.txt
+      cat CHECKSUMS.txt
+    hint: "Create SHA256 checksums for all .tar.gz archives"
+    validation:
+      type: "command-output"
+      command: "cd /home/learner/archives && sha256sum *.tar.gz 2>/dev/null | head -1"
+      matcher: "contains"
+      expected: ""
+
+  - id: "compression-automation"
+    title: "Automate Compression Tasks"
+    description: |
+      **Automated Backup Script:**
+
+      Create production-ready backup automation.
+
+      **Script requirements:**
+      - Date-stamped archives
+      - Rotation (keep last N backups)
+      - Logging
+      - Error handling
+      - Compression
+      - Optional encryption
+
+      **Sample backup script:**
+
+      cat > /home/learner/scripts/backup.sh << 'EOF'
+      #!/bin/bash
+
+      # Configuration
+      SOURCE="/home/learner/project"
+      BACKUP_DIR="/home/learner/backup"
+      DATE=$(date +%Y%m%d_%H%M%S)
+      ARCHIVE="$BACKUP_DIR/backup_$DATE.tar.gz"
+      LOG="$BACKUP_DIR/backup.log"
+      KEEP=7  # Keep last 7 backups
+
+      # Logging function
+      log() {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG"
+      }
+
+      log "Starting backup..."
+
+      # Create backup directory
+      mkdir -p "$BACKUP_DIR"
+
+      # Create archive with exclusions
+      if tar --exclude='logs' --exclude='*.tmp' \
+             -czf "$ARCHIVE" "$SOURCE" 2>>"$LOG"; then
+        SIZE=$(du -h "$ARCHIVE" | cut -f1)
+        log "✓ Backup created: $(basename $ARCHIVE) ($SIZE)"
+      else
+        log "✗ Backup failed!"
+        exit 1
+      fi
+
+      # Verify archive
+      if tar -tzf "$ARCHIVE" > /dev/null 2>&1; then
+        log "✓ Archive integrity verified"
+      else
+        log "✗ Archive verification failed!"
+        exit 1
+      fi
+
+      # Create checksum
+      cd "$BACKUP_DIR"
+      sha256sum "$(basename $ARCHIVE)" >> "$DATE.sha256"
+      log "✓ Checksum created"
+
+      # Rotate old backups
+      cd "$BACKUP_DIR"
+      OLD_BACKUPS=$(ls -t backup_*.tar.gz 2>/dev/null | tail -n +$((KEEP + 1)))
+      if [ -n "$OLD_BACKUPS" ]; then
+        echo "$OLD_BACKUPS" | xargs rm -f
+        log "✓ Removed old backups: $(echo $OLD_BACKUPS | tr '\n' ' ')"
+      fi
+
+      # Summary
+      TOTAL_SIZE=$(du -sh "$BACKUP_DIR" | cut -f1)
+      BACKUP_COUNT=$(ls -1 backup_*.tar.gz 2>/dev/null | wc -l)
+      log "✓ Backup complete. Total: $BACKUP_COUNT backups, $TOTAL_SIZE"
+
+      EOF
+
+      chmod +x /home/learner/scripts/backup.sh
+
+      **Run backup:**
+      /home/learner/scripts/backup.sh
+
+      **Schedule with cron:**
+      # Daily at 2 AM
+      0 2 * * * /home/learner/scripts/backup.sh
+
+      **View log:**
+      cat /home/learner/backup/backup.log
+
+      **Create and test the backup script:**
+      mkdir -p /home/learner/scripts
+      # (Create script as shown above)
+      chmod +x /home/learner/scripts/backup.sh
+      /home/learner/scripts/backup.sh
+    hint: "Create automated backup script with rotation and logging"
+    validation:
+      type: "file-exists"
+      path: "/home/learner/scripts/backup.sh"
+
+  - id: "advanced-tar-features"
+    title: "Advanced tar Features"
+    description: |
+      **Power User tar Techniques:**
+
+      **Progress indicator:**
+      tar -czf archive.tar.gz project/ --checkpoint=100 --checkpoint-action=echo='%T'
+
+      Or with pv:
+      tar -czf - project/ | pv > archive.tar.gz
+
+      **Preserve permissions and ownership:**
+      tar -czpf archive.tar.gz project/
+      # -p preserves permissions
+
+      **Transform file paths:**
+      tar --transform='s/^project/backup/' -czf archive.tar.gz project/
+      # Changes "project/" to "backup/" in archive
+
+      **Append to existing archive:**
+      tar -rf archive.tar newfile.txt
+      # Note: Can't append to compressed archives!
+
+      **Update changed files:**
+      tar -uzf archive.tar.gz project/
+      # Only adds files newer than in archive
+
+      **Compare archive to filesystem:**
+      tar -df archive.tar project/
+      # Shows differences
+
+      **Extract with different ownership:**
+      tar --no-same-owner -xzf archive.tar.gz
+      # Don't preserve original owner
+
+      **Extract specific files by pattern:**
+      tar -xzf archive.tar.gz --wildcards '*.conf'
+      # Extract only .conf files
+
+      **Strip leading components:**
+      tar --strip-components=1 -xzf archive.tar.gz
+      # Removes first directory level
+
+      **Sparse file handling:**
+      tar -czSf archive.tar.gz large_file
+      # -S handles sparse files efficiently
+
+      **Remote archiving over SSH:**
+      tar -czf - project/ | ssh user@host 'cat > backup.tar.gz'
+
+      **Archiving with ACLs and xattrs:**
+      tar --acls --xattrs -czf archive.tar.gz project/
+
+      **Practice advanced features:**
+
+      # Create archive with progress
+      tar -czf archives/with_progress.tar.gz project/ --checkpoint=10 --checkpoint-action=echo='%T'
+
+      # Extract with path transformation
+      tar --transform='s/project/restored/' -xzf archives/with_progress.tar.gz -C backup/
+
+      # Verify transformation
+      ls backup/
+    hint: "Use tar with --checkpoint for progress indication"
+    validation:
+      type: "command-output"
+      command: "tar -czf /tmp/test.tar.gz /home/learner/project --checkpoint=100 --checkpoint-action=echo='OK' 2>&1 | grep -E 'OK|project' | head -1"
+      matcher: "contains"
+      expected: ""
+
+completion:
+  message: |
+    🎉 ADVANCED COMPRESSION MASTERED! 🎉
+
+    You've mastered advanced compression and archiving techniques!
+
+    **What You've Learned:**
+
+    ✓ Comparing compression algorithms and trade-offs
+    ✓ Selective archiving with exclusions
+    ✓ Incremental and differential backup strategies
+    ✓ Parallel compression for performance
+    ✓ Splitting large archives
+    ✓ Cross-platform ZIP archives
+    ✓ Verifying archive integrity
+    ✓ Automating compression tasks
+    ✓ Advanced tar power-user features
+
+    **Compression Algorithm Comparison:**
+
+    | Algorithm | Speed | Ratio | Use Case |
+    |-----------|-------|-------|----------|
+    | gzip      | Fast  | Good  | General use |
+    | bzip2     | Slow  | Better| Archival |
+    | xz        | Very slow | Best | Distribution |
+    | zip       | Fast  | Good  | Cross-platform |
+
+    **Essential tar Options:**
+    -c  Create          -x  Extract         -t  List
+    -z  gzip            -j  bzip2           -J  xz
+    -v  Verbose         -f  File            -p  Preserve perms
+    --exclude           --listed-incremental
+    --use-compress-program=pigz
+
+    **Backup Strategies:**
+
+    Full backup:
+    tar -czf full_$(date +%F).tar.gz --listed-incremental=snap.snar /data/
+
+    Incremental backup:
+    tar -czf incr_$(date +%F).tar.gz --listed-incremental=snap.snar /data/
+
+    **Performance Tips:**
+    ☑ Use pigz/pbzip2 for multi-core compression
+    ☑ Exclude unnecessary files (logs, caches)
+    ☑ Choose appropriate compression level
+    ☑ Split large archives for transfer
+    ☑ Verify integrity before deleting originals
+
+    **Archive Management:**
+    ☑ Use date stamps in filenames
+    ☑ Implement rotation (keep last N)
+    ☑ Create checksums (sha256sum)
+    ☑ Test archives after creation
+    ☑ Log all operations
+
+    **Quick Reference:**
+
+    Create with exclusions:
+    tar --exclude='*.log' -czf archive.tar.gz dir/
+
+    Parallel compression:
+    tar --use-compress-program=pigz -cf archive.tar.gz dir/
+
+    Split archive:
+    tar -czf - dir/ | split -b 100M - archive.tar.gz.
+
+    Incremental backup:
+    tar -czf backup.tar.gz --listed-incremental=snap.snar dir/
+
+    Verify integrity:
+    tar -tzf archive.tar.gz > /dev/null
+    sha256sum -c CHECKSUMS.txt
+
+    Cross-platform ZIP:
+    zip -r archive.zip dir/ -x "*.log"
+
+    **Pro Tips:**
+    • Text files compress 60-80%
+    • Already compressed files (jpg, mp4) don't compress more
+    • Parallel compression: 2-4x speedup on multi-core
+    • tar.gz for Linux, ZIP for cross-platform
+    • Always verify before deleting originals
+
+    You can now build enterprise-grade backup systems!
+
+    Next: Expert practice with comprehensive automation!
+  xp: 500
+  unlocks:
+    - "linux/week10/practice-backup-automation"
+    - "linux/week11/shell-scripting-beginner"

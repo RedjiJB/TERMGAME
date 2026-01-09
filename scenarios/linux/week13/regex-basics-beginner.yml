@@ -1,0 +1,818 @@
+mission:
+  id: "linux/week13/regex-basics-beginner"
+  title: "Introduction to Regular Expressions"
+  difficulty: beginner
+  description: "Learn the fundamentals of regular expressions for pattern matching and text searching"
+  estimated_time: 30
+  tags:
+    - linux
+    - regex
+    - pattern-matching
+    - grep
+    - beginner
+    - week13
+    - cst8207
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/home/learner"
+  setup:
+    - "apt-get update -qq && apt-get install -y -qq grep"
+    - "mkdir -p /home/learner/data"
+    - |
+      cat > /home/learner/data/users.txt << 'EOF'
+      john.doe@example.com
+      jane_smith@company.org
+      bob123@test.net
+      alice.wonderland@email.co.uk
+      charlie@domain.com
+      david.jones@business.gov
+      eve_parker@site.io
+      frank@test123.com
+      grace.lee@example.org
+      henry.ford@auto.com
+      invalid.email@
+      @missing.user
+      no-at-sign.com
+      admin@localhost
+      support@company.com
+      EOF
+    - |
+      cat > /home/learner/data/phones.txt << 'EOF'
+      555-1234
+      555-5678
+      (555) 123-4567
+      555.987.6543
+      1-800-555-0199
+      +1-555-123-4567
+      5551234567
+      555-CALL-NOW
+      (800)5551234
+      123-456-7890
+      EOF
+    - |
+      cat > /home/learner/data/logs.txt << 'EOF'
+      2026-01-09 10:15:23 INFO User logged in
+      2026-01-09 10:16:45 ERROR Failed to connect
+      2026-01-09 10:17:12 INFO Request processed
+      2026-01-09 10:18:55 WARN Low memory warning
+      2026-01-09 10:19:03 ERROR Database timeout
+      2026-01-09 10:20:31 INFO User logged out
+      2026-01-09 10:21:47 DEBUG Cache cleared
+      2026-01-09 10:22:18 ERROR File not found
+      2026-01-09 10:23:56 INFO Backup completed
+      2026-01-09 10:24:42 WARN Disk usage at 85%
+      EOF
+    - |
+      cat > /home/learner/data/text.txt << 'EOF'
+      The quick brown fox jumps over the lazy dog.
+      Pack my box with five dozen liquor jugs.
+      How vexingly quick daft zebras jump!
+      The five boxing wizards jump quickly.
+      Sphinx of black quartz, judge my vow.
+      Two driven jocks help fax my big quiz.
+      The jay, pig, fox, zebra and my wolves quack!
+      Blowzy red vixens fight for a quick jump.
+      EOF
+
+steps:
+  - id: "understand-regex"
+    title: "What are Regular Expressions?"
+    description: |
+      **Regular Expressions (Regex): Pattern Matching Language**
+
+      Regex is a powerful language for describing text patterns.
+
+      **What can regex do?**
+      - Find specific text patterns
+      - Validate input (emails, phone numbers)
+      - Search and replace text
+      - Extract data from logs
+      - Parse structured text
+
+      **Common uses:**
+      - Email validation: user@domain.com
+      - Phone numbers: (555) 123-4567
+      - Log parsing: Extract ERROR lines
+      - Data extraction: Find all IP addresses
+      - Text processing: Find/replace patterns
+
+      **Regex vs Simple Search:**
+
+      Simple search:
+      - Find exact text: "error"
+      - Case sensitive
+      - No patterns
+
+      Regex:
+      - Find patterns: "any email address"
+      - Flexible matching
+      - Powerful but complex
+
+      **Testing regex with grep:**
+
+      grep is the primary tool for regex in Linux.
+
+      Basic usage:
+      grep 'pattern' file
+
+      **Try a simple search:**
+      grep 'ERROR' data/logs.txt
+
+      This finds all lines containing "ERROR".
+    hint: "Type: grep 'ERROR' data/logs.txt"
+    validation:
+      type: "command-output"
+      command: "grep 'ERROR' /home/learner/data/logs.txt | wc -l"
+      matcher: "regex"
+      expected: "[3-9]"
+
+  - id: "literal-characters"
+    title: "Literal Character Matching"
+    description: |
+      **Literal Characters: Exact Matching**
+
+      Most characters match themselves exactly.
+
+      **Examples:**
+
+      Find "cat":
+      grep 'cat' file.txt
+
+      Matches: cat, category, concatenate
+
+      Find "test":
+      grep 'test' file.txt
+
+      Matches: test, testing, contest
+
+      **Case sensitivity:**
+
+      grep is case-sensitive by default:
+      grep 'error' data/logs.txt    # Finds: error
+      grep 'ERROR' data/logs.txt    # Finds: ERROR
+      grep 'Error' data/logs.txt    # Finds: Error
+
+      **Case-insensitive search:**
+      grep -i 'error' data/logs.txt
+
+      Finds: error, ERROR, Error, ErRoR, etc.
+
+      **Practice:**
+
+      Find all INFO messages:
+      grep 'INFO' data/logs.txt
+
+      Find all "User" mentions (case-insensitive):
+      grep -i 'user' data/logs.txt
+
+      **Try both searches:**
+      How many INFO lines are there?
+      How many lines mention "user"?
+    hint: "Use: grep 'INFO' data/logs.txt"
+    validation:
+      type: "command-output"
+      command: "grep 'INFO' /home/learner/data/logs.txt | wc -l"
+      matcher: "regex"
+      expected: "[3-9]"
+
+  - id: "dot-metacharacter"
+    title: "The Dot (.) Metacharacter"
+    description: |
+      **Special Characters: Metacharacters**
+
+      Some characters have special meanings in regex.
+
+      **The Dot (.) - Match Any Single Character:**
+
+      . matches any one character (except newline)
+
+      **Examples:**
+
+      Pattern: c.t
+      Matches: cat, cot, cut, c9t, c@t
+      Not: ct, caot (wrong length)
+
+      Pattern: .at
+      Matches: cat, bat, hat, 1at, @at
+      Not: at (no character before)
+
+      **Practical use:**
+
+      Find 3-digit phone area codes (555, 800, etc.):
+      grep '...-' data/phones.txt
+
+      This matches: NNN- (any 3 chars + hyphen)
+
+      Find any error with pattern "E...R":
+      grep 'E...R' data/logs.txt
+
+      Matches: ERROR (E + any 3 chars + R)
+
+      **Practice:**
+
+      Find phone numbers with format XXX-XXXX:
+      grep '...-....' data/phones.txt
+
+      The pattern:
+      ... = any 3 characters
+      -   = literal hyphen
+      .... = any 4 characters
+
+      **Try it:**
+      grep '...-....' data/phones.txt
+
+      How many matches do you find?
+    hint: "Type: grep '...-....' data/phones.txt"
+    validation:
+      type: "command-output"
+      command: "grep '...-....' /home/learner/data/phones.txt | wc -l"
+      matcher: "regex"
+      expected: "[3-9]"
+
+  - id: "character-classes"
+    title: "Character Classes [...]"
+    description: |
+      **Character Classes: Match One from a Set**
+
+      [abc] matches a OR b OR c (exactly one character)
+
+      **Examples:**
+
+      Pattern: [abc]
+      Matches: a, b, c
+      Not: d, ab, abc
+
+      Pattern: [aeiou]
+      Matches: any vowel
+
+      Pattern: [0123456789]
+      Matches: any single digit
+
+      **Ranges with hyphen:**
+
+      [a-z]  = any lowercase letter
+      [A-Z]  = any uppercase letter
+      [0-9]  = any digit
+      [a-zA-Z] = any letter
+      [a-zA-Z0-9] = any alphanumeric
+
+      **Practical examples:**
+
+      Find lines with digits:
+      grep '[0-9]' data/logs.txt
+
+      Find lines with uppercase letters:
+      grep '[A-Z]' data/logs.txt
+
+      Find email with numbers:
+      grep '[0-9]' data/users.txt
+
+      **Practice:**
+
+      Find phone numbers starting with 5 or 8:
+      grep '[58]' data/phones.txt
+
+      Find users with underscore in email:
+      grep '_' data/users.txt
+
+      Find log levels (INFO, ERROR, WARN, DEBUG):
+      grep '[A-Z][A-Z][A-Z]' data/logs.txt
+
+      **Try finding phone numbers starting with 5:**
+      grep '^[5]' data/phones.txt
+    hint: "Use character class: grep '[58]' data/phones.txt"
+    validation:
+      type: "command-output"
+      command: "grep '[0-9]' /home/learner/data/phones.txt | wc -l"
+      matcher: "regex"
+      expected: "[5-9]|10"
+
+  - id: "negated-classes"
+    title: "Negated Character Classes [^...]"
+    description: |
+      **Negated Character Classes: Match Anything BUT**
+
+      [^abc] matches any character EXCEPT a, b, or c
+
+      **Examples:**
+
+      Pattern: [^0-9]
+      Matches: any non-digit character
+
+      Pattern: [^a-zA-Z]
+      Matches: any non-letter (numbers, symbols, spaces)
+
+      Pattern: [^aeiou]
+      Matches: any consonant or non-letter
+
+      **Important:**
+      ^ inside [^...] means "NOT"
+      ^ outside means "start of line" (we'll learn this later)
+
+      **Practical uses:**
+
+      Find lines without numbers:
+      This is tricky with negation! We need to think differently.
+
+      Find non-alphanumeric characters:
+      grep '[^a-zA-Z0-9]' file.txt
+
+      **Practice:**
+
+      Find emails with special characters (not letters/numbers/@/.):
+      grep '[^a-zA-Z0-9@._-]' data/users.txt
+
+      Find phone numbers with non-digit separators:
+      grep '[^0-9]' data/phones.txt
+
+      **Try finding emails with underscores or hyphens:**
+      grep '[_-]' data/users.txt
+
+      **Or find emails WITHOUT underscores:**
+      We need to combine patterns (next steps!)
+    hint: "Negated class matches any character NOT in the set"
+    validation:
+      type: "command-output"
+      command: "grep '[_-]' /home/learner/data/users.txt | wc -l"
+      matcher: "regex"
+      expected: "[1-9]"
+
+  - id: "anchors"
+    title: "Anchors: ^ and $"
+    description: |
+      **Anchors: Match Position, Not Characters**
+
+      Anchors don't match characters - they match positions!
+
+      **Start of line: ^**
+
+      ^pattern matches pattern at START of line
+
+      Examples:
+      ^The    = Lines starting with "The"
+      ^[0-9]  = Lines starting with a digit
+      ^ERROR  = Lines starting with ERROR
+
+      **End of line: $**
+
+      pattern$ matches pattern at END of line
+
+      Examples:
+      end$    = Lines ending with "end"
+      [0-9]$  = Lines ending with a digit
+      com$    = Lines ending with "com"
+
+      **Both together:**
+
+      ^pattern$  = Entire line must match pattern exactly
+
+      Examples:
+      ^ERROR$    = Line contains only "ERROR"
+      ^[0-9][0-9]$ = Line is exactly 2 digits
+
+      **Practical examples:**
+
+      Find logs starting with date:
+      grep '^2026' data/logs.txt
+
+      Find emails ending with .com:
+      grep '\.com$' data/users.txt
+
+      Note: \. means literal dot (explained next!)
+
+      Find lines that are exactly "admin@localhost":
+      grep '^admin@localhost$' data/users.txt
+
+      **Practice:**
+
+      Find phone numbers starting with 555:
+      grep '^555' data/phones.txt
+
+      Find sentences ending with exclamation:
+      grep '!$' data/text.txt
+
+      Find lines starting with "The":
+      grep '^The' data/text.txt
+
+      **Try them:**
+      grep '^555' data/phones.txt
+      grep '!$' data/text.txt
+    hint: "Use ^ for start of line, $ for end of line"
+    validation:
+      type: "command-output"
+      command: "grep '^555' /home/learner/data/phones.txt | wc -l"
+      matcher: "regex"
+      expected: "[2-9]"
+
+  - id: "escaping"
+    title: "Escaping Special Characters"
+    description: |
+      **Escaping: Making Special Characters Literal**
+
+      Metacharacters have special meanings:
+      . ^ $ * + ? { } [ ] \ | ( )
+
+      To match them literally, escape with backslash \
+
+      **Examples:**
+
+      Match literal dot:
+      Pattern: \.
+      Matches: .
+      Not: any character
+
+      Without escape:
+      a.c matches: abc, aXc, a9c
+      With escape:
+      a\.c matches: a.c only
+
+      **Common escapes:**
+
+      \.  = literal dot
+      \$  = literal dollar sign
+      \^  = literal caret
+      \\  = literal backslash
+      \*  = literal asterisk
+      \+  = literal plus
+
+      **Practical use:**
+
+      Find email addresses (simplified):
+      grep '@' data/users.txt      # @ is not special, no escape needed
+
+      Find domain with dots:
+      grep '\.com' data/users.txt  # Escape the dot
+
+      Find prices with dollar sign:
+      grep '\$[0-9]' file.txt
+
+      Find IP addresses (simplified):
+      grep '[0-9]\.[0-9]\.[0-9]\.[0-9]' file.txt
+
+      **Practice:**
+
+      Find emails ending with .org:
+      grep '\.org$' data/users.txt
+
+      Find emails with .co.uk:
+      grep '\.co\.uk' data/users.txt
+
+      Find phone numbers with dots:
+      grep '\.' data/phones.txt
+
+      **Try finding .org emails:**
+      grep '\.org$' data/users.txt
+    hint: "Use backslash to escape special characters: \\."
+    validation:
+      type: "command-output"
+      command: "grep '\\.org' /home/learner/data/users.txt | wc -l"
+      matcher: "regex"
+      expected: "[1-9]"
+
+  - id: "quantifiers-star"
+    title: "Quantifiers: * (Zero or More)"
+    description: |
+      **Quantifiers: Repeat Previous Character**
+
+      * means "zero or more" of the preceding character
+
+      **Examples:**
+
+      Pattern: a*
+      Matches: "", a, aa, aaa, aaaa...
+      (including empty string!)
+
+      Pattern: ab*c
+      Matches: ac, abc, abbc, abbbc...
+
+      Pattern: [0-9]*
+      Matches: "", 5, 42, 123, 999999...
+
+      **Practical use:**
+
+      Find "color" or "colour":
+      grep 'colou*r' file.txt
+
+      Matches: color (u appears 0 times), colour (u appears 1 time)
+
+      Find optional spaces:
+      grep 'word *word' file.txt
+
+      Matches: "word word", "word  word", "wordword"
+
+      **Common mistake:**
+
+      Pattern: *
+      ERROR! * needs something before it!
+
+      Pattern: .*
+      Correct! Matches any characters (any char, zero or more times)
+
+      **Practice:**
+
+      Find phone numbers with optional parentheses:
+      grep '(*[0-9]' data/phones.txt
+
+      Wait, this needs proper escaping!
+      grep '(*[0-9]' won't work correctly
+
+      Let's try something simpler:
+      Find lines with multiple spaces:
+      grep '  *' data/logs.txt
+
+      This finds 2 or more spaces (space space *)
+
+      **Try finding ERROR or ERRORS:**
+      grep 'ERRORS*' data/logs.txt
+
+      This matches ERROR (S appears 0 times) or ERRORS (S appears 1+ times)
+    hint: "* means zero or more of preceding character"
+    validation:
+      type: "command-output"
+      command: "grep 'ERRORS*' /home/learner/data/logs.txt | wc -l"
+      matcher: "regex"
+      expected: "[3-9]"
+
+  - id: "quantifiers-plus"
+    title: "Quantifiers: + (One or More)"
+    description: |
+      **Extended Regex: grep -E**
+
+      + is not available in basic grep - need extended regex!
+
+      Use: grep -E 'pattern'
+      Or: egrep 'pattern'
+
+      **The + Quantifier: One or More**
+
+      + means "one or more" of the preceding character
+
+      **Examples:**
+
+      Pattern: a+
+      Matches: a, aa, aaa, aaaa...
+      Not: "" (empty)
+
+      Pattern: [0-9]+
+      Matches: 1, 42, 123, 99999...
+      Not: "" (requires at least one digit)
+
+      Pattern: ab+c
+      Matches: abc, abbc, abbbc...
+      Not: ac (needs at least one b)
+
+      **Difference from *:**
+
+      a* matches: "", a, aa, aaa...  (0 or more)
+      a+ matches:     a, aa, aaa...  (1 or more)
+
+      **Practical use:**
+
+      Find numbers (at least one digit):
+      grep -E '[0-9]+' file.txt
+
+      Find words (at least one letter):
+      grep -E '[a-zA-Z]+' file.txt
+
+      **Practice:**
+
+      Find phone numbers with multiple digits:
+      grep -E '[0-9]+' data/phones.txt
+
+      Find log timestamps (multiple digits):
+      grep -E '[0-9]+:[0-9]+:[0-9]+' data/logs.txt
+
+      Find words with multiple vowels in a row:
+      grep -E '[aeiou]+' data/text.txt
+
+      **Try finding sequences of digits:**
+      grep -E '[0-9]+' data/logs.txt
+    hint: "Use grep -E for extended regex with +"
+    validation:
+      type: "command-output"
+      command: "grep -E '[0-9]+' /home/learner/data/phones.txt | wc -l"
+      matcher: "regex"
+      expected: "[5-9]|10"
+
+  - id: "word-boundaries"
+    title: "Word Boundaries: \\b"
+    description: |
+      **Word Boundaries: Match Whole Words**
+
+      \b matches word boundary (start or end of word)
+
+      **What is a word boundary?**
+      - Between word character [a-zA-Z0-9_] and non-word character
+      - Start or end of line if starting/ending with word character
+
+      **Examples:**
+
+      Pattern: \bcat\b
+      Matches: "cat", "the cat sat"
+      Not: "category", "concatenate", "scat"
+
+      Pattern: \btest\b
+      Matches: "test", "test file", "run test"
+      Not: "testing", "contest", "latest"
+
+      **Without word boundaries:**
+
+      grep 'cat' matches: cat, category, concatenate, scatter
+      grep '\bcat\b' matches: cat only
+
+      **Practical use:**
+
+      Find whole word "log" not "login" or "logs":
+      grep '\blog\b' file.txt
+
+      Find whole word "test":
+      grep '\btest\b' file.txt
+
+      **Practice:**
+
+      Find lines with the word "User" (not "Users"):
+      grep '\bUser\b' data/logs.txt
+
+      Find lines with word "INFO" (not "INFOS" if any):
+      grep '\bINFO\b' data/logs.txt
+
+      Find complete word "fox":
+      grep '\bfox\b' data/text.txt
+
+      **Note:** Some grep versions need -E for \b:
+      grep -E '\bword\b' file.txt
+
+      **Try finding complete word "User":**
+      grep -E '\bUser\b' data/logs.txt
+    hint: "Use \\b for word boundaries to match complete words"
+    validation:
+      type: "command-output"
+      command: "grep -E '\\bINFO\\b' /home/learner/data/logs.txt | wc -l"
+      matcher: "regex"
+      expected: "[3-9]"
+
+  - id: "putting-together"
+    title: "Combining Patterns"
+    description: |
+      **Real-World Regex: Combining What We Learned**
+
+      Let's build practical patterns by combining concepts.
+
+      **Email validation (simplified):**
+
+      Basic pattern:
+      ^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$
+
+      Breaking it down:
+      ^                 Start of line
+      [a-zA-Z0-9._-]+   Username: letters, numbers, dots, underscores, hyphens (1+)
+      @                 Literal @ symbol
+      [a-zA-Z0-9.-]+    Domain: letters, numbers, dots, hyphens (1+)
+      \.                Literal dot
+      [a-zA-Z]{2,}      TLD: letters only, 2 or more
+      $                 End of line
+
+      **Phone number pattern:**
+
+      Simple: ^[0-9]{3}-[0-9]{3}-[0-9]{4}$
+
+      Matches: 555-123-4567
+
+      **Log pattern - Find ERROR with timestamp:**
+
+      ^[0-9]{4}-[0-9]{2}-[0-9]{2} .* ERROR
+
+      Breaking it down:
+      ^[0-9]{4}         Year (4 digits)
+      -                 Literal hyphen
+      [0-9]{2}          Month (2 digits)
+      -                 Literal hyphen
+      [0-9]{2}          Day (2 digits)
+      .*                Any characters (space, time, etc.)
+      ERROR             Literal ERROR
+
+      **Practice exercises:**
+
+      1. Find valid email addresses (basic):
+         grep -E '^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+$' data/users.txt
+
+      2. Find phone numbers XXX-XXXX format:
+         grep -E '^[0-9]{3}-[0-9]{4}$' data/phones.txt
+
+      3. Find ERROR or WARN in logs:
+         grep -E 'ERROR|WARN' data/logs.txt
+
+      4. Find sentences ending with period:
+         grep '\.$' data/text.txt
+
+      5. Find emails from .com domains:
+         grep '\.com$' data/users.txt
+
+      **Try the email pattern:**
+      grep -E '^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+$' data/users.txt
+
+      How many valid emails do you find?
+    hint: "Combine character classes, quantifiers, and anchors"
+    validation:
+      type: "command-output"
+      command: "grep -E '^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]+$' /home/learner/data/users.txt | wc -l"
+      matcher: "regex"
+      expected: "[5-9]|1[0-5]"
+
+completion:
+  message: |
+    🎉 REGEX BASICS MASTERED! 🎉
+
+    You've learned the fundamentals of regular expressions!
+
+    **What You've Learned:**
+
+    ✓ What regular expressions are and why they're useful
+    ✓ Literal character matching
+    ✓ Metacharacter: . (any character)
+    ✓ Character classes: [abc], [a-z], [0-9]
+    ✓ Negated classes: [^abc]
+    ✓ Anchors: ^ (start), $ (end)
+    ✓ Escaping special characters: \. \$ \*
+    ✓ Quantifiers: * (0+), + (1+)
+    ✓ Word boundaries: \b
+    ✓ Combining patterns for real-world use
+
+    **Quick Reference:**
+
+    **Basic Patterns:**
+    .       Any single character
+    [abc]   One character from set
+    [^abc]  One character NOT in set
+    [a-z]   Character range
+    ^       Start of line
+    $       End of line
+
+    **Quantifiers:**
+    *       Zero or more
+    +       One or more (use grep -E)
+    {n}     Exactly n times (use grep -E)
+    {n,}    n or more (use grep -E)
+    {n,m}   Between n and m (use grep -E)
+
+    **Special:**
+    \b      Word boundary
+    \.      Literal dot
+    \*      Literal asterisk
+    \\      Literal backslash
+
+    **Character Classes:**
+    [0-9]       Any digit
+    [a-z]       Lowercase letter
+    [A-Z]       Uppercase letter
+    [a-zA-Z]    Any letter
+    [a-zA-Z0-9] Alphanumeric
+
+    **grep Commands:**
+    grep 'pattern' file        Basic regex
+    grep -E 'pattern' file     Extended regex (+, ?, |)
+    grep -i 'pattern' file     Case-insensitive
+    grep -v 'pattern' file     Invert (non-matching)
+    grep -c 'pattern' file     Count matches
+    grep -n 'pattern' file     Show line numbers
+
+    **Common Patterns:**
+
+    Email (simplified):
+    [a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+
+
+    Phone (XXX-XXX-XXXX):
+    [0-9]{3}-[0-9]{3}-[0-9]{4}
+
+    IP address (simplified):
+    [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+
+
+    Date (YYYY-MM-DD):
+    [0-9]{4}-[0-9]{2}-[0-9]{2}
+
+    **Best Practices:**
+
+    ☑ Start simple, then add complexity
+    ☑ Test patterns incrementally
+    ☑ Use anchors (^ $) when matching entire lines
+    ☑ Escape special characters with \
+    ☑ Use character classes instead of alternation when possible
+    ☑ Remember: grep vs grep -E for extended features
+
+    **Next Steps:**
+
+    - Alternation: pattern1|pattern2
+    - Grouping: (pattern)
+    - Backreferences: \1, \2
+    - Lookahead and lookbehind
+    - sed for find/replace with regex
+    - awk for advanced text processing
+
+    You now have the foundation to use regex in real-world scenarios!
+
+    GREAT WORK!
+  xp: 200
+  unlocks:
+    - "linux/week13/regex-intermediate"
+    - "linux/week13/grep-advanced"

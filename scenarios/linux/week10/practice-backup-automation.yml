@@ -1,0 +1,908 @@
+mission:
+  id: "linux/week10/practice-backup-automation"
+  title: "Build Production Backup System"
+  difficulty: expert
+  description: "Design and implement a complete automated backup solution with scheduling, compression, rotation, monitoring, and recovery procedures"
+  estimated_time: 60
+  tags:
+    - linux
+    - practice
+    - cron
+    - compression
+    - automation
+    - expert
+    - week10
+    - cst8207
+
+environment:
+  image: "ubuntu:22.04"
+  workdir: "/opt/backup-system"
+  setup:
+    - "apt-get update -qq && apt-get install -y -qq cron rsyslog bzip2 gzip xz-utils tar pigz pbzip2 mailutils bc"
+    - "service cron start"
+    - "service rsyslog start"
+    - "useradd -m -s /bin/bash backupuser"
+    - "mkdir -p /opt/backup-system /var/backups/archives /var/backups/logs /var/log/backup"
+    - "chown -R backupuser:backupuser /opt/backup-system /var/backups"
+    - |
+      # Create production-like application structure
+      mkdir -p /srv/application/{config,data,logs,uploads,cache}
+    - |
+      # Simulate production data
+      cat > /srv/application/config/database.conf << 'EOF'
+      host=prod-db-01.internal
+      port=5432
+      database=production
+      user=appuser
+      max_connections=200
+      EOF
+    - |
+      cat > /srv/application/config/app.conf << 'EOF'
+      environment=production
+      debug=false
+      log_level=INFO
+      session_timeout=3600
+      EOF
+    - |
+      # Create data files
+      for i in {1..20}; do
+        echo "User $i data: $(date +%s)" > /srv/application/data/user_$i.json
+      done
+    - |
+      # Create log files
+      for i in {1..100}; do
+        echo "$(date) - INFO - Application event $i" >> /srv/application/logs/app.log
+      done
+      for i in {1..50}; do
+        echo "$(date) - ERROR - Exception in module $i" >> /srv/application/logs/error.log
+      done
+    - |
+      # Create upload files (simulate various sizes)
+      dd if=/dev/urandom of=/srv/application/uploads/file1.bin bs=1M count=5 2>/dev/null
+      dd if=/dev/urandom of=/srv/application/uploads/file2.bin bs=1M count=3 2>/dev/null
+    - |
+      # Create cache (should not be backed up)
+      for i in {1..30}; do
+        echo "Cache entry $i" > /srv/application/cache/cache_$i.tmp
+      done
+    - "chown -R www-data:www-data /srv/application"
+    - "chmod 600 /srv/application/config/*.conf"
+
+steps:
+  - id: "understand-requirements"
+    title: "Analyze Production Requirements"
+    description: |
+      **SCENARIO: Production Backup System**
+
+      You're a DevOps engineer tasked with implementing a backup solution for a production application server.
+
+      **Application Structure:**
+      /srv/application/
+      ├── config/     ← Configuration files (CRITICAL)
+      ├── data/       ← User data (CRITICAL)
+      ├── logs/       ← Application logs (backup compressed)
+      ├── uploads/    ← User uploads (CRITICAL)
+      └── cache/      ← Temporary files (DO NOT backup)
+
+      **Business Requirements:**
+
+      1. **Backup Schedule:**
+         - Full backup: Daily at 2:00 AM
+         - Incremental backup: Every 6 hours (2,8,14,20)
+         - Log compression: Hourly
+
+      2. **Retention Policy:**
+         - Keep 7 daily full backups
+         - Keep 28 incremental backups
+         - Keep 24 compressed log archives
+
+      3. **Storage Optimization:**
+         - Use parallel compression (pigz)
+         - Exclude cache and temporary files
+         - Compress logs with maximum compression
+         - Use incremental backups for efficiency
+
+      4. **Reliability:**
+         - Verify all archives after creation
+         - Generate checksums (SHA256)
+         - Log all operations with timestamps
+         - Alert on failures (write to syslog)
+
+      5. **Recovery:**
+         - Document recovery procedures
+         - Test restoration quarterly
+         - Keep restore scripts ready
+
+      **Your Tasks:**
+
+      You must implement:
+      1. Full backup script with rotation
+      2. Incremental backup script
+      3. Log compression automation
+      4. Verification and checksum generation
+      5. Cron scheduling
+      6. Monitoring and alerting
+      7. Recovery documentation
+      8. Test restoration procedure
+
+      **Explore the application:**
+      tree -L 2 /srv/application/
+      du -sh /srv/application/*
+
+      **No step-by-step guidance!**
+      This is a real-world scenario. Plan and implement the complete solution.
+    hint: "Analyze the directory structure and requirements before coding"
+    validation:
+      type: "command-output"
+      command: "ls -la /srv/application/ | wc -l"
+      matcher: "regex"
+      expected: "[5-9]|[1-9][0-9]"
+
+  - id: "implement-full-backup"
+    title: "Implement Full Backup System"
+    description: |
+      **Task: Create Full Backup Script**
+
+      Create: /opt/backup-system/full_backup.sh
+
+      **Requirements:**
+
+      ✓ Backup /srv/application/ to /var/backups/archives/
+      ✓ Filename: full_backup_YYYYMMDD_HHMMSS.tar.gz
+      ✓ Use parallel compression (pigz)
+      ✓ Exclude: cache/, *.tmp, *.log files
+      ✓ Include: config/, data/, uploads/
+      ✓ Log compression: Compress logs/ separately to logs_YYYYMMDD.tar.bz2
+      ✓ Create .snar snapshot file for incremental support
+      ✓ Verify archive integrity after creation
+      ✓ Generate SHA256 checksum
+      ✓ Log all operations to /var/log/backup/full_backup.log
+      ✓ Return exit code 0 on success, 1 on failure
+      ✓ Rotate old backups (keep last 7)
+      ✓ Run as backupuser
+
+      **Log format:**
+      [YYYY-MM-DD HH:MM:SS] LEVEL: Message
+
+      **On failure:**
+      - Write error to syslog: logger -t backup-system "ERROR: message"
+      - Exit with code 1
+
+      **Hints:**
+      - Use tar with --listed-incremental for snapshot
+      - Verify with: tar -tzf archive.tar.gz > /dev/null
+      - Rotation: ls -t | tail -n +8 | xargs rm
+      - Parallel: tar --use-compress-program=pigz
+
+      **Success criteria:**
+      - Script exists and is executable
+      - Creates valid .tar.gz archive
+      - Generates checksum file
+      - Creates log file with timestamp entries
+      - Implements rotation (keeps only 7)
+      - Exits with proper codes
+
+      **Test your script:**
+      sudo -u backupuser /opt/backup-system/full_backup.sh
+      echo "Exit code: $?"
+    hint: "Create comprehensive backup script with all requirements"
+    validation:
+      type: "command-output"
+      command: "test -x /opt/backup-system/full_backup.sh && ls /opt/backup-system/full_backup.sh"
+      matcher: "contains"
+      expected: "full_backup.sh"
+
+  - id: "implement-incremental-backup"
+    title: "Implement Incremental Backup System"
+    description: |
+      **Task: Create Incremental Backup Script**
+
+      Create: /opt/backup-system/incremental_backup.sh
+
+      **Requirements:**
+
+      ✓ Use same snapshot file as full backup (.snar)
+      ✓ Filename: incr_backup_YYYYMMDD_HHMMSS.tar.gz
+      ✓ Only backs up changes since last backup (full or incremental)
+      ✓ Same exclusions as full backup
+      ✓ Use pigz compression
+      ✓ Verify archive integrity
+      ✓ Generate SHA256 checksum
+      ✓ Log to /var/log/backup/incremental_backup.log
+      ✓ Rotate old incrementals (keep last 28)
+      ✓ Handle case where no snapshot exists (error)
+
+      **Key differences from full backup:**
+      - Uses existing .snar file (doesn't create new one)
+      - Smaller archives (only changed files)
+      - More frequent execution
+      - Different retention policy
+
+      **Error handling:**
+      - Check if .snar file exists
+      - If not: log error and exit 1
+      - Verify source directory exists
+      - Check disk space before starting
+
+      **Success criteria:**
+      - Script executable
+      - Uses snapshot file correctly
+      - Creates smaller archives (only changes)
+      - Proper rotation (28 backups)
+      - Logging and checksums
+
+      **Test:**
+      # Run full backup first (creates .snar)
+      sudo -u backupuser /opt/backup-system/full_backup.sh
+
+      # Make some changes
+      echo "New data" > /srv/application/data/new_file.txt
+
+      # Run incremental
+      sudo -u backupuser /opt/backup-system/incremental_backup.sh
+
+      # Verify incremental is smaller
+      ls -lh /var/backups/archives/
+    hint: "Use --listed-incremental with existing snapshot file"
+    validation:
+      type: "command-output"
+      command: "test -x /opt/backup-system/incremental_backup.sh && ls /opt/backup-system/incremental_backup.sh"
+      matcher: "contains"
+      expected: "incremental_backup.sh"
+
+  - id: "implement-log-compression"
+    title: "Implement Log Compression"
+    description: |
+      **Task: Create Log Compression Script**
+
+      Create: /opt/backup-system/compress_logs.sh
+
+      **Requirements:**
+
+      ✓ Compress all .log files in /srv/application/logs/
+      ✓ Use maximum bzip2 compression (level 9)
+      ✓ Filename: logs_YYYYMMDD_HH.tar.bz2
+      ✓ Keep original logs (don't delete)
+      ✓ Output to /var/backups/archives/
+      ✓ Verify compressed archive
+      ✓ Generate checksum
+      ✓ Log to /var/log/backup/log_compression.log
+      ✓ Rotate old log archives (keep last 24)
+      ✓ Calculate and log compression ratio
+
+      **Compression ratio calculation:**
+      ORIGINAL_SIZE=$(du -sb /srv/application/logs/*.log | awk '{sum+=$1} END {print sum}')
+      COMPRESSED_SIZE=$(stat -c %s archive.tar.bz2)
+      RATIO=$(echo "scale=1; (1 - $COMPRESSED_SIZE/$ORIGINAL_SIZE) * 100" | bc)
+
+      **Why not delete originals?**
+      - Application is still writing to them
+      - Separate cleanup job handles old logs
+      - Safety: verify backup before deletion
+
+      **Success criteria:**
+      - Script executable
+      - Uses bzip2 for maximum compression
+      - Logs compression ratio
+      - Keeps originals intact
+      - Proper rotation (24 archives)
+      - Verification and checksums
+
+      **Test:**
+      sudo -u backupuser /opt/backup-system/compress_logs.sh
+
+      # Check compression ratio
+      tail /var/log/backup/log_compression.log
+
+      # Verify logs still exist
+      ls /srv/application/logs/
+    hint: "Use tar -cjf with maximum compression and calculate savings"
+    validation:
+      type: "command-output"
+      command: "test -x /opt/backup-system/compress_logs.sh && ls /opt/backup-system/compress_logs.sh"
+      matcher: "contains"
+      expected: "compress_logs.sh"
+
+  - id: "schedule-backups"
+    title: "Schedule All Backup Jobs"
+    description: |
+      **Task: Configure Cron Scheduling**
+
+      Create: /etc/cron.d/backup-system
+
+      **Schedule Requirements:**
+
+      1. **Full Backup**: Daily at 2:00 AM
+         0 2 * * * backupuser /opt/backup-system/full_backup.sh
+
+      2. **Incremental Backup**: Every 6 hours (2,8,14,20)
+         0 2,8,14,20 * * * backupuser /opt/backup-system/incremental_backup.sh
+
+      3. **Log Compression**: Every hour
+         0 * * * * backupuser /opt/backup-system/compress_logs.sh
+
+      4. **Verification Check**: Daily at 3:00 AM (after backups)
+         0 3 * * * backupuser /opt/backup-system/verify_backups.sh
+
+      **Cron file format:**
+      ```
+      # Backup System Automation
+      # Managed by: DevOps Team
+      # Last updated: YYYY-MM-DD
+
+      SHELL=/bin/bash
+      PATH=/usr/local/bin:/usr/bin:/bin
+      MAILTO=backup-admin@company.com
+
+      # Full backup - daily 2 AM
+      0 2 * * * backupuser /opt/backup-system/full_backup.sh >> /var/log/backup/cron.log 2>&1
+
+      # Incremental backups - every 6 hours
+      0 2,8,14,20 * * * backupuser /opt/backup-system/incremental_backup.sh >> /var/log/backup/cron.log 2>&1
+
+      # Log compression - hourly
+      0 * * * * backupuser /opt/backup-system/compress_logs.sh >> /var/log/backup/cron.log 2>&1
+
+      # Verification - daily 3 AM
+      0 3 * * * backupuser /opt/backup-system/verify_backups.sh >> /var/log/backup/cron.log 2>&1
+      ```
+
+      **Important:**
+      - Use system cron (/etc/cron.d/), not user crontab
+      - Specify username (backupuser)
+      - Redirect output to log files
+      - Set appropriate PATH and SHELL
+      - Document each job
+
+      **Test scheduling:**
+      # Check syntax
+      crontab -l -u backupuser 2>/dev/null || cat /etc/cron.d/backup-system
+
+      # Test cron entries
+      grep -E "^[^#]" /etc/cron.d/backup-system
+
+      **Success criteria:**
+      - File exists: /etc/cron.d/backup-system
+      - Proper format with username field
+      - All 4 jobs scheduled correctly
+      - Environment variables set
+      - Output redirected to logs
+    hint: "Create system cron file in /etc/cron.d/ with proper format"
+    validation:
+      type: "command-output"
+      command: "test -f /etc/cron.d/backup-system && grep 'backupuser' /etc/cron.d/backup-system"
+      matcher: "contains"
+      expected: "backupuser"
+
+  - id: "implement-verification"
+    title: "Implement Verification System"
+    description: |
+      **Task: Create Verification Script**
+
+      Create: /opt/backup-system/verify_backups.sh
+
+      **Requirements:**
+
+      ✓ Verify all archives in /var/backups/archives/
+      ✓ Check archive integrity (tar -tzf)
+      ✓ Verify checksums (sha256sum -c)
+      ✓ Check for required backups (at least 1 full, recent incrementals)
+      ✓ Calculate total backup size
+      ✓ Report oldest and newest backup
+      ✓ Log results to /var/log/backup/verification.log
+      ✓ Alert to syslog if verification fails
+      ✓ Generate daily verification report
+
+      **Report format:**
+      ```
+      ========================================
+      Backup Verification Report
+      Date: YYYY-MM-DD HH:MM:SS
+      ========================================
+
+      Total Archives: X
+      Full Backups: X
+      Incremental Backups: X
+      Log Archives: X
+
+      Total Size: XX.X GB
+      Oldest Backup: YYYY-MM-DD HH:MM:SS
+      Newest Backup: YYYY-MM-DD HH:MM:SS
+
+      Integrity Checks:
+      ✓ full_backup_20260109.tar.gz - OK
+      ✓ incr_backup_20260109.tar.gz - OK
+      ✗ logs_20260108.tar.bz2 - FAILED
+
+      Checksum Verification:
+      ✓ 15/15 checksums valid
+
+      Status: PASS / FAIL
+      ========================================
+      ```
+
+      **Verification logic:**
+      ```bash
+      for archive in *.tar.gz *.tar.bz2; do
+        if tar -tf "$archive" > /dev/null 2>&1; then
+          echo "✓ $archive - OK"
+        else
+          echo "✗ $archive - FAILED"
+          FAILED=1
+        fi
+      done
+      ```
+
+      **Alert on failure:**
+      ```bash
+      if [ $FAILED -eq 1 ]; then
+        logger -t backup-system -p user.err "Backup verification failed!"
+        exit 1
+      fi
+      ```
+
+      **Success criteria:**
+      - Script executable
+      - Verifies all archive types
+      - Checks checksums
+      - Generates formatted report
+      - Alerts on failures
+      - Proper logging
+
+      **Test:**
+      sudo -u backupuser /opt/backup-system/verify_backups.sh
+      cat /var/log/backup/verification.log
+    hint: "Test integrity with tar -tf and verify checksums with sha256sum -c"
+    validation:
+      type: "command-output"
+      command: "test -x /opt/backup-system/verify_backups.sh && ls /opt/backup-system/verify_backups.sh"
+      matcher: "contains"
+      expected: "verify_backups.sh"
+
+  - id: "implement-monitoring"
+    title: "Implement Monitoring and Alerting"
+    description: |
+      **Task: Create Monitoring Script**
+
+      Create: /opt/backup-system/monitor.sh
+
+      **Requirements:**
+
+      ✓ Check disk space (alert if < 20% free)
+      ✓ Check backup age (alert if > 25 hours since last full)
+      ✓ Check for failed backups in logs
+      ✓ Monitor backup size trends
+      ✓ Check cron service status
+      ✓ Verify backup user exists and has permissions
+      ✓ Generate monitoring dashboard
+      ✓ Send alerts to syslog
+
+      **Dashboard format:**
+      ```
+      ╔════════════════════════════════════════╗
+      ║    Backup System Health Dashboard      ║
+      ╚════════════════════════════════════════╝
+
+      System Status: ✓ HEALTHY / ✗ WARNING / ✗✗ CRITICAL
+
+      Disk Space:
+        /var/backups: XX% used (XXX/XXX GB) [✓]
+
+      Last Backups:
+        Full: 3 hours ago [✓]
+        Incremental: 45 minutes ago [✓]
+        Logs: 15 minutes ago [✓]
+
+      Recent Operations:
+        Last 24h: 5 full, 20 incremental, 24 log compressions
+        Success rate: 100% (45/45)
+        Failed: 0
+
+      Storage Trends:
+        Total backup size: XX.X GB
+        Growth rate: +X.X GB/day
+        Estimated full: XX days
+
+      Cron Status: active [✓]
+      Backup User: backupuser [✓]
+      Permissions: correct [✓]
+
+      Alerts:
+        [YYYY-MM-DD HH:MM:SS] WARNING: Disk usage 85%
+      ```
+
+      **Alert thresholds:**
+      - CRITICAL: Disk > 90%, backup age > 48h, failures > 0
+      - WARNING: Disk > 80%, backup age > 25h
+      - INFO: Normal operation
+
+      **Success criteria:**
+      - Script executable
+      - Checks all health metrics
+      - Generates formatted dashboard
+      - Sends appropriate alerts
+      - Can be run manually or via cron
+
+      **Test:**
+      sudo -u backupuser /opt/backup-system/monitor.sh
+    hint: "Check df for disk space, find for backup age, grep logs for errors"
+    validation:
+      type: "command-output"
+      command: "test -x /opt/backup-system/monitor.sh && ls /opt/backup-system/monitor.sh"
+      matcher: "contains"
+      expected: "monitor.sh"
+
+  - id: "document-recovery"
+    title: "Document Recovery Procedures"
+    description: |
+      **Task: Create Recovery Documentation**
+
+      Create: /opt/backup-system/RECOVERY.md
+
+      **Requirements:**
+
+      Comprehensive recovery guide covering:
+
+      1. **Full System Restore**
+         - Step-by-step restoration from full backup
+         - Command examples
+         - Verification steps
+
+      2. **Incremental Restore**
+         - How to restore full + all incrementals
+         - Proper order of operations
+         - Handling missing incrementals
+
+      3. **Point-in-Time Recovery**
+         - Restore to specific date/time
+         - Which backups to use
+         - How to verify timestamp
+
+      4. **Selective File Restore**
+         - Extract single file from archive
+         - Extract directory
+         - Restore specific file versions
+
+      5. **Disaster Recovery**
+         - Complete server rebuild scenario
+         - What to restore first
+         - Dependency order
+         - Testing restored system
+
+      6. **Common Scenarios**
+         - Accidental deletion
+         - Corrupted files
+         - Ransomware attack
+         - Hardware failure
+         - Data center disaster
+
+      7. **Recovery Scripts**
+         - Automated restore script
+         - Verification script
+         - Rollback procedures
+
+      **Example documentation structure:**
+      ```markdown
+      # Backup Recovery Procedures
+
+      ## Quick Reference
+
+      | Scenario | Commands | Time |
+      |----------|----------|------|
+      | Single file | tar -xzf backup.tar.gz path/to/file | 1 min |
+      | Full restore | ./restore_full.sh | 15 min |
+      | Point-in-time | ./restore_to_date.sh 2026-01-09 | 20 min |
+
+      ## Full System Restore
+
+      ### Prerequisites
+      - Access to backup archives
+      - Sufficient disk space
+      - Root access
+
+      ### Steps
+
+      1. Identify latest full backup:
+         ```bash
+         ls -lt /var/backups/archives/full_backup_*.tar.gz | head -1
+         ```
+
+      2. Verify archive integrity:
+         ```bash
+         tar -tzf full_backup_YYYYMMDD.tar.gz > /dev/null
+         sha256sum -c full_backup_YYYYMMDD.tar.gz.sha256
+         ```
+
+      3. Stop application:
+         ```bash
+         systemctl stop application
+         ```
+
+      4. Backup current state:
+         ```bash
+         mv /srv/application /srv/application.old
+         ```
+
+      5. Restore full backup:
+         ```bash
+         cd /
+         tar --listed-incremental=/dev/null \
+             -xzf /var/backups/archives/full_backup_YYYYMMDD.tar.gz
+         ```
+
+      6. Apply incremental backups (in order):
+         ```bash
+         for incr in $(ls -t incr_backup_*.tar.gz); do
+           tar --listed-incremental=/dev/null -xzf "$incr"
+         done
+         ```
+
+      7. Restore permissions:
+         ```bash
+         chown -R www-data:www-data /srv/application
+         chmod 600 /srv/application/config/*.conf
+         ```
+
+      8. Verify restoration:
+         ```bash
+         diff -r /srv/application /srv/application.old
+         ```
+
+      9. Test application:
+         ```bash
+         systemctl start application
+         systemctl status application
+         ```
+
+      10. Verify functionality:
+          ```bash
+          curl http://localhost/health
+          ```
+
+      ## Point-in-Time Recovery
+      [... detailed steps ...]
+
+      ## Testing Recovery
+      [... test procedures ...]
+      ```
+
+      **Create restore script:** /opt/backup-system/restore.sh
+
+      **Success criteria:**
+      - RECOVERY.md exists and is comprehensive
+      - Covers all major scenarios
+      - Includes command examples
+      - Has troubleshooting section
+      - Restore script functional
+    hint: "Document all recovery scenarios with step-by-step commands"
+    validation:
+      type: "file-exists"
+      path: "/opt/backup-system/RECOVERY.md"
+
+  - id: "test-recovery"
+    title: "Test Recovery Procedures"
+    description: |
+      **Task: Implement and Test Recovery**
+
+      Create: /opt/backup-system/restore.sh
+
+      **Requirements:**
+
+      ✓ Accept parameters: --full, --incremental, --date YYYYMMDD, --file path
+      ✓ Verify backup archives exist
+      ✓ Check checksums before restoring
+      ✓ Backup current state before overwriting
+      ✓ Restore to alternate location for testing
+      ✓ Verify restored data
+      ✓ Log all restore operations
+      ✓ Support dry-run mode (--dry-run)
+
+      **Script usage:**
+      ```bash
+      # Full restore to alternate location
+      ./restore.sh --full --date 20260109 --target /tmp/restore
+
+      # Restore specific file
+      ./restore.sh --file data/user_1.json --date 20260109 --target /tmp/restore
+
+      # Dry run (show what would be restored)
+      ./restore.sh --full --date 20260109 --dry-run
+
+      # Incremental restore (full + all incrementals)
+      ./restore.sh --incremental --date 20260109 --target /tmp/restore
+      ```
+
+      **Testing procedure:**
+
+      1. Create test data:
+      echo "Test data $(date)" > /srv/application/data/test_restore.txt
+
+      2. Run full backup:
+      sudo -u backupuser /opt/backup-system/full_backup.sh
+
+      3. Modify test data:
+      echo "Modified data $(date)" >> /srv/application/data/test_restore.txt
+
+      4. Run incremental backup:
+      sudo -u backupuser /opt/backup-system/incremental_backup.sh
+
+      5. Delete test data:
+      rm /srv/application/data/test_restore.txt
+
+      6. Restore from backup:
+      sudo -u backupuser /opt/backup-system/restore.sh --incremental --target /tmp/restore
+
+      7. Verify restoration:
+      diff /tmp/restore/srv/application/data/test_restore.txt <expected_content>
+
+      8. Test selective restore:
+      sudo -u backupuser /opt/backup-system/restore.sh --file srv/application/config/database.conf --target /tmp/restore
+
+      9. Document results:
+      cat /var/log/backup/restore.log
+
+      **Success criteria:**
+      - Restore script exists and is executable
+      - Supports all required modes
+      - Successfully restores full backup
+      - Successfully restores incremental backup
+      - Can restore individual files
+      - Logs all operations
+      - Verifies restored data
+
+      **Create and test:**
+      # Test dry-run mode
+      sudo -u backupuser /opt/backup-system/restore.sh --full --dry-run
+
+      # Test actual restore
+      sudo -u backupuser /opt/backup-system/restore.sh --full --target /tmp/test_restore
+
+      # Verify
+      ls -la /tmp/test_restore/
+    hint: "Create restore script with dry-run and verification support"
+    validation:
+      type: "command-output"
+      command: "test -x /opt/backup-system/restore.sh && ls /opt/backup-system/restore.sh"
+      matcher: "contains"
+      expected: "restore.sh"
+
+completion:
+  message: |
+    🎉 PRODUCTION BACKUP SYSTEM COMPLETE! 🎉
+
+    Outstanding work! You've built an enterprise-grade backup solution!
+
+    **What You've Implemented:**
+
+    ✓ Full backup system with parallel compression
+    ✓ Incremental backup for efficiency
+    ✓ Log compression automation
+    ✓ Automated cron scheduling
+    ✓ Comprehensive verification system
+    ✓ Health monitoring and alerting
+    ✓ Complete recovery documentation
+    ✓ Tested restoration procedures
+
+    **System Architecture:**
+
+    ```
+    /opt/backup-system/
+    ├── full_backup.sh          → Daily full backups
+    ├── incremental_backup.sh   → 6-hourly incremental
+    ├── compress_logs.sh        → Hourly log compression
+    ├── verify_backups.sh       → Daily verification
+    ├── monitor.sh              → Health monitoring
+    ├── restore.sh              → Recovery automation
+    └── RECOVERY.md             → Documentation
+
+    /var/backups/
+    ├── archives/               → Backup storage
+    │   ├── full_backup_*.tar.gz
+    │   ├── incr_backup_*.tar.gz
+    │   └── logs_*.tar.bz2
+    └── logs/                   → Operation logs
+
+    /etc/cron.d/
+    └── backup-system           → Scheduled jobs
+    ```
+
+    **Backup Schedule:**
+    - 02:00 - Full backup (daily)
+    - 02,08,14,20:00 - Incremental backups
+    - Every hour - Log compression
+    - 03:00 - Verification (daily)
+
+    **Retention Policy:**
+    - 7 full backups (1 week)
+    - 28 incremental backups (~1 week)
+    - 24 log archives (1 day)
+
+    **Professional Features:**
+
+    ✓ **Reliability:**
+      - Integrity verification
+      - Checksum validation
+      - Error handling
+      - Atomic operations
+
+    ✓ **Performance:**
+      - Parallel compression (pigz)
+      - Incremental backups
+      - Efficient exclusions
+      - Optimized scheduling
+
+    ✓ **Monitoring:**
+      - Health dashboard
+      - Disk space tracking
+      - Backup age monitoring
+      - Success rate metrics
+
+    ✓ **Recovery:**
+      - Multiple restore modes
+      - Dry-run testing
+      - Point-in-time recovery
+      - Comprehensive documentation
+
+    ✓ **Security:**
+      - Dedicated backup user
+      - Secure permissions
+      - Audit logging
+      - Checksum verification
+
+    **Key Metrics You Should Monitor:**
+
+    1. **Backup Success Rate:** Target 100%
+    2. **Backup Window:** Should complete in < 1 hour
+    3. **Disk Usage:** Alert at 80%, critical at 90%
+    4. **Backup Age:** Alert if > 25 hours old
+    5. **Verification Rate:** 100% of archives verified
+    6. **Recovery Time:** Test quarterly, target < 30 min
+
+    **Production Checklist:**
+
+    ☑ All scripts executable and tested
+    ☑ Cron jobs scheduled correctly
+    ☑ Logging configured and rotating
+    ☑ Monitoring alerts to syslog
+    ☑ Recovery procedures documented
+    ☑ Restoration tested successfully
+    ☑ Permissions correctly set
+    ☑ Backup user configured
+    ☑ Retention policy implemented
+    ☑ Disk space monitoring active
+
+    **Real-World Best Practices Applied:**
+
+    ✓ 3-2-1 Rule: 3 copies, 2 media, 1 offsite (implement offsite next!)
+    ✓ Verify before delete: Always verify backups work
+    ✓ Test recovery: Regular restoration drills
+    ✓ Automate everything: No manual intervention
+    ✓ Monitor proactively: Alert before failure
+    ✓ Document thoroughly: Future you will thank you
+
+    **Next Steps for Production:**
+
+    1. Implement offsite backups (rsync to remote)
+    2. Add encryption (gpg for sensitive data)
+    3. Set up email alerts (not just syslog)
+    4. Create Grafana dashboard for metrics
+    5. Implement backup rotation to cold storage
+    6. Schedule quarterly disaster recovery drills
+
+    **Commands Mastered:**
+
+    Backup: tar, pigz, pbzip2, gzip, bzip2
+    Scheduling: cron, crontab, anacron
+    Verification: tar -t, sha256sum
+    Monitoring: df, du, find, grep
+    Recovery: tar -x, restore procedures
+
+    You now have the skills to manage enterprise backup systems!
+
+    This is production-ready code that could be deployed in a real environment!
+
+    EXCEPTIONAL WORK! 🚀
+  xp: 800
+  unlocks:
+    - "linux/week11/shell-scripting-beginner"
+    - "linux/week11/shell-scripting-intermediate"
