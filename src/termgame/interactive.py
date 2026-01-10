@@ -227,10 +227,10 @@ class InteractiveCLI:
 
         table = Table(show_header=True, header_style="bold dim")
         table.add_column("✓", style="green", justify="center", width=3)
-        table.add_column("ID", style="cyan")
-        table.add_column("Title", style="white")
-        table.add_column("Difficulty", style="dim")
-        table.add_column("Time", style="dim", justify="right")
+        table.add_column("ID", style="cyan", no_wrap=True, width=45)
+        table.add_column("Title", style="white", width=42)
+        table.add_column("Difficulty", style="dim", width=12)
+        table.add_column("Time", style="dim", justify="right", width=8)
 
         # Difficulty order for sorting
         diff_order = {
