@@ -232,7 +232,15 @@ class InteractiveCLI:
         table.add_column("Difficulty", style="dim")
         table.add_column("Time", style="dim", justify="right")
 
-        for mission in sorted(missions, key=lambda m: m["id"]):
+        # Difficulty order for sorting
+        diff_order = {
+            "beginner": 0,
+            "intermediate": 1,
+            "advanced": 2,
+        }
+
+        # Sort by difficulty (beginner to advanced), then by ID
+        for mission in sorted(missions, key=lambda m: (diff_order.get(m["difficulty"], 999), m["id"])):
             completed = "✓" if mission["id"] in completed_missions else ""
             table.add_row(
                 completed,

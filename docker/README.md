@@ -8,13 +8,17 @@ The `termgame/ubuntu-full:latest` image is a complete Ubuntu 22.04 environment w
 
 ### Included Packages
 
-- **Documentation**: man-db, manpages, manpages-posix
-- **Editors**: vim, nano
-- **Utilities**: tree, file, curl, wget, git
-- **Network Tools**: ping, traceroute, dnsutils, net-tools
-- **Build Tools**: gcc, make, build-essential
-- **Programming**: Python 3, pip
-- **Process Tools**: htop, psmisc, procps
+- **Text Editors**: nano, vim
+- **File Utilities**: tree, ncdu, file
+- **Compression Tools**: gzip, bzip2, xz-utils, zip, unzip, tar
+- **Network Tools**: curl, wget, openssh-client, ping, traceroute, dig, netstat
+- **Process Tools**: htop, ps, top, kill, killall, pgrep, pkill
+- **Text Processing**: grep, sed, awk, cut, sort, uniq, wc
+- **Documentation**: man-db, manpages, manpages-posix, info
+- **Development Tools**: git, make, bc, build-essential, python3, pip
+- **Disk Utilities**: parted, fdisk, df, du
+- **System Utilities**: cron, sudo, findutils, coreutils
+- **User Management**: learner user with sudo access (password: learner)
 
 ### Building the Image
 

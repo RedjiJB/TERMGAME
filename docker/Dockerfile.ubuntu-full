@@ -9,46 +9,83 @@ ENV TZ=UTC
 # Use yes to automatically answer prompts
 RUN yes | /usr/local/sbin/unminimize || true
 
-# Install common packages and tools
+# Install all essential packages and tools
 RUN apt-get update && apt-get install -y \
-    # Core utilities
-    man-db \
-    manpages \
-    manpages-posix \
+    # Text editors
+    nano \
+    vim \
+    # File utilities
+    file \
+    tree \
+    ncdu \
+    # Compression tools (essential for missions)
+    gzip \
+    bzip2 \
+    xz-utils \
+    zip \
+    unzip \
+    tar \
+    # Network tools
     curl \
     wget \
-    vim \
-    nano \
-    tree \
-    git \
-    # Network tools
     net-tools \
     iputils-ping \
     dnsutils \
     traceroute \
+    openssh-client \
     # Process tools
-    procps \
-    psmisc \
     htop \
-    # File tools
-    file \
+    psmisc \
+    procps \
+    # Text processing (most are in coreutils but ensure they're available)
+    grep \
+    sed \
+    gawk \
+    # System utilities
+    coreutils \
     findutils \
-    # Build tools
+    man-db \
+    manpages \
+    manpages-posix \
+    info \
+    less \
+    # Development tools
+    git \
+    make \
+    bc \
     build-essential \
-    # Python
     python3 \
     python3-pip \
+    # Disk utilities
+    parted \
+    fdisk \
+    # Cron (for automation missions)
+    cron \
+    # Other essentials
+    sudo \
     # Build man database
     && mandb \
     # Cleanup
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create trainee user home directory
-RUN mkdir -p /home/learner && chmod 755 /home/learner
+# Create learner user with sudo access
+RUN useradd -m -s /bin/bash learner && \
+    echo "learner:learner" | chpasswd && \
+    usermod -aG sudo learner && \
+    echo "learner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Set working directory
+# Set up working directory
 WORKDIR /home/learner
+RUN chown -R learner:learner /home/learner
+
+# Switch to learner user by default
+USER learner
+
+# Labels
+LABEL maintainer="TermGame"
+LABEL description="Ubuntu 22.04 with all essential tools for Linux training missions"
+LABEL version="2.0"
 
 # Keep container running
 CMD ["tail", "-f", "/dev/null"]
