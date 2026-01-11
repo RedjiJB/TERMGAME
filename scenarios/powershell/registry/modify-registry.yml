@@ -1,0 +1,133 @@
+mission:
+  id: "powershell/registry/modify-registry"
+  title: "Modifying Registry Values"
+  difficulty: advanced
+  description: "Learn to safely create and modify registry keys and values"
+  estimated_time: 30
+  tags:
+    - powershell
+    - registry
+    - advanced
+    - week-9
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "create-registry-key"
+    title: "Create a Registry Key"
+    description: |
+      New-Item creates registry keys.
+
+      Create test key in HKCU (safe location):
+      ```powershell
+      New-Item -Path "HKCU:\\Software\\TestApp" -Force
+      ```
+
+      -Force creates parent keys if needed.
+    hint: "Always test in HKCU first, not HKLM"
+    validation:
+      type: "command-output"
+      command: "New-Item -Path 'HKCU:\\Software\\TestApp' -Force -ErrorAction SilentlyContinue; Test-Path 'HKCU:\\Software\\TestApp'"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "create-string-value"
+    title: "Create a String Value"
+    description: |
+      New-ItemProperty creates registry values.
+
+      Create string value:
+      ```powershell
+      New-ItemProperty -Path "HKCU:\\Software\\TestApp" -Name "Version" -Value "1.0" -PropertyType String -Force
+      ```
+
+      PropertyType: String, DWORD, Binary, etc.
+    hint: "String is most common value type"
+    validation:
+      type: "command-output"
+      command: "New-ItemProperty -Path 'HKCU:\\Software\\TestApp' -Name 'Version' -Value '1.0' -PropertyType String -Force -ErrorAction SilentlyContinue; (Get-ItemProperty 'HKCU:\\Software\\TestApp' -ErrorAction SilentlyContinue).Version"
+      matcher: "exact"
+      expected: "1.0"
+
+  - id: "create-dword-value"
+    title: "Create a DWORD Value"
+    description: |
+      DWORD values store 32-bit integers.
+
+      Create DWORD:
+      ```powershell
+      New-ItemProperty -Path "HKCU:\\Software\\TestApp" -Name "Enabled" -Value 1 -PropertyType DWORD -Force
+      ```
+
+      Used for boolean flags (0=False, 1=True).
+    hint: "DWORD is common for configuration flags"
+    validation:
+      type: "command-output"
+      command: "New-ItemProperty -Path 'HKCU:\\Software\\TestApp' -Name 'Enabled' -Value 1 -PropertyType DWORD -Force -ErrorAction SilentlyContinue; (Get-ItemProperty 'HKCU:\\Software\\TestApp' -ErrorAction SilentlyContinue).Enabled"
+      matcher: "exact"
+      expected: "1"
+
+  - id: "modify-existing-value"
+    title: "Modify Existing Value"
+    description: |
+      Set-ItemProperty modifies existing values.
+
+      Update value:
+      ```powershell
+      Set-ItemProperty -Path "HKCU:\\Software\\TestApp" -Name "Version" -Value "2.0"
+      ```
+
+      Changes existing value.
+    hint: "Set-ItemProperty updates, New-ItemProperty creates"
+    validation:
+      type: "command-output"
+      command: "Set-ItemProperty -Path 'HKCU:\\Software\\TestApp' -Name 'Version' -Value '2.0' -ErrorAction SilentlyContinue; (Get-ItemProperty 'HKCU:\\Software\\TestApp' -ErrorAction SilentlyContinue).Version"
+      matcher: "exact"
+      expected: "2.0"
+
+  - id: "remove-registry-value"
+    title: "Remove Registry Value"
+    description: |
+      Remove-ItemProperty deletes values.
+
+      Remove value:
+      ```powershell
+      Remove-ItemProperty -Path "HKCU:\\Software\\TestApp" -Name "Enabled"
+      ```
+
+      Value is deleted permanently.
+    hint: "Be certain before removing values"
+    validation:
+      type: "command-output"
+      command: "Remove-ItemProperty -Path 'HKCU:\\Software\\TestApp' -Name 'Enabled' -ErrorAction SilentlyContinue; $val = (Get-ItemProperty 'HKCU:\\Software\\TestApp' -ErrorAction SilentlyContinue).Enabled; if ($null -eq $val) { 'removed' } else { 'exists' }"
+      matcher: "exact"
+      expected: "removed"
+
+  - id: "remove-registry-key"
+    title: "Remove Registry Key"
+    description: |
+      Remove-Item deletes entire keys.
+
+      Remove key:
+      ```powershell
+      Remove-Item -Path "HKCU:\\Software\\TestApp" -Recurse
+      ```
+
+      -Recurse removes all subkeys too.
+    hint: "Removing keys is permanent - backup first"
+    validation:
+      type: "command-output"
+      command: "Remove-Item -Path 'HKCU:\\Software\\TestApp' -Recurse -Force -ErrorAction SilentlyContinue; Test-Path 'HKCU:\\Software\\TestApp'"
+      matcher: "exact"
+      expected: "False"
+
+completion:
+  message: "Outstanding! You can now modify the registry. Always backup first and test in HKCU!"
+  xp: 350
+  unlocks:
+    - "powershell/registry/registry-safety"

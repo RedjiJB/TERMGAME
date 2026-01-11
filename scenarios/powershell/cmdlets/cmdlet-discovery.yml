@@ -1,0 +1,134 @@
+mission:
+  id: "powershell/cmdlets/cmdlet-discovery"
+  title: "Discovering the Right Cmdlet"
+  difficulty: beginner
+  description: "Learn techniques to find cmdlets for any task you need to accomplish"
+  estimated_time: 20
+  tags:
+    - powershell
+    - cmdlets
+    - beginner
+    - week-4
+    - discovery
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "search-by-verb"
+    title: "Search by Verb"
+    description: |
+      Find cmdlets by their action using Get-Command with -Verb.
+
+      Find all cmdlets that "get" things:
+      ```powershell
+      Get-Command -Verb Get
+      ```
+
+      This shows Get-Process, Get-Service, Get-Item, etc.
+    hint: "Common verbs: Get, Set, New, Remove, Start, Stop"
+    validation:
+      type: "command-output"
+      command: "Get-Command -Verb Get | Select-Object -First 1 -ExpandProperty Name"
+      matcher: "regex"
+      expected: "Get-.+"
+
+  - id: "search-by-noun"
+    title: "Search by Noun"
+    description: |
+      Find cmdlets by what they act on using -Noun.
+
+      Find all cmdlets that work with services:
+      ```powershell
+      Get-Command -Noun Service
+      ```
+
+      Shows Get-Service, Start-Service, Stop-Service, etc.
+    hint: "Nouns represent the target object: Service, Process, Item, Content"
+    validation:
+      type: "command-output"
+      command: "Get-Command -Noun Service | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "wildcard-search"
+    title: "Use Wildcards in Search"
+    description: |
+      Use wildcards (*) to find cmdlets with partial names.
+
+      Find cmdlets with "process" in their name:
+      ```powershell
+      Get-Command *Process*
+      ```
+
+      This finds Get-Process, Stop-Process, Start-Process, etc.
+    hint: "Wildcards work at the start, middle, or end of names"
+    validation:
+      type: "command-output"
+      command: "Get-Command *Process* -CommandType Cmdlet | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "search-by-module"
+    title: "Find Cmdlets in a Module"
+    description: |
+      Cmdlets are organized into modules. Find cmdlets in a specific module.
+
+      View cmdlets in the Microsoft.PowerShell.Management module:
+      ```powershell
+      Get-Command -Module Microsoft.PowerShell.Management
+      ```
+
+      This shows all cmdlets from that module.
+    hint: "Use Get-Module to see loaded modules"
+    validation:
+      type: "command-output"
+      command: "Get-Command -Module Microsoft.PowerShell.Management | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+  - id: "search-help-topics"
+    title: "Search Help Topics"
+    description: |
+      Search help documentation for keywords.
+
+      Find help topics about "file":
+      ```powershell
+      Get-Help *file*
+      ```
+
+      This searches help for file-related cmdlets and concepts.
+    hint: "Help search finds cmdlets and conceptual topics"
+    validation:
+      type: "command-output"
+      command: "Get-Help *file* | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "get-verb-list"
+    title: "View Approved Verbs"
+    description: |
+      PowerShell uses standardized verbs. View the complete list.
+
+      See all approved verbs:
+      ```powershell
+      Get-Verb
+      ```
+
+      This shows verbs like Get, Set, Add, Remove, and their descriptions.
+    hint: "Using approved verbs ensures consistency across PowerShell"
+    validation:
+      type: "command-output"
+      command: "Get-Verb | Where-Object {$_.Verb -eq 'Get'} | Select-Object -ExpandProperty Verb"
+      matcher: "exact"
+      expected: "Get"
+
+completion:
+  message: "Perfect! You can now find the right cmdlet for any task. Discovery is a crucial skill!"
+  xp: 150
+  unlocks:
+    - "powershell/cmdlets/advanced-parameters"

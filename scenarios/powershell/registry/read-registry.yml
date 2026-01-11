@@ -1,0 +1,99 @@
+mission:
+  id: "powershell/registry/read-registry"
+  title: "Reading Registry Values"
+  difficulty: intermediate
+  description: "Learn to read and query registry values safely"
+  estimated_time: 20
+  tags:
+    - powershell
+    - registry
+    - intermediate
+    - week-9
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "read-single-value"
+    title: "Read a Specific Value"
+    description: |
+      Get-ItemProperty reads registry values.
+
+      Read Windows product name:
+      ```powershell
+      (Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion").ProductName
+      ```
+
+      Returns the value directly.
+    hint: "Parentheses evaluate first, then access property"
+    validation:
+      type: "command-output"
+      command: "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion').ProductName"
+      matcher: "regex"
+      expected: ".*"
+
+  - id: "read-with-parameter"
+    title: "Read with -Name Parameter"
+    description: |
+      Use -Name to get specific value.
+
+      Read specific value:
+      ```powershell
+      Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion" -Name ProductName
+      ```
+
+      More explicit than property access.
+    hint: "-Name makes intent clearer"
+    validation:
+      type: "command-output"
+      command: "Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion' -Name ProductName | Select-Object -ExpandProperty ProductName"
+      matcher: "regex"
+      expected: ".*"
+
+  - id: "check-value-exists"
+    title: "Check if Value Exists"
+    description: |
+      Test if a registry value exists before reading.
+
+      Check existence:
+      ```powershell
+      $path = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"
+      $value = "ProductName"
+      (Get-ItemProperty $path).PSObject.Properties.Name -contains $value
+      ```
+
+      Returns True if value exists.
+    hint: "Always check existence before reading untrusted paths"
+    validation:
+      type: "command-output"
+      command: "$path = 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion'; (Get-ItemProperty $path).PSObject.Properties.Name -contains 'ProductName'"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "handle-missing-values"
+    title: "Handle Missing Values Gracefully"
+    description: |
+      Use -ErrorAction to handle missing values.
+
+      Safe read:
+      ```powershell
+      Get-ItemProperty "HKLM:\\SOFTWARE\\NonExistent" -Name Value -ErrorAction SilentlyContinue
+      ```
+
+      Returns $null instead of error.
+    hint: "SilentlyContinue prevents script crashes"
+    validation:
+      type: "command-output"
+      command: "$result = Get-ItemProperty 'HKLM:\\SOFTWARE\\NonExistent' -Name Value -ErrorAction SilentlyContinue; if ($null -eq $result) { 'null' } else { 'exists' }"
+      matcher: "exact"
+      expected: "null"
+
+completion:
+  message: "Excellent! You can now read registry values safely!"
+  xp: 200
+  unlocks:
+    - "powershell/registry/modify-registry"

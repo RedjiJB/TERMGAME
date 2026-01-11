@@ -1,0 +1,141 @@
+mission:
+  id: "powershell/registry/registry-safety"
+  title: "Registry Safety and Best Practices"
+  difficulty: advanced
+  description: "Master safe registry operations and recovery techniques"
+  estimated_time: 30
+  tags:
+    - powershell
+    - registry
+    - advanced
+    - week-9
+    - safety
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path 'HKCU:\\Software\\BackupTest' -Force -ErrorAction SilentlyContinue"
+    - "New-ItemProperty -Path 'HKCU:\\Software\\BackupTest' -Name 'TestValue' -Value 'Original' -Force -ErrorAction SilentlyContinue"
+
+steps:
+  - id: "export-registry-key"
+    title: "Export Registry Keys"
+    description: |
+      Always backup before modifications.
+
+      Export with reg command:
+      ```powershell
+      reg export "HKCU\\Software\\BackupTest" backup.reg
+      ```
+
+      Creates .reg file for restoration.
+    hint: "Export before every registry modification"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/backup.reg"
+      matcher: "exists"
+
+  - id: "import-registry-key"
+    title: "Import Registry Keys"
+    description: |
+      Restore from .reg file.
+
+      Import backup:
+      ```powershell
+      reg import backup.reg
+      ```
+
+      Restores backed up keys/values.
+    hint: "Import restores registry from backup"
+    validation:
+      type: "command-output"
+      command: "Test-Path backup.reg"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "test-in-hkcu"
+    title: "Test in HKCU First"
+    description: |
+      HKCU changes only affect current user.
+
+      Safe testing location:
+      ```powershell
+      New-Item "HKCU:\\Software\\TestCompany\\TestApp" -Force
+      ```
+
+      HKLM changes affect entire system.
+    hint: "HKCU = user-safe, HKLM = system-wide"
+    validation:
+      type: "command-output"
+      command: "New-Item 'HKCU:\\Software\\TestCompany\\TestApp' -Force -ErrorAction SilentlyContinue; Test-Path 'HKCU:\\Software\\TestCompany\\TestApp'"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "use-whatif"
+    title: "Use -WhatIf for Safety"
+    description: |
+      Test changes without applying them.
+
+      Preview deletion:
+      ```powershell
+      Remove-Item "HKCU:\\Software\\TestCompany" -Recurse -WhatIf
+      ```
+
+      Shows what would happen.
+    hint: "-WhatIf prevents accidental damage"
+    validation:
+      type: "command-output"
+      command: "Test-Path 'HKCU:\\Software\\TestCompany\\TestApp'"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "document-changes"
+    title: "Document All Changes"
+    description: |
+      Keep a change log.
+
+      Create change log:
+      ```powershell
+      $log = @"
+      Registry Change Log
+      Date: $(Get-Date)
+      Key: HKCU:\\Software\\TestApp
+      Action: Created test key
+      Reason: Testing backup procedures
+      Backup: backup.reg
+      "@
+      Add-Content -Path "registry-changes.log" -Value $log
+      ```
+    hint: "Documentation enables troubleshooting"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/registry-changes.log"
+      matcher: "exists"
+
+  - id: "cleanup-test-keys"
+    title: "Clean Up Test Keys"
+    description: |
+      Remove test keys when done.
+
+      Clean up:
+      ```powershell
+      Remove-Item "HKCU:\\Software\\TestCompany" -Recurse -Force -ErrorAction SilentlyContinue
+      Remove-Item "HKCU:\\Software\\BackupTest" -Recurse -Force -ErrorAction SilentlyContinue
+      ```
+
+      Prevents registry clutter.
+    hint: "Clean up prevents confusion later"
+    validation:
+      type: "command-output"
+      command: "Remove-Item 'HKCU:\\Software\\TestCompany' -Recurse -Force -ErrorAction SilentlyContinue; Test-Path 'HKCU:\\Software\\TestCompany'"
+      matcher: "exact"
+      expected: "False"
+
+completion:
+  message: "Excellent! You now follow registry best practices. Always backup, test, and document!"
+  xp: 400
+  unlocks:
+    - "powershell/encryption/bitlocker-intro"

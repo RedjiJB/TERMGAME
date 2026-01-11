@@ -1,0 +1,104 @@
+mission:
+  id: "powershell/backup/backup-basics"
+  title: "Backup Strategies and Concepts"
+  difficulty: intermediate
+  description: "Learn backup fundamentals and develop effective backup strategies"
+  estimated_time: 25
+  tags:
+    - powershell
+    - backup
+    - intermediate
+    - week-3
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/important.txt -ItemType File -Value 'Critical data' -Force"
+
+steps:
+  - id: "backup-types"
+    title: "Understand Backup Types"
+    description: |
+      Three backup types:
+      1. **Full**: Complete copy of all data
+      2. **Incremental**: Only changed files since last backup
+      3. **Differential**: Changed files since last full backup
+
+      Full backup with Copy-Item:
+      ```powershell
+      Copy-Item important.txt -Destination backup-full.txt
+      ```
+    hint: "Full backups are simplest but take most space"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/backup-full.txt"
+      matcher: "exists"
+
+  - id: "backup-321-rule"
+    title: "Learn the 3-2-1 Rule"
+    description: |
+      3-2-1 Backup Rule:
+      - **3** copies of data (original + 2 backups)
+      - **2** different media types (disk, tape, cloud)
+      - **1** offsite copy (protect against disasters)
+
+      Create local backup:
+      ```powershell
+      New-Item -Path backup1 -ItemType Directory -Force
+      Copy-Item important.txt -Destination backup1/
+      ```
+    hint: "3-2-1 rule protects against multiple failure scenarios"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/backup1/important.txt"
+      matcher: "exists"
+
+  - id: "verify-backups"
+    title: "Always Verify Backups"
+    description: |
+      Backups are useless if they can't be restored.
+
+      Verify backup integrity:
+      ```powershell
+      $original = Get-FileHash important.txt
+      $backup = Get-FileHash backup-full.txt
+      $original.Hash -eq $backup.Hash
+      ```
+
+      Hashes match = perfect copy.
+    hint: "Test restores regularly"
+    validation:
+      type: "command-output"
+      command: "$original = Get-FileHash important.txt; $backup = Get-FileHash backup-full.txt; $original.Hash -eq $backup.Hash"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "automate-backups"
+    title: "Automate Backup Process"
+    description: |
+      Manual backups are forgotten. Automate them.
+
+      Simple backup script:
+      ```powershell
+      $script = @'
+      $date = Get-Date -Format "yyyyMMdd"
+      $source = "important.txt"
+      $dest = "backup-$date.txt"
+      Copy-Item $source $dest
+      '@
+      Set-Content backup-script.ps1 -Value $script
+      ```
+    hint: "Scheduled tasks run backups automatically"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/backup-script.ps1"
+      matcher: "exists"
+
+completion:
+  message: "Excellent! You understand backup fundamentals. Implement these strategies immediately!"
+  xp: 250
+  unlocks:
+    - "powershell/backup/copy-backup"

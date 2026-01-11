@@ -1,0 +1,113 @@
+mission:
+  id: "powershell/basics/hello-powershell"
+  title: "Your First PowerShell Command"
+  difficulty: beginner
+  description: "Learn to execute your first PowerShell cmdlet and understand basic syntax"
+  estimated_time: 10
+  tags:
+    - powershell
+    - basics
+    - beginner
+    - week-1
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "get-powershell-version"
+    title: "Check PowerShell Version"
+    description: |
+      PowerShell uses a special variable `$PSVersionTable` to show version information.
+
+      Type the following command to see your PowerShell version:
+      ```powershell
+      $PSVersionTable.PSVersion
+      ```
+
+      This will display the version of PowerShell you're running.
+    hint: "Remember PowerShell variables start with $"
+    validation:
+      type: "command-output"
+      command: "$PSVersionTable.PSVersion.Major"
+      matcher: "contains"
+      expected: "5"
+
+  - id: "write-output"
+    title: "Display Text with Write-Output"
+    description: |
+      The `Write-Output` cmdlet sends output to the pipeline.
+
+      Try this command:
+      ```powershell
+      Write-Output "Hello, PowerShell!"
+      ```
+
+      You should see your message displayed.
+    hint: "Cmdlets follow the Verb-Noun naming convention"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Hello, PowerShell!'"
+      matcher: "exact"
+      expected: "Hello, PowerShell!"
+
+  - id: "get-location"
+    title: "Find Your Current Location"
+    description: |
+      Just like `pwd` in Linux, PowerShell uses `Get-Location` to show your current directory.
+
+      Execute:
+      ```powershell
+      Get-Location
+      ```
+
+      This shows your working directory path.
+    hint: "You can also use the alias 'pwd'"
+    validation:
+      type: "command-output"
+      command: "Get-Location | Select-Object -ExpandProperty Path"
+      matcher: "contains"
+      expected: "learner"
+
+  - id: "list-items"
+    title: "List Files and Folders"
+    description: |
+      `Get-ChildItem` lists the contents of a directory (like `ls` in Linux).
+
+      List the contents of your current directory:
+      ```powershell
+      Get-ChildItem
+      ```
+
+      Right now it might be empty, but you'll see files as we create them.
+    hint: "The alias 'dir' also works"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "create-file"
+    title: "Create Your First File"
+    description: |
+      Let's create a text file using `New-Item`:
+
+      ```powershell
+      New-Item -Path test.txt -ItemType File -Value "My first file"
+      ```
+
+      This creates a file called `test.txt` with some content.
+    hint: "-ItemType File creates a file, -ItemType Directory creates a folder"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/test.txt"
+      matcher: "exists"
+
+completion:
+  message: "🎉 Congratulations! You've executed your first PowerShell commands. You're ready to dive deeper into PowerShell!"
+  xp: 100
+  unlocks:
+    - "powershell/basics/cmdlet-syntax"

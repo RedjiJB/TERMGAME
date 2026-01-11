@@ -1,0 +1,133 @@
+mission:
+  id: "powershell/cmdlets/common-cmdlets"
+  title: "Essential PowerShell Cmdlets"
+  difficulty: beginner
+  description: "Learn the most commonly used PowerShell cmdlets for daily tasks"
+  estimated_time: 25
+  tags:
+    - powershell
+    - cmdlets
+    - beginner
+    - week-4
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/test.txt -ItemType File -Value 'Test data' -Force"
+
+steps:
+  - id: "get-command"
+    title: "Discover Commands with Get-Command"
+    description: |
+      `Get-Command` lists all available cmdlets, functions, and aliases.
+
+      List all cmdlets that start with "Get":
+      ```powershell
+      Get-Command -Verb Get
+      ```
+
+      This shows hundreds of Get- cmdlets.
+    hint: "Use -Verb or -Noun to filter commands"
+    validation:
+      type: "command-output"
+      command: "Get-Command -Verb Get | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+  - id: "get-member"
+    title: "Explore Objects with Get-Member"
+    description: |
+      `Get-Member` shows properties and methods of objects.
+
+      See what properties a file object has:
+      ```powershell
+      Get-Item test.txt | Get-Member
+      ```
+
+      This reveals all available properties and methods.
+    hint: "Get-Member is essential for discovering what you can do with objects"
+    validation:
+      type: "command-output"
+      command: "Get-Item test.txt | Get-Member | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+  - id: "measure-object"
+    title: "Count and Calculate with Measure-Object"
+    description: |
+      `Measure-Object` counts items and calculates statistics.
+
+      Count how many files are in the current directory:
+      ```powershell
+      Get-ChildItem | Measure-Object
+      ```
+
+      The Count property shows the number of items.
+    hint: "Measure-Object can also calculate Sum, Average, Min, Max"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "get-content"
+    title: "Read Files with Get-Content"
+    description: |
+      `Get-Content` reads file contents.
+
+      Read test.txt:
+      ```powershell
+      Get-Content test.txt
+      ```
+
+      This displays the file's content line by line.
+    hint: "Get-Content is like 'cat' in Linux"
+    validation:
+      type: "command-output"
+      command: "Get-Content test.txt"
+      matcher: "contains"
+      expected: "Test data"
+
+  - id: "set-content"
+    title: "Write Files with Set-Content"
+    description: |
+      `Set-Content` writes data to files (replacing existing content).
+
+      Write new content to test.txt:
+      ```powershell
+      Set-Content -Path test.txt -Value "New content"
+      ```
+
+      This overwrites the file.
+    hint: "Use Add-Content to append instead of replace"
+    validation:
+      type: "file-content"
+      file: "C:/learner/test.txt"
+      matcher: "contains"
+      expected: "New content"
+
+  - id: "out-file"
+    title: "Save Output with Out-File"
+    description: |
+      `Out-File` redirects command output to a file.
+
+      Save directory listing to a file:
+      ```powershell
+      Get-ChildItem | Out-File -FilePath "listing.txt"
+      ```
+
+      This saves the output instead of displaying it.
+    hint: "Out-File is useful for saving command results"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/listing.txt"
+      matcher: "exists"
+
+completion:
+  message: "Excellent! You now know the essential cmdlets for everyday PowerShell tasks!"
+  xp: 150
+  unlocks:
+    - "powershell/cmdlets/cmdlet-parameters"

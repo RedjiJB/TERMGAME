@@ -1,0 +1,167 @@
+mission:
+  id: "powershell/users/group-management"
+  title: "Managing Local Groups"
+  difficulty: beginner
+  description: "Learn to manage local groups and group membership with PowerShell"
+  estimated_time: 25
+  tags:
+    - powershell
+    - users
+    - beginner
+    - week-5
+    - security
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "get-localgroup"
+    title: "List Local Groups"
+    description: |
+      `Get-LocalGroup` shows all local groups on the computer.
+
+      View all local groups:
+      ```powershell
+      Get-LocalGroup
+      ```
+
+      Common groups: Administrators, Users, Guests, Power Users.
+    hint: "Groups organize users for permission management"
+    validation:
+      type: "command-output"
+      command: "Get-LocalGroup | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "get-administrators"
+    title: "View the Administrators Group"
+    description: |
+      Get information about the Administrators group.
+
+      View Administrators group:
+      ```powershell
+      Get-LocalGroup -Name Administrators
+      ```
+
+      This group has full control over the computer.
+    hint: "Administrators group members have full system access"
+    validation:
+      type: "command-output"
+      command: "Get-LocalGroup -Name Administrators | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Administrators"
+
+  - id: "get-group-members"
+    title: "List Group Members"
+    description: |
+      `Get-LocalGroupMember` shows who belongs to a group.
+
+      View members of the Administrators group:
+      ```powershell
+      Get-LocalGroupMember -Group Administrators
+      ```
+
+      This shows all users and groups that are administrators.
+    hint: "Groups can contain users and other groups"
+    validation:
+      type: "command-output"
+      command: "Get-LocalGroupMember -Group Administrators | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "group-properties"
+    title: "View Group Properties"
+    description: |
+      Groups have properties like Name, SID, and Description.
+
+      View all properties:
+      ```powershell
+      Get-LocalGroup -Name Administrators | Select-Object *
+      ```
+
+      The SID uniquely identifies the group.
+    hint: "SID (Security Identifier) is unique even if group is renamed"
+    validation:
+      type: "command-output"
+      command: "Get-LocalGroup -Name Administrators | Select-Object Name, SID | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Administrators"
+
+  - id: "new-localgroup"
+    title: "Understanding Group Creation"
+    description: |
+      `New-LocalGroup` creates new local groups.
+
+      Example syntax (requires admin):
+      ```powershell
+      # New-LocalGroup -Name "DevTeam" -Description "Development team members"
+      ```
+
+      Verify command exists:
+      ```powershell
+      Get-Command New-LocalGroup
+      ```
+
+      Groups organize users for easier permission management.
+    hint: "Creating groups requires administrator privileges"
+    validation:
+      type: "command-output"
+      command: "Get-Command New-LocalGroup | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "New-LocalGroup"
+
+  - id: "add-group-member"
+    title: "Understanding Adding Members"
+    description: |
+      `Add-LocalGroupMember` adds users to groups.
+
+      Example syntax (requires admin):
+      ```powershell
+      # Add-LocalGroupMember -Group "Administrators" -Member "TestUser"
+      ```
+
+      Verify command exists:
+      ```powershell
+      Get-Command Add-LocalGroupMember
+      ```
+
+      Adding users to Administrators gives them full system access.
+    hint: "Group membership determines user permissions"
+    validation:
+      type: "command-output"
+      command: "Get-Command Add-LocalGroupMember | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Add-LocalGroupMember"
+
+  - id: "remove-group-member"
+    title: "Understanding Removing Members"
+    description: |
+      `Remove-LocalGroupMember` removes users from groups.
+
+      Example syntax (requires admin):
+      ```powershell
+      # Remove-LocalGroupMember -Group "Administrators" -Member "TestUser"
+      ```
+
+      Verify command exists:
+      ```powershell
+      Get-Command Remove-LocalGroupMember
+      ```
+
+      Removing from Administrators revokes admin privileges.
+    hint: "Always verify before removing users from critical groups"
+    validation:
+      type: "command-output"
+      command: "Get-Command Remove-LocalGroupMember | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Remove-LocalGroupMember"
+
+completion:
+  message: "Excellent! You understand local group management and membership control!"
+  xp: 200
+  unlocks:
+    - "powershell/users/user-properties"

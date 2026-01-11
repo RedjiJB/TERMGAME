@@ -1,0 +1,151 @@
+mission:
+  id: "powershell/files/file-basics"
+  title: "File and Folder Management Basics"
+  difficulty: beginner
+  description: "Learn to create, remove, and manage files and folders with PowerShell"
+  estimated_time: 20
+  tags:
+    - powershell
+    - files
+    - beginner
+    - week-1
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "create-file"
+    title: "Create a File with New-Item"
+    description: |
+      `New-Item` creates files and folders.
+
+      Create a text file:
+      ```powershell
+      New-Item -Path "document.txt" -ItemType File
+      ```
+
+      The `-ItemType File` parameter specifies you want a file.
+    hint: "New-Item can create files, folders, links, and more"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/document.txt"
+      matcher: "exists"
+
+  - id: "create-with-content"
+    title: "Create a File with Content"
+    description: |
+      Add content when creating a file using the `-Value` parameter.
+
+      Create a file with initial content:
+      ```powershell
+      New-Item -Path "config.txt" -ItemType File -Value "Setting=Value"
+      ```
+
+      This creates the file and writes content in one step.
+    hint: "The -Value parameter sets initial file content"
+    validation:
+      type: "file-content"
+      file: "C:/learner/config.txt"
+      matcher: "contains"
+      expected: "Setting=Value"
+
+  - id: "create-directory"
+    title: "Create a Directory"
+    description: |
+      Create folders using `-ItemType Directory`.
+
+      Create a new folder:
+      ```powershell
+      New-Item -Path "Projects" -ItemType Directory
+      ```
+
+      This creates a folder named "Projects".
+    hint: "Use -ItemType Directory for folders"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/Projects"
+      matcher: "exists"
+
+  - id: "create-nested-directories"
+    title: "Create Nested Directories"
+    description: |
+      Use `-Force` to create nested directories in one command.
+
+      Create a nested folder structure:
+      ```powershell
+      New-Item -Path "Data/Reports/2024" -ItemType Directory -Force
+      ```
+
+      `-Force` creates parent directories if they don't exist.
+    hint: "Without -Force, parent directories must already exist"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/Data/Reports/2024"
+      matcher: "exists"
+
+  - id: "remove-file"
+    title: "Remove a File"
+    description: |
+      `Remove-Item` deletes files and folders.
+
+      Remove the document.txt file:
+      ```powershell
+      Remove-Item -Path "document.txt"
+      ```
+
+      The file is permanently deleted.
+    hint: "Be careful - Remove-Item doesn't move to Recycle Bin by default"
+    validation:
+      type: "command-output"
+      command: "Test-Path document.txt"
+      matcher: "exact"
+      expected: "False"
+
+  - id: "remove-directory"
+    title: "Remove an Empty Directory"
+    description: |
+      Remove an empty directory using `Remove-Item`.
+
+      First create an empty directory:
+      ```powershell
+      New-Item -Path "TempFolder" -ItemType Directory
+      ```
+
+      Then remove it:
+      ```powershell
+      Remove-Item -Path "TempFolder"
+      ```
+    hint: "Removing non-empty directories requires -Recurse"
+    validation:
+      type: "command-output"
+      command: "Test-Path TempFolder"
+      matcher: "exact"
+      expected: "False"
+
+  - id: "test-path"
+    title: "Check if Files Exist"
+    description: |
+      `Test-Path` checks if a file or folder exists.
+
+      Check if config.txt exists:
+      ```powershell
+      Test-Path config.txt
+      ```
+
+      This returns True or False.
+    hint: "Test-Path is useful in scripts before operating on files"
+    validation:
+      type: "command-output"
+      command: "Test-Path config.txt"
+      matcher: "exact"
+      expected: "True"
+
+completion:
+  message: "Excellent! You can now create and remove files and folders like a pro!"
+  xp: 150
+  unlocks:
+    - "powershell/files/copy-move"

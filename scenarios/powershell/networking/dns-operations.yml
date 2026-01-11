@@ -1,0 +1,103 @@
+mission:
+  id: "powershell/networking/dns-operations"
+  title: "DNS Operations"
+  difficulty: intermediate
+  description: "Learn to query and manage DNS with PowerShell"
+  estimated_time: 25
+  tags:
+    - powershell
+    - networking
+    - intermediate
+    - week-7
+    - dns
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "resolve-dnsname"
+    title: "Resolve Domain Names"
+    description: |
+      `Resolve-DnsName` queries DNS servers.
+
+      Resolve a domain (if internet available):
+      ```powershell
+      Resolve-DnsName -Name localhost
+      ```
+
+      This shows DNS records.
+    hint: "Resolve-DnsName is PowerShell's nslookup"
+    validation:
+      type: "command-output"
+      command: "Resolve-DnsName -Name localhost | Select-Object -First 1 -ExpandProperty Name"
+      matcher: "exact"
+      expected: "localhost"
+
+  - id: "query-types"
+    title: "Query Specific Record Types"
+    description: |
+      DNS has different record types: A, AAAA, MX, CNAME, TXT.
+
+      Query A records:
+      ```powershell
+      Resolve-DnsName -Name localhost -Type A
+      ```
+
+      A records map names to IPv4 addresses.
+    hint: "Different record types serve different purposes"
+    validation:
+      type: "command-output"
+      command: "Resolve-DnsName -Name localhost -Type A -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "get-dnscache"
+    title: "View DNS Cache"
+    description: |
+      Windows caches DNS queries for performance.
+
+      View DNS cache:
+      ```powershell
+      Get-DnsClientCache
+      ```
+
+      Cached entries speed up repeat lookups.
+    hint: "DNS cache reduces network traffic"
+    validation:
+      type: "command-output"
+      command: "Get-DnsClientCache | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "clear-dnscache"
+    title: "Clear DNS Cache"
+    description: |
+      Clear stale DNS entries.
+
+      Clear DNS cache (requires admin):
+      ```powershell
+      # Clear-DnsClientCache
+      ```
+
+      Verify command exists:
+      ```powershell
+      Get-Command Clear-DnsClientCache
+      ```
+
+      Useful when DNS records change.
+    hint: "Clear cache to force fresh DNS lookups"
+    validation:
+      type: "command-output"
+      command: "Get-Command Clear-DnsClientCache | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Clear-DnsClientCache"
+
+completion:
+  message: "Great work! You understand DNS operations in PowerShell!"
+  xp: 250
+  unlocks:
+    - "powershell/networking/network-troubleshooting"

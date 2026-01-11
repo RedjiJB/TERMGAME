@@ -1,0 +1,96 @@
+mission:
+  id: "powershell/compression/expand-archives"
+  title: "Extracting ZIP Archives"
+  difficulty: beginner
+  description: "Learn to extract files from ZIP archives with PowerShell"
+  estimated_time: 15
+  tags:
+    - powershell
+    - compression
+    - beginner
+    - week-10
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/test.txt -ItemType File -Value 'Test content' -Force"
+    - "Compress-Archive -Path C:/learner/test.txt -DestinationPath C:/learner/archive.zip -Force"
+
+steps:
+  - id: "expand-archive"
+    title: "Extract an Archive"
+    description: |
+      `Expand-Archive` extracts ZIP files.
+
+      Extract archive:
+      ```powershell
+      Expand-Archive -Path archive.zip -DestinationPath extracted
+      ```
+
+      Files are extracted to the extracted folder.
+    hint: "Expand-Archive is PowerShell's unzip"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/extracted"
+      matcher: "exists"
+
+  - id: "overwrite-files"
+    title: "Overwrite Existing Files"
+    description: |
+      Use `-Force` to overwrite files when extracting.
+
+      Extract with overwrite:
+      ```powershell
+      Expand-Archive -Path archive.zip -DestinationPath extracted -Force
+      ```
+
+      Existing files are replaced.
+    hint: "-Force prevents extraction errors when files exist"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/extracted/test.txt"
+      matcher: "exists"
+
+  - id: "extract-to-current"
+    title: "Extract to Current Directory"
+    description: |
+      Extract to current location.
+
+      Extract here:
+      ```powershell
+      Expand-Archive -Path archive.zip -DestinationPath . -Force
+      ```
+
+      . means current directory.
+    hint: ". is shorthand for current directory"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/test.txt"
+      matcher: "exists"
+
+  - id: "inspect-before-extract"
+    title: "Inspect Archive Contents"
+    description: |
+      View archive contents without extracting.
+
+      List contents:
+      ```powershell
+      [System.IO.Compression.ZipFile]::OpenRead("$PWD\\archive.zip").Entries | Select-Object FullName, Length
+      ```
+
+      This shows what's inside before extracting.
+    hint: "Always inspect archives from untrusted sources"
+    validation:
+      type: "command-output"
+      command: "Test-Path archive.zip"
+      matcher: "exact"
+      expected: "True"
+
+completion:
+  message: "Excellent! You can now extract and work with ZIP archives!"
+  xp: 150
+  unlocks:
+    - "powershell/compression/compression-scenarios"

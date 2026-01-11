@@ -1,0 +1,136 @@
+mission:
+  id: "powershell/cmdlets/advanced-parameters"
+  title: "Advanced Parameter Techniques"
+  difficulty: intermediate
+  description: "Master -WhatIf, -Confirm, -Verbose, and other advanced parameters"
+  estimated_time: 25
+  tags:
+    - powershell
+    - cmdlets
+    - intermediate
+    - week-4
+    - parameters
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/test1.txt -ItemType File -Value 'Test1' -Force"
+    - "New-Item -Path C:/learner/test2.txt -ItemType File -Value 'Test2' -Force"
+
+steps:
+  - id: "whatif-parameter"
+    title: "Preview Changes with -WhatIf"
+    description: |
+      `-WhatIf` shows what would happen without actually doing it.
+
+      Preview removing files:
+      ```powershell
+      Remove-Item test1.txt -WhatIf
+      ```
+
+      This shows the action but doesn't execute it. The file still exists.
+    hint: "-WhatIf is perfect for testing dangerous commands safely"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/test1.txt"
+      matcher: "exists"
+
+  - id: "confirm-parameter"
+    title: "Require Confirmation with -Confirm"
+    description: |
+      `-Confirm` prompts for confirmation before executing.
+
+      When using -Confirm interactively, you would be asked to confirm.
+      For this validation, understand that it prompts, then run without it:
+      ```powershell
+      Get-Item test1.txt
+      ```
+
+      In real usage: `Remove-Item test1.txt -Confirm` would ask "Are you sure?"
+    hint: "-Confirm prevents accidental destructive operations"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/test1.txt"
+      matcher: "exists"
+
+  - id: "verbose-parameter"
+    title: "Enable Detailed Output with -Verbose"
+    description: |
+      `-Verbose` shows detailed operation information.
+
+      See verbose output (note: not all cmdlets support this):
+      ```powershell
+      Get-ChildItem -Verbose
+      ```
+
+      Verbose output helps understand what PowerShell is doing.
+    hint: "-Verbose is great for troubleshooting scripts"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "erroraction-parameter"
+    title: "Control Error Handling with -ErrorAction"
+    description: |
+      `-ErrorAction` controls how cmdlets handle errors.
+
+      Try to get a non-existent file silently:
+      ```powershell
+      Get-Item "nonexistent.txt" -ErrorAction SilentlyContinue
+      ```
+
+      This suppresses the error message.
+    hint: "ErrorAction values: Stop, Continue, SilentlyContinue, Inquire"
+    validation:
+      type: "command-output"
+      command: "Get-Item test1.txt -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "test1.txt"
+
+  - id: "force-parameter"
+    title: "Override Restrictions with -Force"
+    description: |
+      `-Force` bypasses restrictions and confirmations.
+
+      Create a file, forcing overwrite if it exists:
+      ```powershell
+      New-Item -Path "forced.txt" -ItemType File -Value "First" -Force
+      New-Item -Path "forced.txt" -ItemType File -Value "Overwritten" -Force
+      ```
+
+      The second command overwrites without error.
+    hint: "Use -Force carefully - it bypasses safety checks"
+    validation:
+      type: "file-content"
+      file: "C:/learner/forced.txt"
+      matcher: "contains"
+      expected: "Overwritten"
+
+  - id: "debug-parameter"
+    title: "Debug with -Debug"
+    description: |
+      `-Debug` shows debugging information during execution.
+
+      Most cmdlets support -Debug for troubleshooting:
+      ```powershell
+      Get-Process | Select-Object -First 1
+      ```
+
+      With -Debug, you'd see internal operation details.
+    hint: "-Debug provides the deepest level of troubleshooting info"
+    validation:
+      type: "command-output"
+      command: "Get-Process | Select-Object -First 1 -ExpandProperty Name"
+      matcher: "regex"
+      expected: ".+"
+
+completion:
+  message: "Excellent! Advanced parameters give you fine control over cmdlet behavior. Use them wisely!"
+  xp: 250
+  unlocks:
+    - "powershell/cmdlets/cmdlet-best-practices"

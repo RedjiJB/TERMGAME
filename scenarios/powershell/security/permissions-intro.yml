@@ -1,0 +1,162 @@
+mission:
+  id: "powershell/security/permissions-intro"
+  title: "Introduction to Windows Permissions"
+  difficulty: intermediate
+  description: "Understand Windows security model and Access Control Lists (ACLs)"
+  estimated_time: 25
+  tags:
+    - powershell
+    - security
+    - intermediate
+    - week-5
+    - permissions
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/secure.txt -ItemType File -Value 'Sensitive data' -Force"
+    - "New-Item -Path C:/learner/docs -ItemType Directory -Force"
+
+steps:
+  - id: "windows-security-model"
+    title: "Understand Windows Security Model"
+    description: |
+      Windows uses Access Control Lists (ACLs) to manage permissions.
+
+      Every file and folder has:
+      - Owner: Who owns the object
+      - ACL: List of permissions (who can do what)
+
+      View a file's security:
+      ```powershell
+      Get-Item secure.txt | Select-Object FullName, Attributes
+      ```
+
+      Windows security is based on user and group identities.
+    hint: "ACLs define who can access resources"
+    validation:
+      type: "command-output"
+      command: "Get-Item secure.txt | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "secure.txt"
+
+  - id: "permissions-types"
+    title: "Understanding Permission Types"
+    description: |
+      Common Windows permissions:
+      - **Read**: View contents
+      - **Write**: Modify contents
+      - **Execute**: Run programs
+      - **FullControl**: All permissions
+      - **Modify**: Read, Write, Execute, Delete
+      - **ReadAndExecute**: Read + Execute
+
+      Permissions can be:
+      - **Allow**: Grant access
+      - **Deny**: Block access (overrides Allow)
+
+      List files to demonstrate:
+      ```powershell
+      Get-ChildItem | Select-Object Name, Mode
+      ```
+    hint: "Deny permissions always take precedence over Allow"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "file-mode-display"
+    title: "Understanding Mode Display"
+    description: |
+      The Mode property shows basic permissions:
+      - **d**: Directory
+      - **a**: Archive
+      - **r**: Read-only
+      - **h**: Hidden
+      - **s**: System
+
+      View file modes:
+      ```powershell
+      Get-ChildItem | Format-Table Name, Mode, Attributes
+      ```
+
+      Mode is a simplified view; full permissions require Get-Acl.
+    hint: "Mode is a quick view; ACLs show detailed permissions"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem secure.txt | Select-Object -ExpandProperty Mode"
+      matcher: "regex"
+      expected: ".+"
+
+  - id: "inheritance-concept"
+    title: "Understanding Permission Inheritance"
+    description: |
+      Permissions can be inherited from parent folders.
+
+      - **Inherited permissions**: Come from parent folders
+      - **Explicit permissions**: Set directly on the object
+
+      View a file to understand:
+      ```powershell
+      Get-Item secure.txt
+      ```
+
+      Child objects typically inherit parent permissions.
+    hint: "Inheritance simplifies permission management"
+    validation:
+      type: "command-output"
+      command: "Test-Path secure.txt"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "security-principals"
+    title: "Understanding Security Principals"
+    description: |
+      Security principals are entities that can be granted permissions:
+      - **Users**: Individual accounts
+      - **Groups**: Collections of users
+      - **Built-in accounts**: SYSTEM, Administrators, Users
+
+      View your current principal:
+      ```powershell
+      whoami
+      ```
+
+      Permissions are assigned to principals, not directly to people.
+    hint: "Always assign permissions to groups, not individual users"
+    validation:
+      type: "command-output"
+      command: "whoami"
+      matcher: "regex"
+      expected: ".+\\\\.+"
+
+  - id: "effective-permissions"
+    title: "Understanding Effective Permissions"
+    description: |
+      A user's effective permissions are the combination of:
+      - Direct user permissions
+      - Group membership permissions
+      - Deny permissions (which override Allow)
+
+      View current user context:
+      ```powershell
+      [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+      ```
+
+      Multiple permission sources combine to determine access.
+    hint: "Effective permissions = sum of all Allow, minus any Deny"
+    validation:
+      type: "command-output"
+      command: "[System.Security.Principal.WindowsIdentity]::GetCurrent().Name"
+      matcher: "regex"
+      expected: ".+\\\\.+"
+
+completion:
+  message: "Excellent! You understand the Windows security model and permission concepts!"
+  xp: 250
+  unlocks:
+    - "powershell/security/get-acl"

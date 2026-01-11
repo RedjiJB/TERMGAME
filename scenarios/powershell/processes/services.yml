@@ -1,0 +1,184 @@
+mission:
+  id: "powershell/processes/services"
+  title: "Managing Windows Services"
+  difficulty: intermediate
+  description: "Learn to view, start, stop, and configure Windows services"
+  estimated_time: 25
+  tags:
+    - powershell
+    - processes
+    - intermediate
+    - week-10
+    - services
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "get-service"
+    title: "List All Services"
+    description: |
+      `Get-Service` lists Windows services.
+
+      View all services:
+      ```powershell
+      Get-Service
+      ```
+
+      This shows service names, display names, and status (Running, Stopped).
+    hint: "Services are background programs that run on Windows"
+    validation:
+      type: "command-output"
+      command: "Get-Service | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+  - id: "filter-running-services"
+    title: "Filter Running Services"
+    description: |
+      Filter services by their status.
+
+      Show only running services:
+      ```powershell
+      Get-Service | Where-Object {$_.Status -eq "Running"}
+      ```
+
+      This filters out stopped services.
+    hint: "Service Status can be Running, Stopped, or Paused"
+    validation:
+      type: "command-output"
+      command: "Get-Service | Where-Object {$_.Status -eq 'Running'} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+  - id: "get-specific-service"
+    title: "Get a Specific Service"
+    description: |
+      Get information about a specific service by name.
+
+      View the Windows Time service:
+      ```powershell
+      Get-Service -Name W32Time
+      ```
+
+      This shows the service's current status.
+    hint: "Use -Name to specify the service"
+    validation:
+      type: "command-output"
+      command: "Get-Service -Name W32Time | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "W32Time"
+
+  - id: "service-properties"
+    title: "View Service Properties"
+    description: |
+      Services have properties like Name, DisplayName, Status, StartType.
+
+      View detailed service info:
+      ```powershell
+      Get-Service -Name W32Time | Select-Object *
+      ```
+
+      This shows all properties including dependencies and startup type.
+    hint: "Select-Object * shows all properties"
+    validation:
+      type: "command-output"
+      command: "Get-Service -Name W32Time | Select-Object Name, Status | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "W32Time"
+
+  - id: "start-service"
+    title: "Start a Service"
+    description: |
+      `Start-Service` starts stopped services (requires admin rights).
+
+      Note: In containers, you may not have permission. Understand the syntax:
+      ```powershell
+      # Example (may require admin):
+      # Start-Service -Name W32Time
+      ```
+
+      Verify the command exists:
+      ```powershell
+      Get-Command Start-Service
+      ```
+    hint: "Starting services typically requires administrator privileges"
+    validation:
+      type: "command-output"
+      command: "Get-Command Start-Service | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Start-Service"
+
+  - id: "stop-service"
+    title: "Stop a Service"
+    description: |
+      `Stop-Service` stops running services (requires admin rights).
+
+      Example syntax:
+      ```powershell
+      # Stop-Service -Name ServiceName
+      ```
+
+      Verify the command exists:
+      ```powershell
+      Get-Command Stop-Service
+      ```
+
+      Always use -WhatIf first: `Stop-Service -Name ServiceName -WhatIf`
+    hint: "Stopping critical services can break Windows functionality"
+    validation:
+      type: "command-output"
+      command: "Get-Command Stop-Service | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Stop-Service"
+
+  - id: "restart-service"
+    title: "Restart a Service"
+    description: |
+      `Restart-Service` stops and then starts a service.
+
+      This is common after configuration changes:
+      ```powershell
+      # Restart-Service -Name ServiceName
+      ```
+
+      Verify command existence:
+      ```powershell
+      Get-Command Restart-Service
+      ```
+
+      Restart is equivalent to Stop-Service followed by Start-Service.
+    hint: "Restart is useful after making configuration changes"
+    validation:
+      type: "command-output"
+      command: "Get-Command Restart-Service | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Restart-Service"
+
+  - id: "service-dependencies"
+    title: "View Service Dependencies"
+    description: |
+      Services can depend on other services.
+
+      View dependencies of a service:
+      ```powershell
+      Get-Service -Name W32Time | Select-Object Name, DependentServices, ServicesDependedOn
+      ```
+
+      This shows which services depend on this one, and which it depends on.
+    hint: "Dependencies determine service startup order"
+    validation:
+      type: "command-output"
+      command: "Get-Service | Select-Object Name, DependentServices | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+completion:
+  message: "Great work! You can now manage Windows services, a critical system administration skill!"
+  xp: 250
+  unlocks:
+    - "powershell/processes/scheduled-tasks"

@@ -1,0 +1,146 @@
+mission:
+  id: "powershell/users/user-management"
+  title: "Managing Local User Accounts"
+  difficulty: beginner
+  description: "Learn to create, view, and modify local user accounts with PowerShell"
+  estimated_time: 25
+  tags:
+    - powershell
+    - users
+    - beginner
+    - week-5
+    - security
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "get-localuser"
+    title: "List Local Users"
+    description: |
+      `Get-LocalUser` shows all local user accounts on the computer.
+
+      View all local users:
+      ```powershell
+      Get-LocalUser
+      ```
+
+      This shows usernames, enabled status, and descriptions.
+    hint: "Local users are specific to this computer"
+    validation:
+      type: "command-output"
+      command: "Get-LocalUser | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "get-specific-user"
+    title: "Get a Specific User"
+    description: |
+      Get information about a specific user.
+
+      View the Administrator account:
+      ```powershell
+      Get-LocalUser -Name Administrator
+      ```
+
+      This shows detailed info about that user.
+    hint: "Use -Name to specify the username"
+    validation:
+      type: "command-output"
+      command: "Get-LocalUser -Name Administrator | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Administrator"
+
+  - id: "user-properties"
+    title: "View User Properties"
+    description: |
+      User accounts have many properties.
+
+      View all properties of a user:
+      ```powershell
+      Get-LocalUser -Name Administrator | Select-Object *
+      ```
+
+      Properties include: Enabled, PasswordExpires, LastLogon, SID, etc.
+    hint: "SID (Security Identifier) is a unique ID for each user"
+    validation:
+      type: "command-output"
+      command: "Get-LocalUser -Name Administrator | Select-Object Name, Enabled | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Administrator"
+
+  - id: "new-localuser"
+    title: "Create a New User (Understanding)"
+    description: |
+      `New-LocalUser` creates new local user accounts.
+
+      Example syntax (requires admin):
+      ```powershell
+      # $password = ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force
+      # New-LocalUser -Name "TestUser" -Password $password -Description "Test account"
+      ```
+
+      Verify command exists:
+      ```powershell
+      Get-Command New-LocalUser
+      ```
+
+      Note: Creating users requires administrator privileges.
+    hint: "Passwords must be SecureString objects"
+    validation:
+      type: "command-output"
+      command: "Get-Command New-LocalUser | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "New-LocalUser"
+
+  - id: "filter-enabled-users"
+    title: "Filter Enabled Users"
+    description: |
+      Filter users by their enabled status.
+
+      Show only enabled users:
+      ```powershell
+      Get-LocalUser | Where-Object {$_.Enabled -eq $true}
+      ```
+
+      Disabled accounts cannot log in.
+    hint: "The Enabled property is a boolean (true/false)"
+    validation:
+      type: "command-output"
+      command: "Get-LocalUser | Where-Object {$_.Enabled -eq $true} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "set-localuser"
+    title: "Understanding User Modification"
+    description: |
+      `Set-LocalUser` modifies existing user accounts.
+
+      Example syntax (requires admin):
+      ```powershell
+      # Set-LocalUser -Name "TestUser" -Description "Updated description"
+      # Set-LocalUser -Name "TestUser" -PasswordNeverExpires $true
+      ```
+
+      Verify command exists:
+      ```powershell
+      Get-Command Set-LocalUser
+      ```
+
+      Common modifications: description, password expiration, account expiration.
+    hint: "Set-LocalUser changes properties without recreating the account"
+    validation:
+      type: "command-output"
+      command: "Get-Command Set-LocalUser | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Set-LocalUser"
+
+completion:
+  message: "Great work! You understand local user account management with PowerShell!"
+  xp: 200
+  unlocks:
+    - "powershell/users/group-management"

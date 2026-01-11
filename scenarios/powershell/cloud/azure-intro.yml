@@ -1,0 +1,220 @@
+mission:
+  id: "powershell/cloud/azure-intro"
+  title: "Introduction to Azure PowerShell"
+  difficulty: advanced
+  description: "Learn Azure PowerShell module basics and cloud management fundamentals"
+  estimated_time: 30
+  tags:
+    - powershell
+    - cloud
+    - advanced
+    - week-13
+    - azure
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "azure-overview"
+    title: "What is Azure?"
+    description: |
+      Microsoft Azure is a cloud computing platform.
+
+      Key Azure services:
+      - **Virtual Machines**: Cloud servers
+      - **Storage**: Blob, File, Queue, Table storage
+      - **Networking**: Virtual networks, load balancers
+      - **Databases**: SQL, CosmosDB
+      - **App Services**: Web apps, APIs
+      - **Active Directory**: Identity and access
+
+      Azure PowerShell (Az module) manages these resources.
+    hint: "Azure provides infrastructure, platform, and software as a service"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Azure is a cloud platform'"
+      matcher: "contains"
+      expected: "cloud"
+
+  - id: "az-module"
+    title: "Azure PowerShell Az Module"
+    description: |
+      The Az module manages Azure resources.
+
+      Check if Az module is available (may not be in container):
+      ```powershell
+      Get-Module -ListAvailable -Name Az* | Select-Object -First 5 Name
+      ```
+
+      Install Az module (requires admin, internet):
+      ```powershell
+      # Install-Module -Name Az -Repository PSGallery -Force
+      ```
+
+      The Az module replaces older AzureRM module.
+
+      Note: Installation may not work in container environment.
+    hint: "Az module contains dozens of sub-modules for different services"
+    validation:
+      type: "command-output"
+      command: "Get-Command Get-Module | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Get-Module"
+
+  - id: "azure-authentication"
+    title: "Azure Authentication Concepts"
+    description: |
+      Authenticate to Azure before managing resources.
+
+      Authentication command (requires Azure account):
+      ```powershell
+      # Connect-AzAccount
+      ```
+
+      Authentication methods:
+      - **Interactive**: Browser-based login
+      - **Service Principal**: App-based auth (automation)
+      - **Managed Identity**: VM-based auth
+      - **Certificate**: Certificate-based auth
+
+      For scripts/automation, use Service Principal.
+
+      Check authentication context:
+      ```powershell
+      # Get-AzContext
+      ```
+    hint: "Connect-AzAccount is required before any Az commands"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Authentication required'"
+      matcher: "contains"
+      expected: "Authentication"
+
+  - id: "azure-subscriptions"
+    title: "Understanding Azure Subscriptions"
+    description: |
+      Subscriptions are billing and access boundaries.
+
+      Subscription concepts:
+      - Container for resources
+      - Billing boundary (separate bills)
+      - Access control boundary
+      - Organizations often have multiple subscriptions
+
+      List subscriptions (after authentication):
+      ```powershell
+      # Get-AzSubscription
+      ```
+
+      Set active subscription:
+      ```powershell
+      # Set-AzContext -SubscriptionId "subscription-id"
+      ```
+    hint: "Always verify correct subscription before creating resources"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Subscription is billing boundary'"
+      matcher: "contains"
+      expected: "billing"
+
+  - id: "resource-groups"
+    title: "Resource Groups"
+    description: |
+      Resource groups organize Azure resources.
+
+      Resource group characteristics:
+      - Logical container for resources
+      - Single region (metadata location)
+      - Resources can be in different regions
+      - Lifecycle management unit
+      - Access control scope
+
+      Create resource group:
+      ```powershell
+      # New-AzResourceGroup -Name "myResourceGroup" -Location "eastus"
+      ```
+
+      List resource groups:
+      ```powershell
+      # Get-AzResourceGroup
+      ```
+
+      Delete resource group (deletes all resources):
+      ```powershell
+      # Remove-AzResourceGroup -Name "myResourceGroup"
+      ```
+    hint: "Resource groups enable bulk operations on resources"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Resource groups organize resources'"
+      matcher: "contains"
+      expected: "organize"
+
+  - id: "azure-regions"
+    title: "Azure Regions and Locations"
+    description: |
+      Azure has data centers worldwide.
+
+      List available locations:
+      ```powershell
+      # Get-AzLocation | Select-Object Location, DisplayName
+      ```
+
+      Common regions:
+      - **eastus**: East US
+      - **westus**: West US
+      - **westeurope**: West Europe
+      - **southeastasia**: Southeast Asia
+
+      Choose regions based on:
+      - User proximity (latency)
+      - Data residency requirements
+      - Service availability
+      - Cost (varies by region)
+    hint: "Deploy resources close to users for best performance"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'eastus westus westeurope'"
+      matcher: "contains"
+      expected: "eastus"
+
+  - id: "azure-cmdlet-patterns"
+    title: "Azure Cmdlet Naming Patterns"
+    description: |
+      Azure cmdlets follow consistent patterns.
+
+      Common verbs:
+      - **Get**: Retrieve resources
+      - **New**: Create resources
+      - **Set**: Modify resources
+      - **Remove**: Delete resources
+      - **Start/Stop**: Control state
+
+      Pattern: Verb-Az[Service][Resource]
+
+      Examples:
+      - Get-AzVM (Virtual Machines)
+      - New-AzStorageAccount (Storage)
+      - Set-AzSqlDatabase (SQL)
+      - Remove-AzResourceGroup (Resource Groups)
+
+      List all Az commands:
+      ```powershell
+      # Get-Command -Module Az.* | Select-Object -First 20 Name
+      ```
+    hint: "Azure cmdlets all start with Az prefix"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Get-AzVM New-AzStorageAccount'"
+      matcher: "contains"
+      expected: "Get-AzVM"
+
+completion:
+  message: "Great! You understand Azure PowerShell fundamentals. Practice requires Azure subscription!"
+  xp: 400
+  unlocks:
+    - "powershell/cloud/azure-resources"

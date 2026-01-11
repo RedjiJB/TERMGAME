@@ -1,0 +1,116 @@
+mission:
+  id: "powershell/compression/compress-basics"
+  title: "Compressing Files with Compress-Archive"
+  difficulty: beginner
+  description: "Learn to create ZIP archives with PowerShell"
+  estimated_time: 20
+  tags:
+    - powershell
+    - compression
+    - beginner
+    - week-10
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/file1.txt -ItemType File -Value 'Content 1' -Force"
+    - "New-Item -Path C:/learner/file2.txt -ItemType File -Value 'Content 2' -Force"
+    - "New-Item -Path C:/learner/docs/readme.txt -ItemType File -Value 'README' -Force"
+
+steps:
+  - id: "compress-single-file"
+    title: "Compress a Single File"
+    description: |
+      `Compress-Archive` creates ZIP files.
+
+      Compress one file:
+      ```powershell
+      Compress-Archive -Path file1.txt -DestinationPath archive.zip
+      ```
+
+      This creates archive.zip containing file1.txt.
+    hint: "ZIP is a universal archive format"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/archive.zip"
+      matcher: "exists"
+
+  - id: "compress-multiple-files"
+    title: "Compress Multiple Files"
+    description: |
+      Compress several files into one archive.
+
+      Compress multiple files:
+      ```powershell
+      Compress-Archive -Path file1.txt, file2.txt -DestinationPath multi.zip
+      ```
+
+      Both files go into multi.zip.
+    hint: "Use commas to separate multiple file paths"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/multi.zip"
+      matcher: "exists"
+
+  - id: "compress-folder"
+    title: "Compress an Entire Folder"
+    description: |
+      Compress a folder and all its contents.
+
+      Compress folder:
+      ```powershell
+      Compress-Archive -Path docs -DestinationPath docs-backup.zip
+      ```
+
+      All files and subfolders are included.
+    hint: "Folder compression includes all contents recursively"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/docs-backup.zip"
+      matcher: "exists"
+
+  - id: "update-archive"
+    title: "Update Existing Archive"
+    description: |
+      Add files to existing archive with `-Update`.
+
+      Update archive:
+      ```powershell
+      Compress-Archive -Path file2.txt -DestinationPath archive.zip -Update
+      ```
+
+      This adds file2.txt to archive.zip without recreating it.
+    hint: "-Update adds files without removing existing ones"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/archive.zip"
+      matcher: "exists"
+
+  - id: "compression-level"
+    title: "Set Compression Level"
+    description: |
+      Control compression speed vs size with `-CompressionLevel`.
+
+      Options:
+      - `Fastest`: Quick compression, larger file
+      - `Optimal`: Balanced (default)
+      - `NoCompression`: Store only, fastest
+
+      Create with optimal compression:
+      ```powershell
+      Compress-Archive -Path docs -DestinationPath optimal.zip -CompressionLevel Optimal
+      ```
+    hint: "Optimal balances speed and compression ratio"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/optimal.zip"
+      matcher: "exists"
+
+completion:
+  message: "Great! You can now create and manage ZIP archives with PowerShell!"
+  xp: 150
+  unlocks:
+    - "powershell/compression/expand-archives"

@@ -1,0 +1,124 @@
+mission:
+  id: "powershell/encryption/enable-bitlocker"
+  title: "Enabling BitLocker Encryption"
+  difficulty: advanced
+  description: "Learn to enable and configure BitLocker on volumes"
+  estimated_time: 25
+  tags:
+    - powershell
+    - encryption
+    - advanced
+    - week-10
+    - bitlocker
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "enable-bitlocker-syntax"
+    title: "Understanding Enable-BitLocker"
+    description: |
+      Enable-BitLocker encrypts a volume.
+
+      Basic syntax (requires admin + hardware):
+      ```powershell
+      # Enable-BitLocker -MountPoint "D:" -EncryptionMethod XtsAes256 -Password (ConvertTo-SecureString "Password" -AsPlainText -Force) -UsedSpaceOnly
+      ```
+
+      Parameters:
+      - MountPoint: Drive to encrypt
+      - EncryptionMethod: Algorithm
+      - Password/RecoveryPassword/TPM: Unlock method
+      - UsedSpaceOnly: Faster initial encryption
+
+      Verify command exists:
+      ```powershell
+      Get-Command Enable-BitLocker
+      ```
+    hint: "Encryption can take hours for large drives"
+    validation:
+      type: "command-output"
+      command: "Get-Command Enable-BitLocker -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Enable-BitLocker"
+
+  - id: "encryption-methods"
+    title: "Understanding Encryption Methods"
+    description: |
+      BitLocker encryption algorithms:
+      - **AES128**: Fast, good security
+      - **AES256**: Slower, better security
+      - **XtsAes128**: Current standard
+      - **XtsAes256**: Maximum security (recommended)
+
+      XTS mode provides additional protection.
+
+      Check available methods:
+      ```powershell
+      [enum]::GetNames([Microsoft.BitLocker.Structures.BitLockerEncryptionMethod])
+      ```
+    hint: "XtsAes256 is best for maximum security"
+    validation:
+      type: "command-output"
+      command: "Get-Command Enable-BitLocker -Syntax"
+      matcher: "contains"
+      expected: "Enable-BitLocker"
+
+  - id: "unlock-protectors"
+    title: "Understanding Key Protectors"
+    description: |
+      Key protectors unlock encrypted volumes:
+
+      - **TPM**: Hardware chip (most secure)
+      - **TPM + PIN**: TPM + user PIN
+      - **Password**: User password
+      - **RecoveryPassword**: 48-digit recovery key
+      - **RecoveryKey**: Saved to USB/file
+
+      Multiple protectors recommended:
+      ```powershell
+      # Add-BitLockerKeyProtector -MountPoint "D:" -RecoveryPasswordProtector
+      ```
+
+      Verify command:
+      ```powershell
+      Get-Command Add-BitLockerKeyProtector
+      ```
+    hint: "Use multiple protectors for redundancy"
+    validation:
+      type: "command-output"
+      command: "Get-Command Add-BitLockerKeyProtector -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Add-BitLockerKeyProtector"
+
+  - id: "usedspaceonly"
+    title: "UsedSpaceOnly vs Full Encryption"
+    description: |
+      Two encryption modes:
+
+      **UsedSpaceOnly**: Encrypts only used space
+      - Much faster initial encryption
+      - New data encrypted as written
+      - Good for new drives
+
+      **Full**: Encrypts entire drive
+      - Takes much longer
+      - Better for drives with deleted sensitive data
+
+      For new systems, UsedSpaceOnly is recommended.
+    hint: "UsedSpaceOnly is faster but full is more secure"
+    validation:
+      type: "command-output"
+      command: "Get-Command Enable-BitLocker | Get-Help | Select-String 'UsedSpaceOnly'"
+      matcher: "regex"
+      expected: ".*"
+
+completion:
+  message: "Excellent! You understand BitLocker enablement. Test in lab before production!"
+  xp: 350
+  unlocks:
+    - "powershell/encryption/manage-bitlocker"

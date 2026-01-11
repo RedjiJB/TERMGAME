@@ -1,0 +1,119 @@
+mission:
+  id: "powershell/networking/network-troubleshooting"
+  title: "Network Troubleshooting"
+  difficulty: intermediate
+  description: "Learn troubleshooting techniques for common network issues"
+  estimated_time: 30
+  tags:
+    - powershell
+    - networking
+    - intermediate
+    - week-7
+    - troubleshooting
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "verify-adapter-status"
+    title: "Verify Adapter Status"
+    description: |
+      First troubleshooting step: check adapter status.
+
+      View adapter status:
+      ```powershell
+      Get-NetAdapter | Select-Object Name, Status, LinkSpeed
+      ```
+
+      Status should be "Up" for working adapters.
+    hint: "Down adapters need to be enabled"
+    validation:
+      type: "command-output"
+      command: "Get-NetAdapter | Select-Object Name, Status | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "check-ip-config"
+    title: "Verify IP Configuration"
+    description: |
+      Check if adapter has valid IP address.
+
+      View IP configuration:
+      ```powershell
+      Get-NetIPConfiguration
+      ```
+
+      Should show IP address, gateway, and DNS servers.
+    hint: "169.254.x.x addresses indicate DHCP failure"
+    validation:
+      type: "command-output"
+      command: "Get-NetIPConfiguration | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "test-gateway"
+    title: "Test Default Gateway"
+    description: |
+      Test connectivity to default gateway.
+
+      Get and test gateway:
+      ```powershell
+      $gateway = (Get-NetRoute -DestinationPrefix "0.0.0.0/0" -ErrorAction SilentlyContinue | Select-Object -First 1).NextHop
+      if ($gateway) { Test-Connection $gateway -Count 1 -Quiet } else { Write-Output "No gateway" }
+      ```
+
+      Gateway failure means local network issue.
+    hint: "Can't reach gateway = local network problem"
+    validation:
+      type: "command-output"
+      command: "Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "test-dns-resolution"
+    title: "Test DNS Resolution"
+    description: |
+      Verify DNS is working.
+
+      Test DNS:
+      ```powershell
+      Resolve-DnsName -Name localhost -ErrorAction SilentlyContinue
+      ```
+
+      DNS failure = can't resolve domain names.
+    hint: "DNS problems prevent accessing websites by name"
+    validation:
+      type: "command-output"
+      command: "Resolve-DnsName -Name localhost -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "reset-network-stack"
+    title: "Understanding Network Stack Reset"
+    description: |
+      Last resort: reset network stack.
+
+      Commands (require admin):
+      ```powershell
+      # netsh int ip reset
+      # netsh winsock reset
+      # Restart-Computer
+      ```
+
+      This clears all network configuration.
+    hint: "Only reset network stack after exhausting other options"
+    validation:
+      type: "command-output"
+      command: "Get-Command netsh | Select-Object -ExpandProperty Name"
+      matcher: "contains"
+      expected: "netsh"
+
+completion:
+  message: "Excellent! You can now systematically troubleshoot network problems!"
+  xp: 300
+  unlocks:
+    - "powershell/shares/file-shares"

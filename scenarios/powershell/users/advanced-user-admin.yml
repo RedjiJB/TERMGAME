@@ -1,0 +1,168 @@
+mission:
+  id: "powershell/users/advanced-user-admin"
+  title: "Advanced User Administration"
+  difficulty: intermediate
+  description: "Learn bulk user operations and advanced user management techniques"
+  estimated_time: 30
+  tags:
+    - powershell
+    - users
+    - intermediate
+    - week-5
+    - automation
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "@'`nUsername,FullName,Department`nuser1,John Doe,IT`nuser2,Jane Smith,HR`nuser3,Bob Wilson,Finance`n'@ | Out-File -FilePath C:/learner/users.csv -Encoding UTF8"
+
+steps:
+  - id: "import-csv"
+    title: "Import User Data from CSV"
+    description: |
+      Use CSV files for bulk user operations.
+
+      Read user data from CSV:
+      ```powershell
+      $users = Import-Csv -Path "users.csv"
+      $users
+      ```
+
+      This loads user data into PowerShell objects.
+    hint: "CSV files are perfect for bulk user creation"
+    validation:
+      type: "command-output"
+      command: "Import-Csv -Path 'users.csv' | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "exact"
+      expected: "3"
+
+  - id: "process-csv-data"
+    title: "Process CSV Data"
+    description: |
+      Use ForEach-Object to process each CSV row.
+
+      Display user information:
+      ```powershell
+      Import-Csv users.csv | ForEach-Object {
+          Write-Output "User: $($_.Username), Department: $($_.Department)"
+      }
+      ```
+
+      This demonstrates bulk processing.
+    hint: "$() embeds expressions in strings"
+    validation:
+      type: "command-output"
+      command: "Import-Csv users.csv | ForEach-Object { $_.Username } | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "exact"
+      expected: "3"
+
+  - id: "bulk-user-report"
+    title: "Generate User Reports"
+    description: |
+      Create reports of all local users.
+
+      Generate a user report:
+      ```powershell
+      Get-LocalUser | Select-Object Name, Enabled, LastLogon, PasswordLastSet | Export-Csv -Path "user-report.csv" -NoTypeInformation
+      ```
+
+      This creates a CSV file for analysis.
+    hint: "Export-Csv saves data for Excel or reports"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/user-report.csv"
+      matcher: "exists"
+
+  - id: "filter-inactive-users"
+    title: "Find Inactive User Accounts"
+    description: |
+      Identify users who haven't logged in recently.
+
+      Find users who never logged in:
+      ```powershell
+      Get-LocalUser | Where-Object {$_.LastLogon -eq $null}
+      ```
+
+      This helps identify unused accounts.
+    hint: "Inactive accounts are security risks"
+    validation:
+      type: "command-output"
+      command: "Get-LocalUser | Where-Object {$_.LastLogon -eq $null} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "user-group-audit"
+    title: "Audit User Group Memberships"
+    description: |
+      Generate a report of all users and their groups.
+
+      Create group membership report:
+      ```powershell
+      Get-LocalUser | ForEach-Object {
+          $user = $_.Name
+          $groups = (Get-LocalGroup | Where-Object {
+              (Get-LocalGroupMember -Group $_.Name -ErrorAction SilentlyContinue).Name -contains "$(hostname)\\$user"
+          }).Name -join ", "
+          [PSCustomObject]@{
+              User = $user
+              Groups = $groups
+          }
+      }
+      ```
+
+      This audits all memberships.
+    hint: "Regular audits improve security"
+    validation:
+      type: "command-output"
+      command: "Get-LocalUser | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "secure-password-generation"
+    title: "Generate Secure Passwords"
+    description: |
+      Create random secure passwords for new users.
+
+      Generate a secure password:
+      ```powershell
+      Add-Type -AssemblyName 'System.Web'
+      $password = [System.Web.Security.Membership]::GeneratePassword(12, 2)
+      Write-Output $password
+      ```
+
+      This creates a 12-character password with 2 special characters.
+    hint: "Strong passwords are essential for security"
+    validation:
+      type: "command-output"
+      command: "Add-Type -AssemblyName 'System.Web'; [System.Web.Security.Membership]::GeneratePassword(12, 2).Length"
+      matcher: "exact"
+      expected: "12"
+
+  - id: "user-naming-convention"
+    title: "Enforce Naming Conventions"
+    description: |
+      Use scripts to enforce consistent naming.
+
+      Example: Convert names to username format:
+      ```powershell
+      $fullName = "John Doe"
+      $username = ($fullName -replace ' ', '.').ToLower()
+      Write-Output $username
+      ```
+
+      This creates "john.doe" format usernames.
+    hint: "Consistent naming simplifies administration"
+    validation:
+      type: "command-output"
+      command: "('Jane Smith' -replace ' ', '.').ToLower()"
+      matcher: "exact"
+      expected: "jane.smith"
+
+completion:
+  message: "Outstanding! You can now perform advanced user administration tasks and bulk operations!"
+  xp: 300
+  unlocks:
+    - "powershell/security/permissions-intro"

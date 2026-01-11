@@ -1,0 +1,265 @@
+mission:
+  id: "powershell/cloud/azure-vms"
+  title: "Managing Azure Virtual Machines"
+  difficulty: advanced
+  description: "Learn to create, configure, and manage Azure virtual machines with PowerShell"
+  estimated_time: 40
+  tags:
+    - powershell
+    - cloud
+    - advanced
+    - week-13
+    - azure
+    - virtual-machines
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "vm-overview"
+    title: "Azure Virtual Machines Overview"
+    description: |
+      Azure VMs provide cloud-based compute resources.
+
+      VM components:
+      - **VM Size**: CPU, RAM, disk configuration
+      - **Image**: Operating system (Windows, Linux)
+      - **Disk**: OS disk + optional data disks
+      - **Network Interface**: VNet connectivity
+      - **Public IP**: Optional internet access
+
+      VM use cases:
+      - Development and testing
+      - Production workloads
+      - Disaster recovery
+      - Extending on-premises infrastructure
+    hint: "VMs are the foundation of IaaS in Azure"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'VM components: size image disk network'"
+      matcher: "contains"
+      expected: "image"
+
+  - id: "vm-sizes"
+    title: "Understanding VM Sizes"
+    description: |
+      VM sizes determine resources and capabilities.
+
+      Size families:
+      - **B-series**: Burstable (low cost, variable workload)
+      - **D-series**: General purpose (balanced CPU/RAM)
+      - **F-series**: Compute optimized (high CPU/RAM ratio)
+      - **E-series**: Memory optimized (high RAM/CPU ratio)
+      - **N-series**: GPU (machine learning, rendering)
+
+      List available sizes:
+      ```powershell
+      # Get-AzVMSize -Location "eastus" | Select-Object Name, NumberOfCores, MemoryInMB | Sort-Object NumberOfCores
+      ```
+
+      Common sizes:
+      - **Standard_B2s**: 2 vCPU, 4 GB RAM (burstable)
+      - **Standard_D2s_v3**: 2 vCPU, 8 GB RAM
+      - **Standard_F4s_v2**: 4 vCPU, 8 GB RAM
+    hint: "Choose size based on workload requirements and budget"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'B-series D-series F-series E-series'"
+      matcher: "contains"
+      expected: "D-series"
+
+  - id: "vm-images"
+    title: "VM Images and Publishers"
+    description: |
+      Images provide the operating system for VMs.
+
+      List publishers:
+      ```powershell
+      # Get-AzVMImagePublisher -Location "eastus" | Where-Object {$_.PublisherName -like "Microsoft*"} | Select-Object PublisherName
+      ```
+
+      List offers (e.g., MicrosoftWindowsServer):
+      ```powershell
+      # Get-AzVMImageOffer -Location "eastus" -PublisherName "MicrosoftWindowsServer"
+      ```
+
+      List SKUs:
+      ```powershell
+      # Get-AzVMImageSku -Location "eastus" -PublisherName "MicrosoftWindowsServer" -Offer "WindowsServer"
+      ```
+
+      Common images:
+      - **WindowsServer**: Windows Server 2019, 2022
+      - **UbuntuServer**: Ubuntu LTS versions
+      - **CentOS**: CentOS distributions
+    hint: "Publisher → Offer → SKU → Version defines an image"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Image hierarchy: Publisher Offer SKU Version'"
+      matcher: "contains"
+      expected: "Publisher"
+
+  - id: "create-vm"
+    title: "Creating a Virtual Machine"
+    description: |
+      Create VM with New-AzVM cmdlet.
+
+      Basic VM creation (simplified):
+      ```powershell
+      # $cred = Get-Credential
+      # New-AzVM -ResourceGroupName "myRG" -Name "myVM" -Location "eastus" -Image "Win2022Datacenter" -Size "Standard_B2s" -Credential $cred
+      ```
+
+      Advanced creation (full control):
+      ```powershell
+      # $vm = New-AzVMConfig -VMName "myVM" -VMSize "Standard_D2s_v3"
+      # $vm = Set-AzVMOperatingSystem -VM $vm -Windows -ComputerName "myVM" -Credential $cred
+      # $vm = Set-AzVMSourceImage -VM $vm -PublisherName "MicrosoftWindowsServer" -Offer "WindowsServer" -Skus "2022-Datacenter" -Version "latest"
+      # $vm = Add-AzVMNetworkInterface -VM $vm -Id $nic.Id
+      # New-AzVM -ResourceGroupName "myRG" -Location "eastus" -VM $vm
+      ```
+
+      Requires credential, network interface, and resource group.
+    hint: "New-AzVM is simplified, New-AzVMConfig provides full control"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'New-AzVM creates virtual machines'"
+      matcher: "contains"
+      expected: "New-AzVM"
+
+  - id: "vm-operations"
+    title: "VM Lifecycle Operations"
+    description: |
+      Manage VM state with PowerShell.
+
+      Get VM status:
+      ```powershell
+      # Get-AzVM -ResourceGroupName "myRG" -Name "myVM" -Status
+      ```
+
+      Start VM:
+      ```powershell
+      # Start-AzVM -ResourceGroupName "myRG" -Name "myVM"
+      ```
+
+      Stop VM (deallocated, no compute charges):
+      ```powershell
+      # Stop-AzVM -ResourceGroupName "myRG" -Name "myVM" -Force
+      ```
+
+      Restart VM:
+      ```powershell
+      # Restart-AzVM -ResourceGroupName "myRG" -Name "myVM"
+      ```
+
+      Remove VM:
+      ```powershell
+      # Remove-AzVM -ResourceGroupName "myRG" -Name "myVM" -Force
+      ```
+    hint: "Stop-AzVM deallocates to avoid compute charges"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'VM operations: Start Stop Restart Remove'"
+      matcher: "contains"
+      expected: "Start"
+
+  - id: "vm-disks"
+    title: "Managing VM Disks"
+    description: |
+      VMs have OS disk and optional data disks.
+
+      Disk types:
+      - **Standard HDD**: Low cost, low IOPS
+      - **Standard SSD**: Moderate cost/performance
+      - **Premium SSD**: High performance
+      - **Ultra Disk**: Highest performance
+
+      Create data disk:
+      ```powershell
+      # $diskConfig = New-AzDiskConfig -Location "eastus" -CreateOption Empty -DiskSizeGB 128 -SkuName "Premium_LRS"
+      # $dataDisk = New-AzDisk -ResourceGroupName "myRG" -DiskName "myDataDisk" -Disk $diskConfig
+      ```
+
+      Attach disk to VM:
+      ```powershell
+      # $vm = Get-AzVM -ResourceGroupName "myRG" -Name "myVM"
+      # $vm = Add-AzVMDataDisk -VM $vm -Name "myDataDisk" -CreateOption Attach -ManagedDiskId $dataDisk.Id -Lun 0
+      # Update-AzVM -ResourceGroupName "myRG" -VM $vm
+      ```
+    hint: "Data disks provide additional storage for VMs"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Disk types: Standard Premium Ultra'"
+      matcher: "contains"
+      expected: "Premium"
+
+  - id: "vm-extensions"
+    title: "VM Extensions"
+    description: |
+      Extensions add capabilities to VMs.
+
+      Common extensions:
+      - **CustomScript**: Run scripts on VM
+      - **DSC**: Desired State Configuration
+      - **Antimalware**: Microsoft Antimalware
+      - **Diagnostics**: Boot and performance diagnostics
+      - **DomainJoin**: Join Active Directory
+
+      Add custom script extension:
+      ```powershell
+      # Set-AzVMExtension -ResourceGroupName "myRG" -VMName "myVM" -Name "CustomScript" -Publisher "Microsoft.Compute" -Type "CustomScriptExtension" -TypeHandlerVersion "1.10" -Settings @{commandToExecute = "powershell.exe -Command 'Write-Host Install complete'"}
+      ```
+
+      List VM extensions:
+      ```powershell
+      # Get-AzVMExtension -ResourceGroupName "myRG" -VMName "myVM"
+      ```
+    hint: "Extensions automate VM configuration post-deployment"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Extensions: CustomScript DSC Antimalware'"
+      matcher: "contains"
+      expected: "CustomScript"
+
+  - id: "vm-backup-recovery"
+    title: "VM Backup and Recovery"
+    description: |
+      Azure Backup protects VMs.
+
+      Backup concepts:
+      - **Recovery Services Vault**: Backup storage
+      - **Backup Policy**: Schedule and retention
+      - **Recovery Point**: Backup snapshot
+
+      Enable backup:
+      ```powershell
+      # $vault = Get-AzRecoveryServicesVault -ResourceGroupName "myRG" -Name "myVault"
+      # $policy = Get-AzRecoveryServicesBackupProtectionPolicy -VaultId $vault.ID -Name "DefaultPolicy"
+      # Enable-AzRecoveryServicesBackupProtection -ResourceGroupName "myRG" -Name "myVM" -Policy $policy -VaultId $vault.ID
+      ```
+
+      Trigger backup:
+      ```powershell
+      # Backup-AzRecoveryServicesBackupItem -Item $item -VaultId $vault.ID
+      ```
+
+      Azure Backup provides:
+      - Application-consistent backups
+      - Long-term retention
+      - Point-in-time recovery
+    hint: "Regular backups protect against data loss"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Backup requires: Vault Policy RecoveryPoint'"
+      matcher: "contains"
+      expected: "Vault"
+
+completion:
+  message: "Outstanding! You can now create and manage Azure Virtual Machines with PowerShell!"
+  xp: 500
+  unlocks:
+    - "powershell/cloud/hybrid-cloud"

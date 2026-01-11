@@ -1,0 +1,275 @@
+mission:
+  id: "powershell/cloud/hybrid-cloud"
+  title: "Hybrid Cloud and On-Premises Integration"
+  difficulty: advanced
+  description: "Learn hybrid cloud concepts and integrating Azure with on-premises infrastructure"
+  estimated_time: 35
+  tags:
+    - powershell
+    - cloud
+    - advanced
+    - week-13
+    - azure
+    - hybrid
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "hybrid-cloud-overview"
+    title: "What is Hybrid Cloud?"
+    description: |
+      Hybrid cloud combines on-premises and cloud resources.
+
+      Hybrid cloud benefits:
+      - **Flexibility**: Keep sensitive data on-prem
+      - **Scalability**: Burst to cloud when needed
+      - **Migration**: Gradual cloud adoption
+      - **Compliance**: Meet data residency requirements
+      - **Disaster Recovery**: Cloud as backup site
+
+      Common hybrid scenarios:
+      - Active Directory sync
+      - File server backup to cloud
+      - Web apps on cloud, databases on-prem
+      - Development in cloud, production on-prem
+    hint: "Hybrid cloud offers best of both worlds"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Hybrid combines on-premises and cloud'"
+      matcher: "contains"
+      expected: "on-premises"
+
+  - id: "azure-arc"
+    title: "Azure Arc - Manage Anywhere"
+    description: |
+      Azure Arc extends Azure management to any infrastructure.
+
+      Azure Arc capabilities:
+      - **Servers**: Manage on-prem/other cloud VMs
+      - **Kubernetes**: Manage K8s clusters anywhere
+      - **Data Services**: Run Azure SQL/PostgreSQL anywhere
+      - **SQL Server**: Manage SQL Server instances
+
+      Arc-enabled servers:
+      ```powershell
+      # Install Arc agent on on-prem server
+      # Connect-AzAccount
+      # Install agent, then:
+      # azcmagent connect --resource-group "myRG" --tenant-id "tenant-id" --location "eastus" --subscription-id "sub-id"
+      ```
+
+      Benefits:
+      - Unified management via Azure portal
+      - Azure Policy enforcement
+      - Azure Monitor integration
+      - Azure Update Management
+    hint: "Azure Arc brings Azure control plane to any infrastructure"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Arc extends Azure to on-premises'"
+      matcher: "contains"
+      expected: "Arc"
+
+  - id: "site-to-site-vpn"
+    title: "Site-to-Site VPN Connectivity"
+    description: |
+      VPN connects on-premises network to Azure VNet.
+
+      VPN components:
+      - **Virtual Network Gateway**: Azure-side VPN endpoint
+      - **Local Network Gateway**: Represents on-prem network
+      - **VPN Connection**: Links the two gateways
+      - **VPN Device**: On-prem VPN hardware/software
+
+      Create virtual network gateway:
+      ```powershell
+      # $subnet = Get-AzVirtualNetworkSubnetConfig -Name "GatewaySubnet" -VirtualNetwork $vnet
+      # $pip = New-AzPublicIpAddress -Name "VPNGatewayIP" -ResourceGroupName "myRG" -Location "eastus" -AllocationMethod Dynamic
+      # $ipconf = New-AzVirtualNetworkGatewayIpConfig -Name "gwipconf" -Subnet $subnet -PublicIpAddress $pip
+      # New-AzVirtualNetworkGateway -Name "VPNGateway" -ResourceGroupName "myRG" -Location "eastus" -IpConfigurations $ipconf -GatewayType Vpn -VpnType RouteBased -GatewaySku VpnGw1
+      ```
+
+      VPN provides secure encrypted connection.
+    hint: "Site-to-Site VPN extends your network to Azure"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'VPN components: Virtual-Gateway Local-Gateway Connection'"
+      matcher: "contains"
+      expected: "Gateway"
+
+  - id: "expressroute"
+    title: "Azure ExpressRoute - Dedicated Connection"
+    description: |
+      ExpressRoute provides private, dedicated connectivity.
+
+      ExpressRoute vs VPN:
+      - **ExpressRoute**: Private fiber, faster, more reliable, expensive
+      - **VPN**: Over internet, slower, less reliable, cheaper
+
+      ExpressRoute features:
+      - Up to 10 Gbps bandwidth
+      - Lower latency than VPN
+      - Does not traverse public internet
+      - 99.95% SLA
+      - Connects to Microsoft 365 and Dynamics 365 too
+
+      ExpressRoute requires:
+      - Connectivity provider (telco)
+      - ExpressRoute circuit
+      - Virtual network gateway (ExpressRoute type)
+
+      Not configurable via simple PowerShell (requires provider setup).
+    hint: "ExpressRoute is for production workloads needing reliability"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'ExpressRoute provides private dedicated connectivity'"
+      matcher: "contains"
+      expected: "private"
+
+  - id: "azure-ad-connect"
+    title: "Azure AD Connect - Identity Sync"
+    description: |
+      Azure AD Connect syncs on-prem Active Directory to Azure AD.
+
+      Azure AD Connect features:
+      - **Password hash sync**: Sync password hashes
+      - **Pass-through auth**: Authenticate against on-prem AD
+      - **Federation**: Use ADFS for authentication
+      - **Sync**: User, group, device sync
+
+      Benefits:
+      - Single sign-on (SSO) experience
+      - Users access cloud apps with on-prem credentials
+      - Centralized identity management
+
+      Installation:
+      ```powershell
+      # Download and install Azure AD Connect
+      # Run configuration wizard
+      # Requires Enterprise Admin permissions
+      ```
+
+      Azure AD Connect runs on Windows Server on-premises.
+    hint: "Azure AD Connect enables hybrid identity"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Azure AD Connect syncs Active Directory'"
+      matcher: "contains"
+      expected: "syncs"
+
+  - id: "azure-file-sync"
+    title: "Azure File Sync - Hybrid File Storage"
+    description: |
+      Azure File Sync replicates file shares to Azure.
+
+      File Sync components:
+      - **Storage Sync Service**: Azure resource
+      - **Sync Group**: Defines what to sync
+      - **Cloud Endpoint**: Azure File Share
+      - **Server Endpoint**: On-prem folder
+      - **Azure File Sync Agent**: Installed on Windows Server
+
+      Benefits:
+      - Centralize file shares in Azure
+      - Cloud tiering (cache hot files locally)
+      - Multi-site access to files
+      - Disaster recovery
+
+      Setup process:
+      ```powershell
+      # Install Azure File Sync agent on server
+      # Register server with Storage Sync Service
+      # Create sync group
+      # Add cloud endpoint (Azure File Share)
+      # Add server endpoint (local path)
+      ```
+    hint: "File Sync enables seamless hybrid file storage"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'File Sync components: Service Group Endpoint Agent'"
+      matcher: "contains"
+      expected: "Endpoint"
+
+  - id: "azure-backup-onprem"
+    title: "Backing Up On-Premises to Azure"
+    description: |
+      Azure Backup supports on-premises workloads.
+
+      What can be backed up:
+      - **Files and folders**: Windows/Linux servers
+      - **System state**: Windows Server
+      - **Hyper-V VMs**: Full VM backup
+      - **VMware VMs**: Via backup server
+      - **SQL Server**: Database backups
+      - **Exchange**: Mailbox backups
+
+      Azure Backup agent (MARS):
+      ```powershell
+      # Download and install MARS agent
+      # Download vault credentials from portal
+      # Register server with Recovery Services Vault
+      # Configure backup schedule and retention
+      ```
+
+      Benefits:
+      - Offsite backup location
+      - Long-term retention
+      - No tape management
+      - Geo-redundant storage
+    hint: "Azure Backup eliminates need for on-prem backup infrastructure"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Azure Backup supports files VMs SQL Exchange'"
+      matcher: "contains"
+      expected: "Backup"
+
+  - id: "hybrid-best-practices"
+    title: "Hybrid Cloud Best Practices"
+    description: |
+      Follow these practices for successful hybrid cloud.
+
+      **Network Design**:
+      - Use private connectivity (VPN/ExpressRoute)
+      - Plan IP address spaces carefully (no overlap)
+      - Implement network segmentation
+      - Use Network Security Groups
+
+      **Identity**:
+      - Implement Azure AD Connect for SSO
+      - Use conditional access policies
+      - Enable MFA for cloud access
+      - Sync groups for access management
+
+      **Security**:
+      - Encrypt data in transit and at rest
+      - Use Azure Policy for compliance
+      - Implement Azure Security Center
+      - Regular security audits
+
+      **Monitoring**:
+      - Azure Monitor for unified monitoring
+      - Log Analytics for centralized logs
+      - Set up alerts for critical events
+      - Regular capacity planning
+
+      **Governance**:
+      - Define naming conventions
+      - Use tags for organization
+      - Implement RBAC
+      - Regular cost reviews
+    hint: "Planning and governance are key to hybrid success"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Hybrid practices: Network Identity Security Monitoring Governance'"
+      matcher: "contains"
+      expected: "Governance"
+
+completion:
+  message: "Congratulations! You've completed all PowerShell missions! You're now ready to manage Windows Server and Azure infrastructure professionally!"
+  xp: 500
+  unlocks: []

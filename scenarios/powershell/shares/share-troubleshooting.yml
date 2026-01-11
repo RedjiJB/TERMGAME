@@ -1,0 +1,116 @@
+mission:
+  id: "powershell/shares/share-troubleshooting"
+  title: "Troubleshooting Share Access Issues"
+  difficulty: intermediate
+  description: "Learn to diagnose and resolve common file sharing problems"
+  estimated_time: 25
+  tags:
+    - powershell
+    - shares
+    - intermediate
+    - week-7
+    - troubleshooting
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "verify-share-exists"
+    title: "Verify Share Exists"
+    description: |
+      First step: confirm the share exists.
+
+      Check if share exists:
+      ```powershell
+      Get-SmbShare | Where-Object {$_.Name -eq "C$"}
+      ```
+
+      If not found, share doesn't exist or you lack permissions.
+    hint: "Can't access what doesn't exist"
+    validation:
+      type: "command-output"
+      command: "Get-SmbShare | Where-Object {$_.Name -eq 'C$'} | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "C$"
+
+  - id: "check-share-permissions"
+    title: "Check Share Permissions"
+    description: |
+      Verify you have share-level permissions.
+
+      View share permissions:
+      ```powershell
+      Get-SmbShareAccess -Name "C$" -ErrorAction SilentlyContinue
+      ```
+
+      Check if your user/group has access.
+    hint: "No share permission = access denied at network level"
+    validation:
+      type: "command-output"
+      command: "Get-SmbShareAccess -Name 'C$' -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "test-network-connectivity"
+    title: "Test Network Connectivity"
+    description: |
+      Verify you can reach the server.
+
+      Test connectivity:
+      ```powershell
+      Test-Connection -ComputerName localhost -Count 1 -Quiet
+      ```
+
+      Can't access shares if server unreachable.
+    hint: "Network problems prevent all share access"
+    validation:
+      type: "command-output"
+      command: "Test-Connection -ComputerName localhost -Count 1 -Quiet"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "check-smb-service"
+    title: "Verify SMB Service Running"
+    description: |
+      SMB service must be running for file sharing.
+
+      Check service status:
+      ```powershell
+      Get-Service -Name LanmanServer | Select-Object Name, Status
+      ```
+
+      LanmanServer is the Server service (SMB).
+    hint: "Stopped Server service = no file sharing"
+    validation:
+      type: "command-output"
+      command: "Get-Service -Name LanmanServer | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "LanmanServer"
+
+  - id: "check-firewall"
+    title: "Understanding Firewall Impact"
+    description: |
+      Firewall must allow SMB traffic (port 445).
+
+      Check firewall rules:
+      ```powershell
+      Get-NetFirewallRule -DisplayName "*File and Printer Sharing*" | Select-Object DisplayName, Enabled
+      ```
+
+      Disabled rules block SMB access.
+    hint: "Firewall blocking port 445 prevents share access"
+    validation:
+      type: "command-output"
+      command: "Get-NetFirewallRule | Where-Object {$_.DisplayName -like '*File*'} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+completion:
+  message: "Excellent! You can now systematically troubleshoot file sharing issues!"
+  xp: 250
+  unlocks:
+    - "powershell/compression/compress-basics"

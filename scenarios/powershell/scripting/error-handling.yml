@@ -1,0 +1,252 @@
+mission:
+  id: "powershell/scripting/error-handling"
+  title: "Error Handling and Exception Management"
+  difficulty: advanced
+  description: "Master Try/Catch/Finally blocks and error handling strategies"
+  estimated_time: 35
+  tags:
+    - powershell
+    - scripting
+    - advanced
+    - week-11
+    - error-handling
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "error-types"
+    title: "Understanding Error Types"
+    description: |
+      PowerShell has two error types:
+
+      **Terminating Errors**: Stop execution
+      - Thrown by cmdlets or throw statement
+      - Can be caught with Try/Catch
+
+      **Non-Terminating Errors**: Continue execution
+      - Default for most cmdlet errors
+      - Can be made terminating with -ErrorAction Stop
+
+      Check error preference:
+      ```powershell
+      $ErrorActionPreference
+      ```
+
+      Default is "Continue" (non-terminating).
+    hint: "Understanding error types is key to effective error handling"
+    validation:
+      type: "command-output"
+      command: "$ErrorActionPreference"
+      matcher: "regex"
+      expected: "(Continue|Stop|SilentlyContinue)"
+
+  - id: "try-catch-basic"
+    title: "Basic Try/Catch"
+    description: |
+      Try/Catch handles terminating errors.
+
+      Basic Try/Catch:
+      ```powershell
+      try {
+          Get-Item "C:\nonexistent.txt" -ErrorAction Stop
+      } catch {
+          Write-Output "Error caught: File not found"
+      }
+      ```
+
+      -ErrorAction Stop makes errors terminating.
+    hint: "Catch block executes only if error occurs in Try"
+    validation:
+      type: "command-output"
+      command: "try { Get-Item 'C:\\nonexistent.txt' -ErrorAction Stop } catch { Write-Output 'Error caught' }"
+      matcher: "contains"
+      expected: "Error caught"
+
+  - id: "error-variable"
+    title: "Accessing Error Information"
+    description: |
+      $_ in catch block contains error details.
+
+      Error properties:
+      ```powershell
+      try {
+          1 / 0
+      } catch {
+          Write-Output "Error: $($_.Exception.Message)"
+          Write-Output "Type: $($_.Exception.GetType().Name)"
+      }
+      ```
+
+      Common properties:
+      - $_.Exception.Message - Error message
+      - $_.Exception.GetType() - Error type
+      - $_.ScriptStackTrace - Stack trace
+    hint: "$_ is the automatic error object in catch"
+    validation:
+      type: "command-output"
+      command: "try { throw 'Test error' } catch { Write-Output $_.Exception.Message }"
+      matcher: "exact"
+      expected: "Test error"
+
+  - id: "specific-catch-blocks"
+    title: "Catching Specific Exceptions"
+    description: |
+      Catch specific exception types for targeted handling.
+
+      Specific catch blocks:
+      ```powershell
+      try {
+          Get-Content "C:\nonexistent.txt" -ErrorAction Stop
+      } catch [System.Management.Automation.ItemNotFoundException] {
+          Write-Output "File not found"
+      } catch [System.UnauthorizedAccessException] {
+          Write-Output "Access denied"
+      } catch {
+          Write-Output "Other error: $($_.Exception.Message)"
+      }
+      ```
+
+      First matching catch executes.
+    hint: "Order catch blocks from specific to general"
+    validation:
+      type: "command-output"
+      command: "try { throw [System.IO.FileNotFoundException] 'File missing' } catch [System.IO.FileNotFoundException] { Write-Output 'File not found' } catch { Write-Output 'Other' }"
+      matcher: "exact"
+      expected: "File not found"
+
+  - id: "finally-block"
+    title: "Finally Block - Cleanup Code"
+    description: |
+      Finally always executes, regardless of errors.
+
+      Try/Catch/Finally:
+      ```powershell
+      try {
+          Write-Output "Attempting operation"
+          # Some operation
+      } catch {
+          Write-Output "Error occurred"
+      } finally {
+          Write-Output "Cleanup complete"
+      }
+      ```
+
+      Finally is ideal for cleanup (closing files, connections).
+    hint: "Finally runs even if error occurs"
+    validation:
+      type: "command-output"
+      command: "try { Write-Output 'Try' } catch { Write-Output 'Catch' } finally { Write-Output 'Finally' }"
+      matcher: "contains"
+      expected: "Finally"
+
+  - id: "throw-statement"
+    title: "Throwing Custom Errors"
+    description: |
+      Throw creates terminating errors.
+
+      Throw statement:
+      ```powershell
+      function Test-Age {
+          param([int]$Age)
+
+          if ($Age -lt 0) {
+              throw "Age cannot be negative"
+          }
+          Write-Output "Valid age: $Age"
+      }
+
+      try {
+          Test-Age -Age -5
+      } catch {
+          Write-Output "Error: $($_.Exception.Message)"
+      }
+      ```
+
+      Throw stops execution and can be caught.
+    hint: "Use throw for custom validation errors"
+    validation:
+      type: "command-output"
+      command: "function Test-Age { param([int]$Age); if ($Age -lt 0) { throw 'Age cannot be negative' }; Write-Output 'Valid' }; try { Test-Age -Age -5 } catch { Write-Output 'Caught' }"
+      matcher: "exact"
+      expected: "Caught"
+
+  - id: "erroraction-parameter"
+    title: "ErrorAction Parameter"
+    description: |
+      Control error behavior per cmdlet.
+
+      ErrorAction values:
+      - **Stop**: Make error terminating
+      - **Continue**: Display error, continue (default)
+      - **SilentlyContinue**: Suppress error, continue
+      - **Ignore**: Completely ignore error
+      - **Inquire**: Prompt user
+
+      Example:
+      ```powershell
+      Get-Item "C:\nonexistent.txt" -ErrorAction SilentlyContinue
+      Write-Output "Script continues"
+      ```
+    hint: "Use -ErrorAction Stop to enable Try/Catch"
+    validation:
+      type: "command-output"
+      command: "Get-Item 'C:\\nonexistent.txt' -ErrorAction SilentlyContinue; Write-Output 'Continues'"
+      matcher: "exact"
+      expected: "Continues"
+
+  - id: "error-variable-parameter"
+    title: "ErrorVariable Parameter"
+    description: |
+      Store errors in custom variable.
+
+      ErrorVariable usage:
+      ```powershell
+      Get-Item "C:\nonexistent.txt" -ErrorAction SilentlyContinue -ErrorVariable myError
+
+      if ($myError) {
+          Write-Output "Errors occurred: $($myError.Count)"
+      }
+      ```
+
+      Don't use $ in -ErrorVariable parameter.
+    hint: "-ErrorVariable captures errors without stopping execution"
+    validation:
+      type: "command-output"
+      command: "Get-Item 'C:\\nonexistent.txt' -ErrorAction SilentlyContinue -ErrorVariable myError; if ($myError) { Write-Output 'Error captured' } else { Write-Output 'No error' }"
+      matcher: "exact"
+      expected: "Error captured"
+
+  - id: "automatic-error-variables"
+    title: "Automatic Error Variables"
+    description: |
+      PowerShell maintains error history.
+
+      Automatic variables:
+      - **$Error**: Array of all errors (most recent first)
+      - **$Error[0]**: Most recent error
+      - **$Error.Count**: Number of errors
+      - **$Error.Clear()**: Clear error history
+
+      Example:
+      ```powershell
+      $Error.Clear()
+      Get-Item "C:\nonexistent.txt" -ErrorAction SilentlyContinue
+      Write-Output "Errors: $($Error.Count)"
+      ```
+    hint: "$Error[0] contains the most recent error"
+    validation:
+      type: "command-output"
+      command: "$Error.Clear(); Get-Item 'C:\\nonexistent.txt' -ErrorAction SilentlyContinue; if ($Error.Count -gt 0) { Write-Output 'Has errors' } else { Write-Output 'No errors' }"
+      matcher: "exact"
+      expected: "Has errors"
+
+completion:
+  message: "Outstanding! You can now write robust scripts with comprehensive error handling!"
+  xp: 400
+  unlocks:
+    - "powershell/scripting/script-best-practices"

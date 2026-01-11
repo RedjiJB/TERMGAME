@@ -1,0 +1,83 @@
+mission:
+  id: "powershell/backup/copy-backup"
+  title: "File-Based Backups with Copy-Item"
+  difficulty: intermediate
+  description: "Use Copy-Item for creating file and folder backups"
+  estimated_time: 20
+  tags:
+    - powershell
+    - backup
+    - intermediate
+    - week-3
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/data/file1.txt -ItemType File -Value 'Data 1' -Force"
+    - "New-Item -Path C:/learner/data/file2.txt -ItemType File -Value 'Data 2' -Force"
+
+steps:
+  - id: "simple-copy-backup"
+    title: "Create Simple Backup"
+    description: |
+      Copy files to backup location.
+
+      Backup a folder:
+      ```powershell
+      Copy-Item -Path data -Destination backup -Recurse
+      ```
+
+      Complete folder copy with -Recurse.
+    hint: "-Recurse copies all contents"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/backup/file1.txt"
+      matcher: "exists"
+
+  - id: "timestamped-backup"
+    title: "Create Timestamped Backups"
+    description: |
+      Add timestamps to prevent overwriting.
+
+      Timestamped backup:
+      ```powershell
+      $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+      Copy-Item -Path data -Destination "backup-$timestamp" -Recurse
+      ```
+    hint: "Timestamps create unique backup names"
+    validation:
+      type: "command-output"
+      command: "$timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'; Test-Path backup-$timestamp"
+      matcher: "regex"
+      expected: "(True|False)"
+
+  - id: "incremental-backup"
+    title: "Implement Incremental Backup"
+    description: |
+      Copy only modified files.
+
+      Incremental backup:
+      ```powershell
+      $source = "data"
+      $dest = "incremental"
+      Get-ChildItem $source -Recurse | Where-Object {
+          $_.LastWriteTime -gt (Get-Date).AddHours(-1)
+      } | Copy-Item -Destination {$_.FullName.Replace($source, $dest)} -Force
+      ```
+
+      Only recent files copied.
+    hint: "Incremental backups save time and space"
+    validation:
+      type: "command-output"
+      command: "Test-Path data"
+      matcher: "exact"
+      expected: "True"
+
+completion:
+  message: "Excellent! You can create file-based backups efficiently!"
+  xp: 250
+  unlocks:
+    - "powershell/backup/windows-backup"

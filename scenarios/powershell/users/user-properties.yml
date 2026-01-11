@@ -1,0 +1,169 @@
+mission:
+  id: "powershell/users/user-properties"
+  title: "Managing User Properties"
+  difficulty: intermediate
+  description: "Learn to configure user account properties and password policies"
+  estimated_time: 25
+  tags:
+    - powershell
+    - users
+    - intermediate
+    - week-5
+    - security
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "view-user-details"
+    title: "View Detailed User Properties"
+    description: |
+      User accounts have many configurable properties.
+
+      View all properties of Administrator:
+      ```powershell
+      Get-LocalUser -Name Administrator | Format-List *
+      ```
+
+      Properties include password settings, account expiration, and last logon.
+    hint: "Format-List shows properties one per line"
+    validation:
+      type: "command-output"
+      command: "Get-LocalUser -Name Administrator | Select-Object Name, Description | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Administrator"
+
+  - id: "password-properties"
+    title: "Understanding Password Properties"
+    description: |
+      User accounts have password-related properties.
+
+      View password properties:
+      ```powershell
+      Get-LocalUser -Name Administrator | Select-Object Name, PasswordRequired, PasswordExpires, PasswordLastSet, PasswordChangeableDate
+      ```
+
+      These control password policy for the account.
+    hint: "Password policies enforce security requirements"
+    validation:
+      type: "command-output"
+      command: "Get-LocalUser | Select-Object Name, PasswordRequired | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "account-expiration"
+    title: "Understanding Account Expiration"
+    description: |
+      Accounts can be set to expire on a specific date.
+
+      View account expiration:
+      ```powershell
+      Get-LocalUser | Select-Object Name, AccountExpires
+      ```
+
+      Expired accounts cannot log in.
+    hint: "Use account expiration for temporary users"
+    validation:
+      type: "command-output"
+      command: "Get-LocalUser | Select-Object Name, AccountExpires | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "set-password-never-expires"
+    title: "Understanding Password Never Expires"
+    description: |
+      You can configure accounts so passwords never expire.
+
+      Example (requires admin):
+      ```powershell
+      # Set-LocalUser -Name "ServiceAccount" -PasswordNeverExpires $true
+      ```
+
+      Verify command parameters:
+      ```powershell
+      Get-Command Set-LocalUser | Select-Object -ExpandProperty Parameters
+      ```
+
+      Service accounts often use this setting.
+    hint: "PasswordNeverExpires is useful for service accounts"
+    validation:
+      type: "command-output"
+      command: "Get-Command Set-LocalUser | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Set-LocalUser"
+
+  - id: "disable-enable-user"
+    title: "Understanding Enabling/Disabling Users"
+    description: |
+      Disable users without deleting them.
+
+      Example syntax (requires admin):
+      ```powershell
+      # Disable-LocalUser -Name "TestUser"
+      # Enable-LocalUser -Name "TestUser"
+      ```
+
+      Verify commands exist:
+      ```powershell
+      Get-Command Disable-LocalUser
+      Get-Command Enable-LocalUser
+      ```
+
+      Disabled users cannot log in but account is preserved.
+    hint: "Disabling is better than deleting for temporary restrictions"
+    validation:
+      type: "command-output"
+      command: "Get-Command Disable-LocalUser, Enable-LocalUser | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "exact"
+      expected: "2"
+
+  - id: "user-description"
+    title: "Managing User Descriptions"
+    description: |
+      Descriptions document the purpose of user accounts.
+
+      View user descriptions:
+      ```powershell
+      Get-LocalUser | Select-Object Name, Description
+      ```
+
+      Example modification (requires admin):
+      ```powershell
+      # Set-LocalUser -Name "Guest" -Description "Guest account for visitors"
+      ```
+
+      Descriptions help identify account purposes.
+    hint: "Good descriptions help with account management"
+    validation:
+      type: "command-output"
+      command: "Get-LocalUser | Select-Object Name, Description | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "last-logon-info"
+    title: "View Last Logon Information"
+    description: |
+      Track when users last logged in.
+
+      View last logon times:
+      ```powershell
+      Get-LocalUser | Select-Object Name, LastLogon, Enabled
+      ```
+
+      This helps identify inactive accounts.
+    hint: "LastLogon helps audit account usage"
+    validation:
+      type: "command-output"
+      command: "Get-LocalUser | Select-Object Name, LastLogon | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+completion:
+  message: "Great job! You can now manage user properties and enforce security policies!"
+  xp: 250
+  unlocks:
+    - "powershell/users/advanced-user-admin"

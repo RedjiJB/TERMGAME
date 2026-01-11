@@ -1,0 +1,206 @@
+mission:
+  id: "powershell/security/set-acl"
+  title: "Modifying Permissions with Set-Acl"
+  difficulty: intermediate
+  description: "Learn to modify Access Control Lists and manage permissions"
+  estimated_time: 30
+  tags:
+    - powershell
+    - security
+    - intermediate
+    - week-5
+    - acl
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/testfile.txt -ItemType File -Value 'Test data' -Force"
+
+steps:
+  - id: "understand-set-acl"
+    title: "Understanding Set-Acl"
+    description: |
+      `Set-Acl` modifies Access Control Lists.
+
+      The workflow:
+      1. Get current ACL with Get-Acl
+      2. Modify the ACL object
+      3. Apply with Set-Acl
+
+      Verify Set-Acl exists:
+      ```powershell
+      Get-Command Set-Acl
+      ```
+
+      Note: Modifying ACLs requires administrator privileges.
+    hint: "Always backup ACLs before modifying them"
+    validation:
+      type: "command-output"
+      command: "Get-Command Set-Acl | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Set-Acl"
+
+  - id: "copy-acl"
+    title: "Copy ACL from One File to Another"
+    description: |
+      Copy permissions from one file to another.
+
+      Understanding the process:
+      ```powershell
+      # Get source ACL
+      $acl = Get-Acl testfile.txt
+
+      # Would apply with: Set-Acl -Path targetfile.txt -AclObject $acl
+      ```
+
+      View the ACL object:
+      ```powershell
+      Get-Acl testfile.txt
+      ```
+    hint: "Copying ACLs ensures consistent permissions"
+    validation:
+      type: "command-output"
+      command: "$acl = Get-Acl testfile.txt; $acl.Path"
+      matcher: "contains"
+      expected: "testfile.txt"
+
+  - id: "access-rule-object"
+    title: "Understanding Access Rule Objects"
+    description: |
+      Create permission rules with New-Object.
+
+      Example rule structure:
+      ```powershell
+      # Create a FileSystemAccessRule
+      # $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+      #     "Users",              # Identity
+      #     "Read",               # Rights
+      #     "Allow"               # Type
+      # )
+      ```
+
+      Verify the class exists:
+      ```powershell
+      [System.Security.AccessControl.FileSystemAccessRule]
+      ```
+    hint: "FileSystemAccessRule defines a single permission entry"
+    validation:
+      type: "command-output"
+      command: "[System.Security.AccessControl.FileSystemAccessRule].Name"
+      matcher: "exact"
+      expected: "FileSystemAccessRule"
+
+  - id: "add-access-rule"
+    title: "Understanding Adding Access Rules"
+    description: |
+      Add new permissions to existing ACL.
+
+      Process:
+      1. Get current ACL
+      2. Create new rule
+      3. Add rule to ACL
+      4. Apply with Set-Acl
+
+      Example workflow:
+      ```powershell
+      $acl = Get-Acl testfile.txt
+      # $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(...)
+      # $acl.AddAccessRule($rule)
+      # Set-Acl -Path testfile.txt -AclObject $acl
+      ```
+
+      View current ACL:
+      ```powershell
+      Get-Acl testfile.txt
+      ```
+    hint: "AddAccessRule adds permissions without removing existing ones"
+    validation:
+      type: "command-output"
+      command: "$acl = Get-Acl testfile.txt; $acl.Access.Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "remove-access-rule"
+    title: "Understanding Removing Access Rules"
+    description: |
+      Remove specific permissions.
+
+      Process:
+      1. Get ACL
+      2. Create matching rule
+      3. Remove rule from ACL
+      4. Apply with Set-Acl
+
+      Methods:
+      - `RemoveAccessRule()`: Remove specific rule
+      - `RemoveAccessRuleAll()`: Remove all matching identity
+      - `RemoveAccessRuleSpecific()`: Remove exact match
+
+      View ACL structure:
+      ```powershell
+      Get-Acl testfile.txt | Get-Member
+      ```
+    hint: "Be careful removing permissions - you can lock yourself out"
+    validation:
+      type: "command-output"
+      command: "Get-Acl testfile.txt | Get-Member -Name RemoveAccessRule* | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "set-owner"
+    title: "Understanding Changing Ownership"
+    description: |
+      Change file owner.
+
+      Process:
+      ```powershell
+      $acl = Get-Acl testfile.txt
+      # $user = New-Object System.Security.Principal.NTAccount("DOMAIN\User")
+      # $acl.SetOwner($user)
+      # Set-Acl -Path testfile.txt -AclObject $acl
+      ```
+
+      View current owner:
+      ```powershell
+      (Get-Acl testfile.txt).Owner
+      ```
+
+      Note: Only Administrators can change ownership.
+    hint: "Changing ownership requires Take Ownership privilege"
+    validation:
+      type: "command-output"
+      command: "(Get-Acl testfile.txt).Owner"
+      matcher: "regex"
+      expected: ".+\\\\.+"
+
+  - id: "whatif-protection"
+    title: "Use -WhatIf for Safety"
+    description: |
+      Always test ACL changes with -WhatIf first.
+
+      Example:
+      ```powershell
+      # Set-Acl -Path testfile.txt -AclObject $newAcl -WhatIf
+      ```
+
+      Verify Set-Acl supports -WhatIf:
+      ```powershell
+      Get-Command Set-Acl | Select-Object -ExpandProperty Parameters | Select-Object -ExpandProperty Keys | Where-Object {$_ -eq "WhatIf"}
+      ```
+
+      -WhatIf shows changes without applying them.
+    hint: "-WhatIf prevents accidental permission disasters"
+    validation:
+      type: "command-output"
+      command: "Get-Command Set-Acl -Syntax"
+      matcher: "contains"
+      expected: "Set-Acl"
+
+completion:
+  message: "Outstanding! You understand how to modify Windows permissions safely with PowerShell!"
+  xp: 300
+  unlocks:
+    - "powershell/security/inheritance"

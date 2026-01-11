@@ -1,0 +1,155 @@
+mission:
+  id: "powershell/objects/select-object"
+  title: "Selecting Object Properties"
+  difficulty: intermediate
+  description: "Master Select-Object to choose and manipulate object properties"
+  estimated_time: 25
+  tags:
+    - powershell
+    - objects
+    - intermediate
+    - week-4
+    - pipeline
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/file1.txt -ItemType File -Value 'Content 1' -Force"
+    - "New-Item -Path C:/learner/file2.txt -ItemType File -Value 'Content 2' -Force"
+    - "New-Item -Path C:/learner/document.txt -ItemType File -Value 'Document content' -Force"
+
+steps:
+  - id: "select-properties"
+    title: "Select Specific Properties"
+    description: |
+      Use Select-Object to choose which properties to display.
+
+      Show only Name and Length of files:
+      ```powershell
+      Get-ChildItem | Select-Object Name, Length
+      ```
+
+      This creates a cleaner, focused view.
+    hint: "Select-Object filters which properties appear in output"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Select-Object Name, Length | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "select-first"
+    title: "Select First N Objects"
+    description: |
+      Use `-First` to get only the first few objects.
+
+      Get the first 2 files:
+      ```powershell
+      Get-ChildItem | Select-Object -First 2
+      ```
+
+      This limits the output to 2 items.
+    hint: "-First is useful for sampling large datasets"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Select-Object -First 2 | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "exact"
+      expected: "2"
+
+  - id: "select-last"
+    title: "Select Last N Objects"
+    description: |
+      Use `-Last` to get the last few objects.
+
+      Get the last file:
+      ```powershell
+      Get-ChildItem | Select-Object -Last 1
+      ```
+
+      This gets the last item from the pipeline.
+    hint: "-Last is useful for getting recent items"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Select-Object -Last 1 | Select-Object -ExpandProperty Name"
+      matcher: "regex"
+      expected: ".+\\.txt"
+
+  - id: "expand-property"
+    title: "Expand a Single Property"
+    description: |
+      Use `-ExpandProperty` to get just the value of one property (not an object).
+
+      Get just the names of files (as strings, not objects):
+      ```powershell
+      Get-ChildItem | Select-Object -ExpandProperty Name
+      ```
+
+      This returns strings, not file objects.
+    hint: "-ExpandProperty extracts the raw value"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Select-Object -First 1 -ExpandProperty Name"
+      matcher: "regex"
+      expected: ".+\\.txt"
+
+  - id: "select-unique"
+    title: "Select Unique Values"
+    description: |
+      Use `-Unique` to remove duplicates.
+
+      Get unique file extensions:
+      ```powershell
+      Get-ChildItem | Select-Object -ExpandProperty Extension -Unique
+      ```
+
+      This removes duplicate extensions from the list.
+    hint: "-Unique filters out duplicate values"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Select-Object -ExpandProperty Extension -Unique"
+      matcher: "exact"
+      expected: ".txt"
+
+  - id: "calculated-properties"
+    title: "Create Calculated Properties"
+    description: |
+      Create new properties on the fly with calculated expressions.
+
+      Show file name and size in KB:
+      ```powershell
+      Get-ChildItem | Select-Object Name, @{Name='SizeKB';Expression={$_.Length / 1KB}}
+      ```
+
+      The @{} creates a new calculated property.
+    hint: "Calculated properties let you transform data in the pipeline"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Select-Object Name, @{Name='SizeKB';Expression={$_.Length / 1KB}} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "select-skip"
+    title: "Skip Objects"
+    description: |
+      Use `-Skip` to skip the first N objects.
+
+      Skip the first file and get the rest:
+      ```powershell
+      Get-ChildItem | Select-Object -Skip 1
+      ```
+
+      This is useful for pagination.
+    hint: "Combine -Skip and -First for pagination"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Select-Object -Skip 1 | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+completion:
+  message: "Outstanding! Select-Object is one of the most versatile pipeline cmdlets. You've mastered it!"
+  xp: 250
+  unlocks:
+    - "powershell/objects/where-object"

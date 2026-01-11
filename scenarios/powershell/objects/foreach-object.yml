@@ -1,0 +1,137 @@
+mission:
+  id: "powershell/objects/foreach-object"
+  title: "Processing Objects with ForEach-Object"
+  difficulty: intermediate
+  description: "Learn to perform operations on each object in the pipeline"
+  estimated_time: 25
+  tags:
+    - powershell
+    - objects
+    - intermediate
+    - week-4
+    - pipeline
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/file1.txt -ItemType File -Value 'Original 1' -Force"
+    - "New-Item -Path C:/learner/file2.txt -ItemType File -Value 'Original 2' -Force"
+    - "New-Item -Path C:/learner/file3.txt -ItemType File -Value 'Original 3' -Force"
+
+steps:
+  - id: "basic-foreach"
+    title: "Process Each Object"
+    description: |
+      `ForEach-Object` performs an action on each item in the pipeline.
+
+      Display the name of each file:
+      ```powershell
+      Get-ChildItem | ForEach-Object { Write-Output $_.Name }
+      ```
+
+      The script block executes once per object.
+    hint: "$_ represents the current object in the loop"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | ForEach-Object { $_.Name } | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "modify-objects"
+    title: "Modify Objects in the Pipeline"
+    description: |
+      Use ForEach-Object to transform objects as they pass through.
+
+      Add ".bak" to each filename:
+      ```powershell
+      Get-ChildItem | ForEach-Object { $_.Name + ".bak" }
+      ```
+
+      This creates new transformed output.
+    hint: "ForEach-Object can transform data without modifying originals"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | ForEach-Object { $_.Name + '.bak' } | Select-Object -First 1"
+      matcher: "contains"
+      expected: ".bak"
+
+  - id: "multiple-statements"
+    title: "Execute Multiple Statements"
+    description: |
+      Script blocks can contain multiple statements separated by semicolons.
+
+      For each file, show name and size:
+      ```powershell
+      Get-ChildItem | ForEach-Object { Write-Output $_.Name; Write-Output $_.Length }
+      ```
+
+      Each statement executes for every object.
+    hint: "Separate statements with semicolons or newlines"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | ForEach-Object { $_.Name; $_.Length } | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+  - id: "method-shorthand"
+    title: "Use Method Shorthand"
+    description: |
+      You can call methods directly with ForEach-Object shorthand.
+
+      Convert all filenames to uppercase:
+      ```powershell
+      Get-ChildItem | ForEach-Object { $_.Name.ToUpper() }
+      ```
+
+      This calls the ToUpper() method on each Name property.
+    hint: "Methods are called with parentheses: .ToUpper(), .ToLower(), etc."
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | ForEach-Object { $_.Name.ToUpper() } | Select-Object -First 1"
+      matcher: "regex"
+      expected: "[A-Z0-9]+\\.TXT"
+
+  - id: "side-effects"
+    title: "Perform Side Effects"
+    description: |
+      ForEach-Object can perform actions like renaming files.
+
+      Copy each file with a new name:
+      ```powershell
+      Get-ChildItem *.txt | ForEach-Object { Copy-Item $_.FullName -Destination ($_.BaseName + "_backup" + $_.Extension) }
+      ```
+
+      This creates backup copies of all files.
+    hint: "Side effects are operations that change the system"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/file1_backup.txt"
+      matcher: "exists"
+
+  - id: "begin-process-end"
+    title: "Use Begin, Process, and End Blocks"
+    description: |
+      ForEach-Object supports Begin (once before), Process (each item), and End (once after) blocks.
+
+      Count files with Begin/Process/End:
+      ```powershell
+      $count = 0
+      Get-ChildItem | ForEach-Object -Begin { $count = 0 } -Process { $count++ } -End { Write-Output "Total: $count" }
+      ```
+
+      This provides initialization and cleanup steps.
+    hint: "Begin and End blocks run once; Process runs for each item"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem *.txt | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+completion:
+  message: "Superb! ForEach-Object gives you powerful control over pipeline processing!"
+  xp: 250
+  unlocks:
+    - "powershell/objects/object-methods"

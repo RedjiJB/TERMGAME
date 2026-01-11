@@ -1,0 +1,98 @@
+mission:
+  id: "powershell/registry/navigate-registry"
+  title: "Navigating the Registry"
+  difficulty: intermediate
+  description: "Learn to browse and explore the Windows Registry"
+  estimated_time: 20
+  tags:
+    - powershell
+    - registry
+    - intermediate
+    - week-9
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "set-location-registry"
+    title: "Navigate to Registry Keys"
+    description: |
+      Use Set-Location to move through registry like folders.
+
+      Navigate to Windows version key:
+      ```powershell
+      Set-Location "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"
+      Get-Location
+      ```
+
+      You're now "inside" that registry key.
+    hint: "cd works too - it's an alias for Set-Location"
+    validation:
+      type: "command-output"
+      command: "Set-Location 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion'; (Get-Location).Path"
+      matcher: "contains"
+      expected: "CurrentVersion"
+
+  - id: "list-subkeys"
+    title: "List Subkeys"
+    description: |
+      Get-ChildItem lists subkeys (like subdirectories).
+
+      List SOFTWARE subkeys:
+      ```powershell
+      Get-ChildItem HKLM:\\SOFTWARE | Select-Object -First 10 Name
+      ```
+
+      Each entry is a registry key.
+    hint: "Subkeys organize related settings"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem HKLM:\\SOFTWARE | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+  - id: "view-key-properties"
+    title: "View Key Values"
+    description: |
+      Get-ItemProperty shows values within a key.
+
+      View Windows version info:
+      ```powershell
+      Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"
+      ```
+
+      Shows all values in that key.
+    hint: "Get-ItemProperty reads registry values"
+    validation:
+      type: "command-output"
+      command: "Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion' | Select-Object ProductName | Select-Object -ExpandProperty ProductName"
+      matcher: "regex"
+      expected: ".*"
+
+  - id: "search-registry"
+    title: "Search Registry Keys"
+    description: |
+      Find keys containing specific text.
+
+      Search for "Microsoft" keys:
+      ```powershell
+      Get-ChildItem HKLM:\\SOFTWARE -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.Name -like "*Microsoft*"} | Select-Object -First 5
+      ```
+
+      Searches entire registry tree.
+    hint: "Recursive searches can be slow"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem HKLM:\\SOFTWARE | Where-Object {$_.PSChildName -like '*Microsoft*'} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+completion:
+  message: "Great! You can now navigate the registry like a file system!"
+  xp: 200
+  unlocks:
+    - "powershell/registry/read-registry"

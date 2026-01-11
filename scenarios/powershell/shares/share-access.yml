@@ -1,0 +1,103 @@
+mission:
+  id: "powershell/shares/share-access"
+  title: "Accessing Network Shares"
+  difficulty: intermediate
+  description: "Learn to access and map network shares with PowerShell"
+  estimated_time: 20
+  tags:
+    - powershell
+    - shares
+    - intermediate
+    - week-7
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "unc-paths"
+    title: "Understanding UNC Paths"
+    description: |
+      UNC (Universal Naming Convention) paths access network shares.
+
+      Format: `\\\\ComputerName\\ShareName`
+
+      Example:
+      - `\\\\Server01\\SharedFolder`
+      - `\\\\192.168.1.100\\Public`
+
+      Test localhost share access:
+      ```powershell
+      Test-Path "\\\\localhost\\C$"
+      ```
+
+      C$ is the hidden admin share for C: drive.
+    hint: "UNC paths work across networks"
+    validation:
+      type: "command-output"
+      command: "Test-Path '\\\\localhost\\C$' -ErrorAction SilentlyContinue"
+      matcher: "regex"
+      expected: "(True|False)"
+
+  - id: "access-share-content"
+    title: "Access Share Content"
+    description: |
+      Use Get-ChildItem with UNC paths.
+
+      List files in admin share:
+      ```powershell
+      Get-ChildItem "\\\\localhost\\C$\\Windows" -ErrorAction SilentlyContinue | Select-Object -First 5
+      ```
+
+      Access shares like local folders.
+    hint: "UNC paths work with all file cmdlets"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem '\\\\localhost\\C$' -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "new-psdrive"
+    title: "Map Network Drives"
+    description: |
+      `New-PSDrive` maps shares to drive letters.
+
+      Map a network drive:
+      ```powershell
+      New-PSDrive -Name "Z" -PSProvider FileSystem -Root "\\\\localhost\\C$" -ErrorAction SilentlyContinue
+      ```
+
+      Now access as Z: drive.
+    hint: "Mapped drives are easier to work with"
+    validation:
+      type: "command-output"
+      command: "Get-PSDrive -PSProvider FileSystem | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+  - id: "remove-psdrive"
+    title: "Disconnect Network Drives"
+    description: |
+      `Remove-PSDrive` disconnects mapped drives.
+
+      Disconnect drive:
+      ```powershell
+      Remove-PSDrive -Name "Z" -ErrorAction SilentlyContinue
+      ```
+
+      This unmaps the drive letter.
+    hint: "Remove drives you're not using"
+    validation:
+      type: "command-output"
+      command: "Get-Command Remove-PSDrive | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Remove-PSDrive"
+
+completion:
+  message: "Great! You can now access and map network shares efficiently!"
+  xp: 200
+  unlocks:
+    - "powershell/shares/share-troubleshooting"

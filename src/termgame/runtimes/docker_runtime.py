@@ -181,7 +181,8 @@ class DockerRuntime:
                     **kwargs,
                 )
             except docker.errors.ImageNotFound as e:
-                self._logger.error(f"Image not found: {image}")
+                # Log at INFO level since this is expected when image isn't pulled yet
+                self._logger.info(f"Image not found locally: {image}")
                 raise ImagePullError(f"Failed to pull image: {image}") from e
 
             # Start the container

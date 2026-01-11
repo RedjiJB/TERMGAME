@@ -1,0 +1,126 @@
+mission:
+  id: "powershell/compression/compression-scenarios"
+  title: "Practical Compression Scenarios"
+  difficulty: beginner
+  description: "Apply compression in real-world backup and archival scenarios"
+  estimated_time: 25
+  tags:
+    - powershell
+    - compression
+    - beginner
+    - week-10
+    - backup
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/logs/app.log -ItemType File -Value 'Log data' -Force"
+    - "New-Item -Path C:/learner/logs/error.log -ItemType File -Value 'Errors' -Force"
+    - "New-Item -Path C:/learner/Project/src/code.ps1 -ItemType File -Value '# Code' -Force"
+
+steps:
+  - id: "backup-logs"
+    title: "Create Log Backup Archive"
+    description: |
+      Compress logs for archival.
+
+      Backup logs with timestamp:
+      ```powershell
+      $date = Get-Date -Format "yyyy-MM-dd"
+      Compress-Archive -Path logs -DestinationPath "logs-backup-$date.zip"
+      ```
+
+      Timestamped archives prevent overwriting.
+    hint: "Timestamps create unique backup filenames"
+    validation:
+      type: "command-output"
+      command: "$date = Get-Date -Format 'yyyy-MM-dd'; Test-Path logs-backup-$date.zip"
+      matcher: "regex"
+      expected: "(True|False)"
+
+  - id: "compress-by-type"
+    title: "Compress Specific File Types"
+    description: |
+      Archive only certain file types.
+
+      Compress all .log files:
+      ```powershell
+      Get-ChildItem -Path logs -Filter *.log | Compress-Archive -DestinationPath logs-only.zip
+      ```
+
+      This filters before compressing.
+    hint: "Filter files before archiving"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem -Path logs -Filter *.log | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "project-backup"
+    title: "Create Project Backup"
+    description: |
+      Backup entire project folder.
+
+      Backup project:
+      ```powershell
+      Compress-Archive -Path Project -DestinationPath Project-$(Get-Date -Format 'yyyyMMdd').zip
+      ```
+
+      Complete project backup in one archive.
+    hint: "Regular project backups prevent data loss"
+    validation:
+      type: "command-output"
+      command: "Test-Path Project"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "cleanup-old-archives"
+    title: "Remove Old Backup Archives"
+    description: |
+      Delete archives older than 30 days.
+
+      Cleanup old backups:
+      ```powershell
+      Get-ChildItem *.zip | Where-Object {$_.LastWriteTime -lt (Get-Date).AddDays(-30)} | Remove-Item
+      ```
+
+      This frees disk space.
+    hint: "Automated cleanup prevents disk full issues"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem *.zip -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "automated-backup-script"
+    title: "Create Backup Script"
+    description: |
+      Combine techniques into reusable script.
+
+      Create backup script:
+      ```powershell
+      $backupScript = @'
+      $date = Get-Date -Format "yyyyMMdd-HHmmss"
+      $source = "logs"
+      $destination = "backup-$date.zip"
+      Compress-Archive -Path $source -DestinationPath $destination
+      Write-Output "Backup created: $destination"
+      '@
+      Set-Content -Path "backup.ps1" -Value $backupScript
+      ```
+
+      Script automates the backup process.
+    hint: "Scripts make backups consistent and repeatable"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/backup.ps1"
+      matcher: "exists"
+
+completion:
+  message: "Outstanding! You can now use compression for practical backup scenarios!"
+  xp: 200
+  unlocks:
+    - "powershell/backup/backup-basics"

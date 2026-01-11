@@ -1,0 +1,136 @@
+mission:
+  id: "powershell/processes/process-basics"
+  title: "Understanding Windows Processes"
+  difficulty: beginner
+  description: "Learn to view and inspect running processes with PowerShell"
+  estimated_time: 20
+  tags:
+    - powershell
+    - processes
+    - beginner
+    - week-10
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "get-process"
+    title: "List Running Processes"
+    description: |
+      `Get-Process` shows all running processes.
+
+      List all processes:
+      ```powershell
+      Get-Process
+      ```
+
+      This displays process names, IDs, CPU usage, and memory.
+    hint: "Get-Process is like Task Manager in PowerShell"
+    validation:
+      type: "command-output"
+      command: "Get-Process | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+  - id: "get-specific-process"
+    title: "Get a Specific Process"
+    description: |
+      Get information about a specific process by name.
+
+      View PowerShell processes:
+      ```powershell
+      Get-Process -Name powershell
+      ```
+
+      This shows only PowerShell processes.
+    hint: "Use -Name to filter by process name"
+    validation:
+      type: "command-output"
+      command: "Get-Process -Name powershell | Select-Object -First 1 -ExpandProperty Name"
+      matcher: "exact"
+      expected: "powershell"
+
+  - id: "process-properties"
+    title: "View Process Properties"
+    description: |
+      Processes have many properties: ID, CPU, Memory, StartTime, etc.
+
+      View detailed properties:
+      ```powershell
+      Get-Process | Select-Object Name, Id, CPU, WorkingSet
+      ```
+
+      WorkingSet is the memory usage in bytes.
+    hint: "Use Select-Object to choose which properties to display"
+    validation:
+      type: "command-output"
+      command: "Get-Process | Select-Object Name, Id | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+  - id: "sort-by-memory"
+    title: "Sort Processes by Memory Usage"
+    description: |
+      Find which processes use the most memory.
+
+      Sort by WorkingSet (memory) descending:
+      ```powershell
+      Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 5
+      ```
+
+      This shows the top 5 memory-consuming processes.
+    hint: "WorkingSet property shows memory usage"
+    validation:
+      type: "command-output"
+      command: "Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 1 -ExpandProperty Name"
+      matcher: "regex"
+      expected: ".+"
+
+  - id: "sort-by-cpu"
+    title: "Sort Processes by CPU Usage"
+    description: |
+      Find CPU-intensive processes.
+
+      Sort by CPU usage:
+      ```powershell
+      Get-Process | Sort-Object CPU -Descending | Select-Object -First 3
+      ```
+
+      This identifies the most CPU-intensive processes.
+    hint: "CPU property shows total processor time used"
+    validation:
+      type: "command-output"
+      command: "Get-Process | Where-Object {$_.CPU -ne $null} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "process-id"
+    title: "Get Process by ID"
+    description: |
+      Each process has a unique Process ID (PID).
+
+      Get your current PowerShell process ID:
+      ```powershell
+      $PID
+      ```
+
+      Then get that process:
+      ```powershell
+      Get-Process -Id $PID
+      ```
+    hint: "$PID is an automatic variable with your current process ID"
+    validation:
+      type: "command-output"
+      command: "Get-Process -Id $PID | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "powershell"
+
+completion:
+  message: "Great job! You can now view and analyze running processes in Windows!"
+  xp: 150
+  unlocks:
+    - "powershell/processes/process-management"

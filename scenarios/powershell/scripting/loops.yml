@@ -1,0 +1,183 @@
+mission:
+  id: "powershell/scripting/loops"
+  title: "PowerShell Loops and Iteration"
+  difficulty: intermediate
+  description: "Master For, ForEach, While, and Do loops for repetitive tasks"
+  estimated_time: 30
+  tags:
+    - powershell
+    - scripting
+    - intermediate
+    - week-11
+    - loops
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "1..5 | ForEach-Object { New-Item -Path \"file$_.txt\" -ItemType File -Force }"
+
+steps:
+  - id: "for-loop"
+    title: "For Loops - Counter-Based"
+    description: |
+      For loops iterate a specific number of times.
+
+      Basic for loop:
+      ```powershell
+      for ($i = 1; $i -le 5; $i++) {
+          Write-Output "Count: $i"
+      }
+      ```
+
+      Syntax: for (init; condition; increment) { code }
+    hint: "For loops are best when you know iteration count"
+    validation:
+      type: "command-output"
+      command: "for ($i = 1; $i -le 3; $i++) { Write-Output $i } | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "exact"
+      expected: "3"
+
+  - id: "foreach-loop"
+    title: "ForEach Loop - Collection Iteration"
+    description: |
+      ForEach loops iterate over collections.
+
+      ForEach syntax:
+      ```powershell
+      $files = Get-ChildItem -File
+      foreach ($file in $files) {
+          Write-Output $file.Name
+      }
+      ```
+
+      $file is the current item in each iteration.
+    hint: "ForEach is ideal for processing arrays and collections"
+    validation:
+      type: "command-output"
+      command: "$files = Get-ChildItem -File; foreach ($file in $files) { $file.Name } | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]"
+
+  - id: "while-loop"
+    title: "While Loop - Condition-Based"
+    description: |
+      While loops continue while condition is true.
+
+      While loop example:
+      ```powershell
+      $count = 1
+      while ($count -le 5) {
+          Write-Output "Count: $count"
+          $count++
+      }
+      ```
+
+      Loop continues until condition becomes false.
+    hint: "While loops check condition before running"
+    validation:
+      type: "command-output"
+      command: "$count = 1; while ($count -le 3) { Write-Output $count; $count++ } | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "exact"
+      expected: "3"
+
+  - id: "do-while-loop"
+    title: "Do-While Loop - Execute Then Check"
+    description: |
+      Do-While executes at least once, then checks condition.
+
+      Do-While example:
+      ```powershell
+      $count = 1
+      do {
+          Write-Output "Count: $count"
+          $count++
+      } while ($count -le 5)
+      ```
+
+      Code runs first, then condition is checked.
+    hint: "Do-While runs at least once even if condition is false"
+    validation:
+      type: "command-output"
+      command: "$count = 1; do { Write-Output $count; $count++ } while ($count -le 3); Write-Output 'done'"
+      matcher: "contains"
+      expected: "done"
+
+  - id: "do-until-loop"
+    title: "Do-Until Loop - Inverse Condition"
+    description: |
+      Do-Until runs until condition becomes true.
+
+      Do-Until example:
+      ```powershell
+      $count = 1
+      do {
+          Write-Output "Count: $count"
+          $count++
+      } until ($count -gt 5)
+      ```
+
+      Opposite of Do-While (runs until, not while).
+    hint: "Do-Until is syntactic sugar for Do-While with inverted condition"
+    validation:
+      type: "command-output"
+      command: "$count = 1; do { Write-Output $count; $count++ } until ($count -gt 3); Write-Output 'done'"
+      matcher: "contains"
+      expected: "done"
+
+  - id: "break-continue"
+    title: "Break and Continue Statements"
+    description: |
+      Control loop execution with break and continue.
+
+      Break exits the loop:
+      ```powershell
+      for ($i = 1; $i -le 10; $i++) {
+          if ($i -eq 5) { break }
+          Write-Output $i
+      }
+      ```
+
+      Continue skips to next iteration:
+      ```powershell
+      for ($i = 1; $i -le 5; $i++) {
+          if ($i -eq 3) { continue }
+          Write-Output $i
+      }
+      ```
+    hint: "break exits loop, continue skips current iteration"
+    validation:
+      type: "command-output"
+      command: "for ($i = 1; $i -le 10; $i++) { if ($i -eq 4) { break }; Write-Output $i } | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "exact"
+      expected: "3"
+
+  - id: "nested-loops"
+    title: "Nested Loops"
+    description: |
+      Loops can contain other loops.
+
+      Nested loop example:
+      ```powershell
+      for ($i = 1; $i -le 3; $i++) {
+          for ($j = 1; $j -le 2; $j++) {
+              Write-Output "$i-$j"
+          }
+      }
+      ```
+
+      Inner loop runs completely for each outer loop iteration.
+    hint: "Nested loops multiply iterations (3x2 = 6 total)"
+    validation:
+      type: "command-output"
+      command: "for ($i = 1; $i -le 2; $i++) { for ($j = 1; $j -le 2; $j++) { Write-Output \"$i-$j\" } } | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "exact"
+      expected: "4"
+
+completion:
+  message: "Excellent! You can now use all PowerShell loop types for automation tasks!"
+  xp: 300
+  unlocks:
+    - "powershell/scripting/conditionals"

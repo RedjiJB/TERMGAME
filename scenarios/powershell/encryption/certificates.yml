@@ -1,0 +1,155 @@
+mission:
+  id: "powershell/encryption/certificates"
+  title: "Managing Digital Certificates"
+  difficulty: advanced
+  description: "Learn to manage digital certificates with PowerShell"
+  estimated_time: 30
+  tags:
+    - powershell
+    - encryption
+    - advanced
+    - week-10
+    - certificates
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "certificate-overview"
+    title: "What are Digital Certificates?"
+    description: |
+      Certificates provide:
+      - Identity verification
+      - Data encryption
+      - Digital signatures
+      - SSL/TLS for websites
+
+      Used for HTTPS, code signing, email encryption, etc.
+
+      View certificate stores:
+      ```powershell
+      Get-ChildItem Cert:\\ -Recurse -ErrorAction SilentlyContinue | Measure-Object
+      ```
+    hint: "Certificates are foundational to internet security"
+    validation:
+      type: "command-output"
+      command: "Test-Path Cert:\\"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "certificate-stores"
+    title: "Understanding Certificate Stores"
+    description: |
+      Windows certificate stores:
+      - **CurrentUser**: User certificates
+      - **LocalMachine**: Computer certificates
+
+      Within each:
+      - **My**: Personal certificates
+      - **Root**: Trusted root CAs
+      - **CA**: Intermediate CAs
+      - **TrustedPublisher**: Trusted publishers
+
+      List stores:
+      ```powershell
+      Get-ChildItem Cert:\\CurrentUser
+      ```
+    hint: "Different stores serve different purposes"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem Cert:\\CurrentUser | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "view-certificates"
+    title: "View Installed Certificates"
+    description: |
+      List certificates in a store.
+
+      View personal certificates:
+      ```powershell
+      Get-ChildItem Cert:\\CurrentUser\\My | Select-Object Subject, Thumbprint, NotAfter
+      ```
+
+      Shows subject, thumbprint (ID), and expiration.
+    hint: "Thumbprint uniquely identifies certificates"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem Cert:\\CurrentUser\\My -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "export-certificate"
+    title: "Export Certificates"
+    description: |
+      Export certificates for backup or transfer.
+
+      Export syntax (if certificates exist):
+      ```powershell
+      # $cert = Get-ChildItem Cert:\\CurrentUser\\My | Select-Object -First 1
+      # Export-Certificate -Cert $cert -FilePath exported.cer
+      ```
+
+      Verify command exists:
+      ```powershell
+      Get-Command Export-Certificate
+      ```
+
+      .cer files contain public key only.
+    hint: "Export public certificates as .cer, private as .pfx"
+    validation:
+      type: "command-output"
+      command: "Get-Command Export-Certificate -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Export-Certificate"
+
+  - id: "import-certificate"
+    title: "Import Certificates"
+    description: |
+      Import certificates into stores.
+
+      Import syntax:
+      ```powershell
+      # Import-Certificate -FilePath certificate.cer -CertStoreLocation Cert:\\CurrentUser\\My
+      ```
+
+      Verify command:
+      ```powershell
+      Get-Command Import-Certificate
+      ```
+
+      Places certificate in specified store.
+    hint: "Import certificates to trust them"
+    validation:
+      type: "command-output"
+      command: "Get-Command Import-Certificate -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Import-Certificate"
+
+  - id: "self-signed-certificates"
+    title: "Create Self-Signed Certificates"
+    description: |
+      Create test certificates with New-SelfSignedCertificate.
+
+      Create self-signed cert:
+      ```powershell
+      New-SelfSignedCertificate -Subject "CN=TestCert" -CertStoreLocation Cert:\\CurrentUser\\My -KeyExportPolicy Exportable -NotAfter (Get-Date).AddYears(1)
+      ```
+
+      Useful for testing, not production.
+    hint: "Self-signed certs are for development only"
+    validation:
+      type: "command-output"
+      command: "$cert = New-SelfSignedCertificate -Subject 'CN=TestCert' -CertStoreLocation Cert:\\CurrentUser\\My -KeyExportPolicy Exportable -NotAfter (Get-Date).AddYears(1) -ErrorAction SilentlyContinue; if ($cert) { 'created' } else { 'exists' }"
+      matcher: "regex"
+      expected: "(created|exists)"
+
+completion:
+  message: "Excellent! You understand certificate management fundamentals!"
+  xp: 400
+  unlocks:
+    - "powershell/scripting/functions"

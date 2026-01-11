@@ -1,0 +1,254 @@
+mission:
+  id: "powershell/cloud/azure-resources"
+  title: "Managing Azure Resources"
+  difficulty: advanced
+  description: "Learn to create and manage Azure storage, networking, and resource operations"
+  estimated_time: 35
+  tags:
+    - powershell
+    - cloud
+    - advanced
+    - week-13
+    - azure
+    - resources
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "storage-accounts"
+    title: "Azure Storage Accounts"
+    description: |
+      Storage accounts provide cloud storage services.
+
+      Storage account types:
+      - **Standard**: HDD-backed (cheaper)
+      - **Premium**: SSD-backed (faster)
+
+      Services in storage account:
+      - **Blob**: Object storage (files, images)
+      - **File**: SMB file shares
+      - **Queue**: Message queues
+      - **Table**: NoSQL key-value store
+
+      Create storage account:
+      ```powershell
+      # New-AzStorageAccount -ResourceGroupName "myRG" -Name "mystorageacct" -Location "eastus" -SkuName "Standard_LRS"
+      ```
+
+      List storage accounts:
+      ```powershell
+      # Get-AzStorageAccount
+      ```
+    hint: "Storage account names must be globally unique"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Storage account provides blob file queue table'"
+      matcher: "contains"
+      expected: "blob"
+
+  - id: "blob-storage"
+    title: "Working with Blob Storage"
+    description: |
+      Blob storage holds unstructured data (files).
+
+      Blob hierarchy:
+      - Storage Account → Container → Blob
+
+      Create container:
+      ```powershell
+      # $ctx = (Get-AzStorageAccount -ResourceGroupName "myRG" -Name "mystorageacct").Context
+      # New-AzStorageContainer -Name "mycontainer" -Context $ctx -Permission Blob
+      ```
+
+      Upload blob:
+      ```powershell
+      # Set-AzStorageBlobContent -File "file.txt" -Container "mycontainer" -Blob "file.txt" -Context $ctx
+      ```
+
+      Download blob:
+      ```powershell
+      # Get-AzStorageBlobContent -Container "mycontainer" -Blob "file.txt" -Destination "." -Context $ctx
+      ```
+    hint: "Containers are like folders for blobs"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Blob storage hierarchy: account container blob'"
+      matcher: "contains"
+      expected: "container"
+
+  - id: "virtual-networks"
+    title: "Azure Virtual Networks"
+    description: |
+      Virtual Networks (VNets) enable private networking in Azure.
+
+      VNet concepts:
+      - **Address Space**: IP range (e.g., 10.0.0.0/16)
+      - **Subnets**: Subdivisions of VNet
+      - **NSG**: Network Security Groups (firewall rules)
+      - **VPN Gateway**: Connect to on-premises
+
+      Create virtual network:
+      ```powershell
+      # $subnet = New-AzVirtualNetworkSubnetConfig -Name "default" -AddressPrefix "10.0.0.0/24"
+      # New-AzVirtualNetwork -Name "myVNet" -ResourceGroupName "myRG" -Location "eastus" -AddressPrefix "10.0.0.0/16" -Subnet $subnet
+      ```
+
+      List virtual networks:
+      ```powershell
+      # Get-AzVirtualNetwork
+      ```
+    hint: "VNets isolate and secure Azure resources"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'VNet provides private networking'"
+      matcher: "contains"
+      expected: "private"
+
+  - id: "network-security-groups"
+    title: "Network Security Groups (NSGs)"
+    description: |
+      NSGs filter network traffic with security rules.
+
+      NSG rules components:
+      - **Priority**: 100-4096 (lower = higher priority)
+      - **Source/Destination**: IP, VNet, tag
+      - **Port**: Single or range
+      - **Protocol**: TCP, UDP, Any
+      - **Action**: Allow or Deny
+
+      Create NSG:
+      ```powershell
+      # $rule = New-AzNetworkSecurityRuleConfig -Name "AllowHTTP" -Protocol Tcp -Direction Inbound -Priority 1000 -SourceAddressPrefix * -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 80 -Access Allow
+      # New-AzNetworkSecurityGroup -ResourceGroupName "myRG" -Location "eastus" -Name "myNSG" -SecurityRules $rule
+      ```
+
+      Default rules deny all inbound, allow all outbound.
+    hint: "NSGs act as virtual firewalls"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'NSG priority range 100-4096'"
+      matcher: "contains"
+      expected: "priority"
+
+  - id: "public-ip-addresses"
+    title: "Public IP Addresses"
+    description: |
+      Public IPs enable internet connectivity.
+
+      Public IP types:
+      - **Basic**: Free, dynamic or static
+      - **Standard**: Paid, always static, zone redundant
+
+      Allocation methods:
+      - **Dynamic**: Assigned on start
+      - **Static**: Fixed IP address
+
+      Create public IP:
+      ```powershell
+      # New-AzPublicIpAddress -ResourceGroupName "myRG" -Name "myPublicIP" -Location "eastus" -AllocationMethod "Static" -Sku "Standard"
+      ```
+
+      Get public IP address:
+      ```powershell
+      # (Get-AzPublicIpAddress -ResourceGroupName "myRG" -Name "myPublicIP").IpAddress
+      ```
+    hint: "Use static IPs for resources that need consistent addresses"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Public IP allocation: dynamic static'"
+      matcher: "contains"
+      expected: "static"
+
+  - id: "resource-tags"
+    title: "Tagging Azure Resources"
+    description: |
+      Tags organize and categorize resources.
+
+      Tag uses:
+      - Cost tracking by department
+      - Environment identification (dev, prod)
+      - Owner/project tracking
+      - Automation (shutdown schedules)
+
+      Add tags to resource:
+      ```powershell
+      # Set-AzResource -ResourceGroupName "myRG" -Name "myVM" -ResourceType "Microsoft.Compute/virtualMachines" -Tag @{Environment="Production"; Department="IT"; Owner="admin@company.com"} -Force
+      ```
+
+      Get resources by tag:
+      ```powershell
+      # Get-AzResource -Tag @{Environment="Production"}
+      ```
+
+      Tags are key-value pairs (max 50 per resource).
+    hint: "Tags enable better organization and cost management"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Tags are key-value pairs'"
+      matcher: "contains"
+      expected: "key-value"
+
+  - id: "resource-locks"
+    title: "Resource Locks"
+    description: |
+      Locks prevent accidental deletion or modification.
+
+      Lock types:
+      - **CanNotDelete**: Can modify, cannot delete
+      - **ReadOnly**: Cannot modify or delete
+
+      Create lock:
+      ```powershell
+      # New-AzResourceLock -LockName "DoNotDelete" -LockLevel CanNotDelete -ResourceGroupName "myRG"
+      ```
+
+      Remove lock:
+      ```powershell
+      # Remove-AzResourceLock -LockName "DoNotDelete" -ResourceGroupName "myRG"
+      ```
+
+      Locks apply to all resources in scope (including children).
+    hint: "Use locks on production resources to prevent accidents"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'Lock types: CanNotDelete ReadOnly'"
+      matcher: "contains"
+      expected: "CanNotDelete"
+
+  - id: "azure-resource-manager"
+    title: "Azure Resource Manager (ARM)"
+    description: |
+      ARM is the deployment and management layer.
+
+      ARM provides:
+      - **Consistent management**: Portal, PowerShell, CLI, REST
+      - **Declarative templates**: JSON templates
+      - **Resource groups**: Logical grouping
+      - **RBAC**: Role-based access control
+      - **Tags and locks**: Organization and protection
+
+      Get resource:
+      ```powershell
+      # Get-AzResource -ResourceGroupName "myRG"
+      ```
+
+      All Azure operations go through ARM.
+
+      ARM templates enable infrastructure as code.
+    hint: "ARM is the foundation of all Azure management"
+    validation:
+      type: "command-output"
+      command: "Write-Output 'ARM provides consistent management layer'"
+      matcher: "contains"
+      expected: "consistent"
+
+completion:
+  message: "Excellent! You can now manage Azure storage, networking, and resource operations!"
+  xp: 450
+  unlocks:
+    - "powershell/cloud/azure-vms"

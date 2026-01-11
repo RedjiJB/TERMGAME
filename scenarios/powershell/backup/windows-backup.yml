@@ -1,0 +1,115 @@
+mission:
+  id: "powershell/backup/windows-backup"
+  title: "Using Windows Server Backup"
+  difficulty: intermediate
+  description: "Learn to use wbadmin for Windows Server backups"
+  estimated_time: 25
+  tags:
+    - powershell
+    - backup
+    - intermediate
+    - week-3
+    - wbadmin
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "wbadmin-overview"
+    title: "Understanding wbadmin"
+    description: |
+      `wbadmin` is Windows Server's built-in backup tool.
+
+      Features:
+      - System state backups
+      - Bare metal recovery
+      - Volume snapshots
+      - Scheduled backups
+
+      Check if wbadmin is available:
+      ```powershell
+      Get-Command wbadmin
+      ```
+
+      Requires administrator privileges.
+    hint: "wbadmin provides enterprise-grade backup capabilities"
+    validation:
+      type: "command-output"
+      command: "Get-Command wbadmin -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "wbadmin.exe"
+
+  - id: "wbadmin-syntax"
+    title: "Understanding wbadmin Syntax"
+    description: |
+      Common wbadmin commands:
+      - `wbadmin start backup`: Start a backup
+      - `wbadmin get versions`: List backups
+      - `wbadmin start recovery`: Restore from backup
+      - `wbadmin get status`: Check backup status
+
+      View wbadmin help:
+      ```powershell
+      wbadmin /?
+      ```
+
+      Each command has specific parameters.
+    hint: "wbadmin uses command-line switches like -backupTarget"
+    validation:
+      type: "command-output"
+      command: "wbadmin /? 2>&1 | Select-String 'wbadmin' | Select-Object -First 1"
+      matcher: "regex"
+      expected: ".*"
+
+  - id: "backup-locations"
+    title: "Understanding Backup Targets"
+    description: |
+      Backup targets (destinations):
+      - Local drives
+      - Network shares (UNC paths)
+      - External USB drives
+
+      Example syntax (requires admin):
+      ```powershell
+      # wbadmin start backup -backupTarget:D: -include:C:
+      ```
+
+      Always backup to different physical drive.
+    hint: "Never backup to the same drive you're backing up"
+    validation:
+      type: "command-output"
+      command: "Get-PSDrive -PSProvider FileSystem | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "system-state-backup"
+    title: "Understanding System State Backups"
+    description: |
+      System State includes:
+      - Registry
+      - Boot files
+      - System files
+      - Active Directory (on domain controllers)
+
+      System state backup syntax:
+      ```powershell
+      # wbadmin start systemstatebackup -backupTarget:D:
+      ```
+
+      Critical for disaster recovery.
+    hint: "System state backup enables complete system recovery"
+    validation:
+      type: "command-output"
+      command: "Get-Command wbadmin | Select-Object -ExpandProperty Source"
+      matcher: "regex"
+      expected: ".*"
+
+completion:
+  message: "Great! You understand Windows Server Backup fundamentals!"
+  xp: 250
+  unlocks:
+    - "powershell/backup/disaster-recovery"

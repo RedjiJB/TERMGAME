@@ -1,0 +1,127 @@
+mission:
+  id: "powershell/backup/disaster-recovery"
+  title: "Disaster Recovery Planning"
+  difficulty: intermediate
+  description: "Learn disaster recovery concepts and create recovery plans"
+  estimated_time: 30
+  tags:
+    - powershell
+    - backup
+    - intermediate
+    - week-3
+    - disaster-recovery
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "rto-rpo"
+    title: "Understand RTO and RPO"
+    description: |
+      Key disaster recovery metrics:
+
+      **RTO (Recovery Time Objective)**: How quickly must systems be restored?
+      - Example: 4 hours maximum downtime
+
+      **RPO (Recovery Point Objective)**: How much data loss is acceptable?
+      - Example: Maximum 1 hour of data loss
+
+      Create RTO/RPO document:
+      ```powershell
+      $plan = @"
+      Disaster Recovery Plan
+      RTO: 4 hours
+      RPO: 1 hour
+      Backup Frequency: Hourly
+      "@
+      Set-Content -Path "DR-Plan.txt" -Value $plan
+      ```
+    hint: "RTO and RPO drive backup frequency and strategy"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/DR-Plan.txt"
+      matcher: "exists"
+
+  - id: "test-restores"
+    title: "Test Recovery Procedures"
+    description: |
+      Never assume backups work - test them!
+
+      Recovery test script:
+      ```powershell
+      $testScript = @'
+      # Recovery Test Procedure
+      # 1. Select random backup
+      # 2. Restore to test location
+      # 3. Verify data integrity
+      # 4. Document results
+      Write-Output "Recovery test: $(Get-Date)"
+      '@
+      Set-Content -Path "test-recovery.ps1" -Value $testScript
+      ```
+
+      Test quarterly at minimum.
+    hint: "Untested backups are just wishful thinking"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/test-recovery.ps1"
+      matcher: "exists"
+
+  - id: "document-procedures"
+    title: "Document Recovery Procedures"
+    description: |
+      Clear documentation enables fast recovery.
+
+      Document recovery steps:
+      ```powershell
+      $procedures = @"
+      DISASTER RECOVERY PROCEDURES
+
+      1. Assess damage
+      2. Notify stakeholders
+      3. Identify last good backup
+      4. Begin restore process
+      5. Verify system functionality
+      6. Resume normal operations
+      7. Conduct post-mortem
+      "@
+      Set-Content -Path "recovery-procedures.txt" -Value $procedures
+      ```
+    hint: "Clear procedures prevent panic during disasters"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/recovery-procedures.txt"
+      matcher: "exists"
+
+  - id: "offsite-backups"
+    title: "Implement Offsite Backups"
+    description: |
+      Onsite backups don't protect against building disasters.
+
+      Offsite backup script concept:
+      ```powershell
+      $offsite = @'
+      # Copy backups to remote location
+      $source = "C:\Backups"
+      $destination = "\\RemoteServer\Backups"
+      # Copy-Item $source $destination -Recurse
+      '@
+      Set-Content -Path "offsite-backup.ps1" -Value $offsite
+      ```
+
+      Cloud storage is modern offsite solution.
+    hint: "Offsite protects against fire, flood, theft"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/offsite-backup.ps1"
+      matcher: "exists"
+
+completion:
+  message: "Excellent! You understand disaster recovery planning. Implement these practices now!"
+  xp: 300
+  unlocks:
+    - "powershell/registry/registry-basics"

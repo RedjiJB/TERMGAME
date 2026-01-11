@@ -1,0 +1,147 @@
+mission:
+  id: "powershell/cmdlets/cmdlet-best-practices"
+  title: "Cmdlet Best Practices"
+  difficulty: intermediate
+  description: "Learn professional patterns and best practices for using cmdlets"
+  estimated_time: 25
+  tags:
+    - powershell
+    - cmdlets
+    - intermediate
+    - week-4
+    - best-practices
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/data.txt -ItemType File -Value 'Important data' -Force"
+
+steps:
+  - id: "use-full-names"
+    title: "Use Full Cmdlet Names in Scripts"
+    description: |
+      In scripts, use full cmdlet names instead of aliases for clarity.
+
+      Good (full name):
+      ```powershell
+      Get-ChildItem
+      ```
+
+      Avoid in scripts (alias):
+      ```powershell
+      ls
+      ```
+
+      Aliases are fine interactively, but scripts should be explicit.
+    hint: "Full names make scripts readable and maintainable"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "named-parameters-in-scripts"
+    title: "Prefer Named Parameters"
+    description: |
+      Use named parameters in scripts for clarity.
+
+      Good (named):
+      ```powershell
+      Copy-Item -Path "data.txt" -Destination "backup.txt"
+      ```
+
+      Avoid (positional):
+      ```powershell
+      Copy-Item data.txt backup.txt
+      ```
+
+      Named parameters make intent clear.
+    hint: "Named parameters self-document your code"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/backup.txt"
+      matcher: "exists"
+
+  - id: "test-before-action"
+    title: "Test Before Taking Action"
+    description: |
+      Use Test-Path before operating on files.
+
+      Good practice:
+      ```powershell
+      if (Test-Path "data.txt") {
+          Get-Content "data.txt"
+      }
+      ```
+
+      This prevents errors if the file doesn't exist.
+    hint: "Always validate conditions before destructive operations"
+    validation:
+      type: "command-output"
+      command: "Test-Path data.txt"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "use-whatif-testing"
+    title: "Test Commands with -WhatIf"
+    description: |
+      Before running destructive commands, test with -WhatIf.
+
+      Preview the operation:
+      ```powershell
+      Remove-Item backup.txt -WhatIf
+      ```
+
+      Then run without -WhatIf after confirming it's correct.
+    hint: "-WhatIf prevents costly mistakes"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/backup.txt"
+      matcher: "exists"
+
+  - id: "explicit-erroraction"
+    title: "Be Explicit with Error Handling"
+    description: |
+      Specify -ErrorAction explicitly in scripts.
+
+      Create a script that handles missing files:
+      ```powershell
+      $file = Get-Item "nonexistent.txt" -ErrorAction SilentlyContinue
+      if ($null -eq $file) {
+          New-Item -Path "created.txt" -ItemType File -Value "Created"
+      }
+      ```
+
+      This handles errors gracefully.
+    hint: "Explicit error handling makes scripts robust"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/created.txt"
+      matcher: "exists"
+
+  - id: "pipeline-over-variables"
+    title: "Prefer Pipeline Over Variables"
+    description: |
+      Use the pipeline instead of temporary variables when possible.
+
+      Good (pipeline):
+      ```powershell
+      Get-ChildItem | Where-Object {$_.Length -gt 0} | Measure-Object
+      ```
+
+      This is more efficient and cleaner than storing intermediate results.
+    hint: "Pipeline is more memory-efficient and idiomatic"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Where-Object {$_.Length -gt 0} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+completion:
+  message: "Outstanding! You now follow PowerShell best practices. Your scripts will be professional and maintainable!"
+  xp: 250
+  unlocks:
+    - "powershell/objects/pipeline-intro"

@@ -1,0 +1,133 @@
+mission:
+  id: "powershell/networking/network-basics"
+  title: "Windows Networking Basics"
+  difficulty: beginner
+  description: "Learn to view and inspect network configuration with PowerShell"
+  estimated_time: 20
+  tags:
+    - powershell
+    - networking
+    - beginner
+    - week-7
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "get-netadapter"
+    title: "View Network Adapters"
+    description: |
+      `Get-NetAdapter` shows all network interfaces.
+
+      View network adapters:
+      ```powershell
+      Get-NetAdapter
+      ```
+
+      This displays adapter names, status, and link speed.
+    hint: "Network adapters connect your computer to networks"
+    validation:
+      type: "command-output"
+      command: "Get-NetAdapter | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "get-netipaddress"
+    title: "View IP Addresses"
+    description: |
+      `Get-NetIPAddress` shows IP configuration.
+
+      View all IP addresses:
+      ```powershell
+      Get-NetIPAddress
+      ```
+
+      Shows IPv4 and IPv6 addresses for each adapter.
+    hint: "IP addresses identify devices on networks"
+    validation:
+      type: "command-output"
+      command: "Get-NetIPAddress | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "filter-ipv4"
+    title: "Filter IPv4 Addresses"
+    description: |
+      Filter to show only IPv4 addresses.
+
+      Get IPv4 addresses:
+      ```powershell
+      Get-NetIPAddress -AddressFamily IPv4
+      ```
+
+      This excludes IPv6 addresses.
+    hint: "IPv4 addresses look like 192.168.1.1"
+    validation:
+      type: "command-output"
+      command: "Get-NetIPAddress -AddressFamily IPv4 | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "get-netroute"
+    title: "View Routing Table"
+    description: |
+      `Get-NetRoute` shows the routing table.
+
+      View routes:
+      ```powershell
+      Get-NetRoute
+      ```
+
+      Routes determine where network traffic goes.
+    hint: "Routing tables direct network packets to destinations"
+    validation:
+      type: "command-output"
+      command: "Get-NetRoute | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "get-dnsserveraddress"
+    title: "View DNS Servers"
+    description: |
+      `Get-DnsClientServerAddress` shows DNS configuration.
+
+      View DNS servers:
+      ```powershell
+      Get-DnsClientServerAddress
+      ```
+
+      DNS servers translate domain names to IP addresses.
+    hint: "DNS is like the phone book of the internet"
+    validation:
+      type: "command-output"
+      command: "Get-DnsClientServerAddress | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "get-netconnectionprofile"
+    title: "View Connection Profiles"
+    description: |
+      `Get-NetConnectionProfile` shows network profile information.
+
+      View profiles:
+      ```powershell
+      Get-NetConnectionProfile
+      ```
+
+      Shows network category (Public, Private, Domain).
+    hint: "Network profiles determine firewall rules"
+    validation:
+      type: "command-output"
+      command: "Get-Command Get-NetConnectionProfile | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Get-NetConnectionProfile"
+
+completion:
+  message: "Great! You can now view and understand Windows network configuration!"
+  xp: 150
+  unlocks:
+    - "powershell/networking/test-connection"

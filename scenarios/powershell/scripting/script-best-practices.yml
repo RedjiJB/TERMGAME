@@ -1,0 +1,330 @@
+mission:
+  id: "powershell/scripting/script-best-practices"
+  title: "PowerShell Scripting Best Practices"
+  difficulty: advanced
+  description: "Learn professional scripting standards and maintainable code practices"
+  estimated_time: 35
+  tags:
+    - powershell
+    - scripting
+    - advanced
+    - week-11
+    - best-practices
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "script-structure"
+    title: "Proper Script Structure"
+    description: |
+      Well-structured scripts are easier to maintain.
+
+      Recommended structure:
+      ```powershell
+      # Script header comment
+      # Purpose: What the script does
+      # Author: Your name
+      # Date: Creation date
+
+      [CmdletBinding()]
+      param(
+          # Parameters here
+      )
+
+      # Functions
+      function Get-Something {
+          # Function code
+      }
+
+      # Main script logic
+      try {
+          # Main code
+      } catch {
+          # Error handling
+      }
+      ```
+
+      Create a simple structured script:
+      ```powershell
+      @"
+      # Test Script
+      # Purpose: Demonstrate structure
+      param()
+      Write-Output 'Structured script'
+      "@ | Out-File -FilePath structured.ps1
+      ```
+    hint: "Good structure improves readability and maintenance"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/structured.ps1"
+      matcher: "exists"
+
+  - id: "use-approved-verbs"
+    title: "Use Approved Verbs"
+    description: |
+      Follow PowerShell verb conventions.
+
+      Get approved verbs:
+      ```powershell
+      Get-Verb | Select-Object -First 10 Verb
+      ```
+
+      Common approved verbs:
+      - **Get**: Retrieve data
+      - **Set**: Change data
+      - **New**: Create items
+      - **Remove**: Delete items
+      - **Start/Stop**: Control processes
+      - **Test**: Verify conditions
+      - **Invoke**: Execute actions
+
+      Use: Get-UserData (not Retrieve-UserData)
+    hint: "Get-Verb shows all approved verbs"
+    validation:
+      type: "command-output"
+      command: "Get-Verb | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "cmdletbinding"
+    title: "Use CmdletBinding for Advanced Functions"
+    description: |
+      [CmdletBinding()] adds cmdlet features to functions.
+
+      Advanced function:
+      ```powershell
+      function Get-AdvancedInfo {
+          [CmdletBinding()]
+          param(
+              [string]$Name
+          )
+
+          Write-Verbose "Processing: $Name"
+          Write-Output "Info for $Name"
+      }
+
+      Get-AdvancedInfo -Name "Test" -Verbose
+      ```
+
+      Enables: -Verbose, -Debug, -ErrorAction, etc.
+    hint: "CmdletBinding makes functions behave like cmdlets"
+    validation:
+      type: "command-output"
+      command: "function Get-AdvancedInfo { [CmdletBinding()] param([string]$Name = 'Test'); Write-Output \"Info for $Name\" }; Get-AdvancedInfo -Name 'Test'"
+      matcher: "exact"
+      expected: "Info for Test"
+
+  - id: "comment-based-help"
+    title: "Add Comment-Based Help"
+    description: |
+      Document functions with comment-based help.
+
+      Comment-based help:
+      ```powershell
+      function Get-ComputerData {
+          <#
+          .SYNOPSIS
+          Retrieves computer information
+
+          .DESCRIPTION
+          Gets detailed computer data including OS and hardware info
+
+          .PARAMETER ComputerName
+          Name of the computer to query
+
+          .EXAMPLE
+          Get-ComputerData -ComputerName "SERVER01"
+
+          .NOTES
+          Requires admin privileges
+          #>
+          [CmdletBinding()]
+          param(
+              [string]$ComputerName
+          )
+
+          Write-Output "Data for $ComputerName"
+      }
+
+      Get-Help Get-ComputerData
+      ```
+
+      Users can access help with Get-Help.
+    hint: "Comment-based help makes scripts self-documenting"
+    validation:
+      type: "command-output"
+      command: "function Get-ComputerData { <# .SYNOPSIS Test function #> param([string]$Name = 'PC'); Write-Output $Name }; Get-Help Get-ComputerData | Select-Object -First 1"
+      matcher: "regex"
+      expected: ".*"
+
+  - id: "verbose-output"
+    title: "Use Write-Verbose for Debug Info"
+    description: |
+      Write-Verbose for optional diagnostic output.
+
+      Verbose messages:
+      ```powershell
+      function Process-Data {
+          [CmdletBinding()]
+          param([string]$Data)
+
+          Write-Verbose "Starting processing"
+          Write-Verbose "Data: $Data"
+
+          # Process data
+          $result = $Data.ToUpper()
+
+          Write-Verbose "Processing complete"
+          Write-Output $result
+      }
+
+      Process-Data -Data "test" -Verbose
+      ```
+
+      Visible only with -Verbose switch.
+    hint: "Write-Verbose helps debugging without cluttering normal output"
+    validation:
+      type: "command-output"
+      command: "function Process-Data { [CmdletBinding()] param([string]$Data = 'test'); Write-Verbose 'Processing'; $Data.ToUpper() }; Process-Data -Data 'test'"
+      matcher: "exact"
+      expected: "TEST"
+
+  - id: "whatif-confirm"
+    title: "Support WhatIf and Confirm"
+    description: |
+      Add safety to destructive operations.
+
+      ShouldProcess support:
+      ```powershell
+      function Remove-CustomItem {
+          [CmdletBinding(SupportsShouldProcess=$true)]
+          param(
+              [string]$Path
+          )
+
+          if ($PSCmdlet.ShouldProcess($Path, "Remove item")) {
+              Write-Output "Removing $Path"
+              # Remove-Item $Path
+          }
+      }
+
+      Remove-CustomItem -Path "test.txt" -WhatIf
+      ```
+
+      Enables -WhatIf and -Confirm parameters.
+    hint: "SupportsShouldProcess adds -WhatIf and -Confirm"
+    validation:
+      type: "command-output"
+      command: "function Remove-CustomItem { [CmdletBinding(SupportsShouldProcess=$true)] param([string]$Path = 'test'); if ($PSCmdlet.ShouldProcess($Path, 'Remove')) { Write-Output 'Removed' } }; Remove-CustomItem -Path 'test' -WhatIf"
+      matcher: "regex"
+      expected: ".*"
+
+  - id: "error-handling-best-practices"
+    title: "Comprehensive Error Handling"
+    description: |
+      Always handle errors appropriately.
+
+      Best practices:
+      ```powershell
+      function Safe-Operation {
+          [CmdletBinding()]
+          param([string]$Path)
+
+          try {
+              if (-not (Test-Path $Path)) {
+                  throw "Path does not exist: $Path"
+              }
+
+              Get-Content $Path -ErrorAction Stop
+          } catch [System.IO.FileNotFoundException] {
+              Write-Error "File not found: $Path"
+              return $null
+          } catch {
+              Write-Error "Unexpected error: $($_.Exception.Message)"
+              return $null
+          }
+      }
+      ```
+
+      - Use Try/Catch for risky operations
+      - Validate inputs
+      - Provide meaningful error messages
+    hint: "Good error handling prevents script failures"
+    validation:
+      type: "command-output"
+      command: "function Safe-Operation { param([string]$Path); try { if (-not (Test-Path $Path)) { throw 'Not found' }; Write-Output 'Success' } catch { Write-Output 'Error' } }; Safe-Operation -Path 'C:\\nonexistent'"
+      matcher: "exact"
+      expected: "Error"
+
+  - id: "output-best-practices"
+    title: "Proper Output Methods"
+    description: |
+      Use correct output cmdlets for different purposes.
+
+      Output cmdlets:
+      - **Write-Output**: Pipeline output (data)
+      - **Write-Host**: Console display only (avoid for data)
+      - **Write-Verbose**: Debug info (-Verbose)
+      - **Write-Warning**: Warnings
+      - **Write-Error**: Errors
+      - **Write-Debug**: Debug info (-Debug)
+
+      Example:
+      ```powershell
+      function Get-DataWithLogging {
+          [CmdletBinding()]
+          param()
+
+          Write-Verbose "Retrieving data"
+          $data = "Important data"
+
+          Write-Warning "This is a warning"
+          Write-Output $data
+      }
+      ```
+
+      Write-Output for pipeline, Write-Host for user messages.
+    hint: "Use Write-Output for data, Write-Host for messages"
+    validation:
+      type: "command-output"
+      command: "function Get-DataWithLogging { [CmdletBinding()] param(); Write-Verbose 'Log'; Write-Output 'Data' }; Get-DataWithLogging"
+      matcher: "exact"
+      expected: "Data"
+
+  - id: "script-signing"
+    title: "Understanding Script Signing"
+    description: |
+      Script signing ensures authenticity and integrity.
+
+      Execution policies:
+      ```powershell
+      Get-ExecutionPolicy -List
+      ```
+
+      Policies:
+      - **Restricted**: No scripts (Windows default)
+      - **AllSigned**: Only signed scripts
+      - **RemoteSigned**: Remote scripts must be signed
+      - **Unrestricted**: All scripts (risky)
+      - **Bypass**: No restrictions (very risky)
+
+      For production, use signed scripts with AllSigned policy.
+
+      Note: Signing requires certificate (not covered here).
+    hint: "RemoteSigned is common for development, AllSigned for production"
+    validation:
+      type: "command-output"
+      command: "Get-ExecutionPolicy"
+      matcher: "regex"
+      expected: "(Bypass|Unrestricted|RemoteSigned|AllSigned|Restricted)"
+
+completion:
+  message: "Excellent! You now follow PowerShell scripting best practices for professional code!"
+  xp: 400
+  unlocks:
+    - "powershell/cloud/azure-intro"

@@ -1,0 +1,183 @@
+mission:
+  id: "powershell/scripting/functions"
+  title: "Creating PowerShell Functions"
+  difficulty: intermediate
+  description: "Learn to create reusable functions with parameters and return values"
+  estimated_time: 25
+  tags:
+    - powershell
+    - scripting
+    - intermediate
+    - week-11
+    - functions
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "simple-function"
+    title: "Create Your First Function"
+    description: |
+      Functions are reusable blocks of code.
+
+      Basic function syntax:
+      ```powershell
+      function Get-Greeting {
+          Write-Output "Hello, PowerShell!"
+      }
+
+      Get-Greeting
+      ```
+
+      Create and call a simple function:
+      ```powershell
+      function Get-Greeting {
+          Write-Output "Hello, PowerShell!"
+      }
+      Get-Greeting
+      ```
+    hint: "Function names typically follow Verb-Noun convention"
+    validation:
+      type: "command-output"
+      command: "function Get-Greeting { Write-Output 'Hello, PowerShell!' }; Get-Greeting"
+      matcher: "exact"
+      expected: "Hello, PowerShell!"
+
+  - id: "function-parameters"
+    title: "Functions with Parameters"
+    description: |
+      Functions can accept input via parameters.
+
+      Function with parameter:
+      ```powershell
+      function Get-PersonalGreeting {
+          param(
+              $Name
+          )
+          Write-Output "Hello, $Name!"
+      }
+
+      Get-PersonalGreeting -Name "World"
+      ```
+
+      The param block defines parameters.
+    hint: "Parameters make functions flexible and reusable"
+    validation:
+      type: "command-output"
+      command: "function Get-PersonalGreeting { param($Name); Write-Output \"Hello, $Name!\" }; Get-PersonalGreeting -Name 'World'"
+      matcher: "exact"
+      expected: "Hello, World!"
+
+  - id: "multiple-parameters"
+    title: "Multiple Parameters"
+    description: |
+      Functions can have multiple parameters.
+
+      Multiple parameter example:
+      ```powershell
+      function Get-FullName {
+          param(
+              $FirstName,
+              $LastName
+          )
+          Write-Output "$FirstName $LastName"
+      }
+
+      Get-FullName -FirstName "John" -LastName "Doe"
+      ```
+
+      Each parameter is separated by commas.
+    hint: "Use descriptive parameter names"
+    validation:
+      type: "command-output"
+      command: "function Get-FullName { param($FirstName, $LastName); Write-Output \"$FirstName $LastName\" }; Get-FullName -FirstName 'John' -LastName 'Doe'"
+      matcher: "exact"
+      expected: "John Doe"
+
+  - id: "return-values"
+    title: "Returning Values from Functions"
+    description: |
+      Functions return output via Write-Output or just outputting values.
+
+      Return value example:
+      ```powershell
+      function Get-Sum {
+          param(
+              $A,
+              $B
+          )
+          $A + $B
+      }
+
+      $result = Get-Sum -A 5 -B 3
+      Write-Output "Sum: $result"
+      ```
+
+      The last expression is automatically returned.
+    hint: "Use return keyword only for early exit"
+    validation:
+      type: "command-output"
+      command: "function Get-Sum { param($A, $B); $A + $B }; Get-Sum -A 5 -B 3"
+      matcher: "exact"
+      expected: "8"
+
+  - id: "typed-parameters"
+    title: "Type-Constrained Parameters"
+    description: |
+      Specify parameter types for validation.
+
+      Typed parameters:
+      ```powershell
+      function Get-Square {
+          param(
+              [int]$Number
+          )
+          $Number * $Number
+      }
+
+      Get-Square -Number 4
+      ```
+
+      [int] ensures only integers are accepted.
+    hint: "Type constraints prevent errors"
+    validation:
+      type: "command-output"
+      command: "function Get-Square { param([int]$Number); $Number * $Number }; Get-Square -Number 4"
+      matcher: "exact"
+      expected: "16"
+
+  - id: "default-parameters"
+    title: "Default Parameter Values"
+    description: |
+      Parameters can have default values.
+
+      Default value example:
+      ```powershell
+      function Get-GreetingWithDefault {
+          param(
+              $Name = "Guest"
+          )
+          Write-Output "Welcome, $Name!"
+      }
+
+      Get-GreetingWithDefault
+      Get-GreetingWithDefault -Name "Admin"
+      ```
+
+      Default values make parameters optional.
+    hint: "Use defaults for common values"
+    validation:
+      type: "command-output"
+      command: "function Get-GreetingWithDefault { param($Name = 'Guest'); Write-Output \"Welcome, $Name!\" }; Get-GreetingWithDefault"
+      matcher: "exact"
+      expected: "Welcome, Guest!"
+
+completion:
+  message: "Excellent! You can now create reusable PowerShell functions with parameters!"
+  xp: 300
+  unlocks:
+    - "powershell/scripting/parameters"

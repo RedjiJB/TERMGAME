@@ -1,0 +1,148 @@
+mission:
+  id: "powershell/files/copy-move"
+  title: "Copying and Moving Files"
+  difficulty: beginner
+  description: "Master Copy-Item and Move-Item for file operations"
+  estimated_time: 20
+  tags:
+    - powershell
+    - files
+    - beginner
+    - week-1
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/source.txt -ItemType File -Value 'Original content' -Force"
+    - "New-Item -Path C:/learner/document.doc -ItemType File -Value 'Document data' -Force"
+    - "New-Item -Path C:/learner/Backup -ItemType Directory -Force"
+    - "New-Item -Path C:/learner/Archive -ItemType Directory -Force"
+
+steps:
+  - id: "copy-file"
+    title: "Copy a File"
+    description: |
+      `Copy-Item` duplicates files and folders.
+
+      Copy source.txt to a new file:
+      ```powershell
+      Copy-Item -Path "source.txt" -Destination "copy.txt"
+      ```
+
+      Both files now exist.
+    hint: "Copy-Item creates a duplicate, the original remains"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/copy.txt"
+      matcher: "exists"
+
+  - id: "copy-to-folder"
+    title: "Copy File to a Folder"
+    description: |
+      Copy files into folders by specifying the folder as destination.
+
+      Copy source.txt to the Backup folder:
+      ```powershell
+      Copy-Item -Path "source.txt" -Destination "Backup/"
+      ```
+
+      The file keeps its name in the destination folder.
+    hint: "Destination can be a folder path"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/Backup/source.txt"
+      matcher: "exists"
+
+  - id: "copy-and-rename"
+    title: "Copy and Rename Simultaneously"
+    description: |
+      You can rename while copying by specifying a new filename in the destination.
+
+      Copy source.txt to backup.txt:
+      ```powershell
+      Copy-Item -Path "source.txt" -Destination "backup.txt"
+      ```
+
+      The copy has a different name.
+    hint: "Destination path includes the new filename"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/backup.txt"
+      matcher: "exists"
+
+  - id: "move-file"
+    title: "Move a File"
+    description: |
+      `Move-Item` relocates files (unlike copy, it doesn't keep the original).
+
+      Move document.doc to the Archive folder:
+      ```powershell
+      Move-Item -Path "document.doc" -Destination "Archive/"
+      ```
+
+      The file is now in Archive and removed from the current folder.
+    hint: "Move-Item removes the file from its original location"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/Archive/document.doc"
+      matcher: "exists"
+
+  - id: "move-and-rename"
+    title: "Move and Rename"
+    description: |
+      You can rename files while moving them.
+
+      Move copy.txt to the Archive folder as archived.txt:
+      ```powershell
+      Move-Item -Path "copy.txt" -Destination "Archive/archived.txt"
+      ```
+
+      The file is moved and renamed.
+    hint: "Specify the full destination path including new filename"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/Archive/archived.txt"
+      matcher: "exists"
+
+  - id: "rename-item"
+    title: "Rename Without Moving"
+    description: |
+      `Rename-Item` changes a filename without moving it.
+
+      Rename backup.txt to final.txt:
+      ```powershell
+      Rename-Item -Path "backup.txt" -NewName "final.txt"
+      ```
+
+      The file stays in the same location with a new name.
+    hint: "Rename-Item only changes the name, not the location"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/final.txt"
+      matcher: "exists"
+
+  - id: "copy-folder"
+    title: "Copy an Entire Folder"
+    description: |
+      Copy folders and their contents using `-Recurse`.
+
+      Copy the entire Archive folder to Archive2:
+      ```powershell
+      Copy-Item -Path "Archive" -Destination "Archive2" -Recurse
+      ```
+
+      `-Recurse` includes all files and subfolders.
+    hint: "Without -Recurse, only an empty folder is created"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/Archive2"
+      matcher: "exists"
+
+completion:
+  message: "Great work! You can now copy, move, and rename files and folders efficiently!"
+  xp: 150
+  unlocks:
+    - "powershell/files/file-properties"

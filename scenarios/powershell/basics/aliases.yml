@@ -1,0 +1,137 @@
+mission:
+  id: "powershell/basics/aliases"
+  title: "Working with Command Aliases"
+  difficulty: beginner
+  description: "Discover and create PowerShell aliases to speed up your workflow"
+  estimated_time: 15
+  tags:
+    - powershell
+    - basics
+    - beginner
+    - week-1
+    - aliases
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "view-all-aliases"
+    title: "View All Aliases"
+    description: |
+      PowerShell has many built-in aliases that provide shortcuts for common cmdlets.
+
+      View all available aliases:
+      ```powershell
+      Get-Alias
+      ```
+
+      This shows shortcuts like `ls` (Get-ChildItem), `cd` (Set-Location), etc.
+    hint: "Aliases make typing faster but cmdlets are more readable"
+    validation:
+      type: "command-output"
+      command: "Get-Alias | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "find-cmdlet-alias"
+    title: "Find Aliases for a Cmdlet"
+    description: |
+      Use `Get-Alias` with `-Definition` to find aliases for a specific cmdlet.
+
+      Find aliases for `Get-ChildItem`:
+      ```powershell
+      Get-Alias -Definition Get-ChildItem
+      ```
+
+      You'll see `ls`, `dir`, and `gci`.
+    hint: "Multiple aliases can point to the same cmdlet"
+    validation:
+      type: "command-output"
+      command: "Get-Alias -Definition Get-ChildItem | Select-Object -First 1 -ExpandProperty Name"
+      matcher: "regex"
+      expected: ".*"
+
+  - id: "find-cmdlet-from-alias"
+    title: "Find Cmdlet from Alias"
+    description: |
+      Use `Get-Alias` with `-Name` to see what cmdlet an alias represents.
+
+      Check what `pwd` does:
+      ```powershell
+      Get-Alias -Name pwd
+      ```
+
+      It's an alias for `Get-Location`.
+    hint: "This helps you understand what shortcuts really do"
+    validation:
+      type: "command-output"
+      command: "Get-Alias -Name pwd | Select-Object -ExpandProperty Definition"
+      matcher: "exact"
+      expected: "Get-Location"
+
+  - id: "create-new-alias"
+    title: "Create a New Alias"
+    description: |
+      Create your own aliases with `New-Alias` (or `Set-Alias`).
+
+      Create an alias `gh` for `Get-Help`:
+      ```powershell
+      New-Alias -Name gh -Value Get-Help
+      ```
+
+      Now you can use `gh` instead of `Get-Help`.
+    hint: "Custom aliases only last for the current session"
+    validation:
+      type: "command-output"
+      command: "Get-Alias -Name gh -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Definition"
+      matcher: "exact"
+      expected: "Get-Help"
+
+  - id: "use-alias"
+    title: "Use Your Custom Alias"
+    description: |
+      Test your new alias by using it.
+
+      Try using `gh` to get help:
+      ```powershell
+      gh Get-Process
+      ```
+
+      This should work exactly like `Get-Help Get-Process`.
+    hint: "Aliases are just shortcuts, the cmdlet does the real work"
+    validation:
+      type: "command-output"
+      command: "Get-Command gh | Select-Object -ExpandProperty CommandType"
+      matcher: "exact"
+      expected: "Alias"
+
+  - id: "common-aliases"
+    title: "Learn Common Aliases"
+    description: |
+      Here are essential aliases to know:
+      - `ls`, `dir`, `gci` → Get-ChildItem
+      - `cd`, `chdir`, `sl` → Set-Location
+      - `pwd`, `gl` → Get-Location
+      - `cat`, `type`, `gc` → Get-Content
+      - `cp`, `copy`, `cpi` → Copy-Item
+
+      List all aliases for `Copy-Item`:
+      ```powershell
+      Get-Alias -Definition Copy-Item
+      ```
+    hint: "Many aliases come from Linux/Unix or CMD"
+    validation:
+      type: "command-output"
+      command: "Get-Alias -Definition Copy-Item | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+completion:
+  message: "Great! You now understand PowerShell aliases. Use them for speed, but remember cmdlets for scripts!"
+  xp: 150
+  unlocks:
+    - "powershell/basics/tab-completion"

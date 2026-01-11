@@ -1,0 +1,195 @@
+mission:
+  id: "powershell/security/inheritance"
+  title: "Managing Permission Inheritance"
+  difficulty: intermediate
+  description: "Master permission inheritance and propagation in Windows"
+  estimated_time: 30
+  tags:
+    - powershell
+    - security
+    - intermediate
+    - week-5
+    - inheritance
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/parent -ItemType Directory -Force"
+    - "New-Item -Path C:/learner/parent/child.txt -ItemType File -Value 'Child file' -Force"
+
+steps:
+  - id: "understand-inheritance"
+    title: "Understanding Permission Inheritance"
+    description: |
+      Inheritance allows child objects to automatically get parent permissions.
+
+      Benefits:
+      - Simplified management
+      - Consistent security
+      - Reduced errors
+
+      View inheritance status:
+      ```powershell
+      (Get-Acl parent/child.txt).Access | Select-Object IdentityReference, FileSystemRights, IsInherited
+      ```
+
+      IsInherited shows if permission comes from parent.
+    hint: "Most permissions are inherited from parent folders"
+    validation:
+      type: "command-output"
+      command: "(Get-Acl parent/child.txt).Access | Where-Object {$_.IsInherited -eq $true} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "view-inheritance-enabled"
+    title: "Check if Inheritance is Enabled"
+    description: |
+      Files can have inheritance enabled or disabled.
+
+      Check inheritance status:
+      ```powershell
+      $acl = Get-Acl parent/child.txt
+      $acl.AreAccessRulesProtected
+      ```
+
+      False = Inheritance enabled
+      True = Inheritance disabled (protected)
+    hint: "AreAccessRulesProtected tells if inheritance is blocked"
+    validation:
+      type: "command-output"
+      command: "$acl = Get-Acl parent/child.txt; $acl.AreAccessRulesProtected"
+      matcher: "regex"
+      expected: "(True|False)"
+
+  - id: "disable-inheritance"
+    title: "Understanding Disabling Inheritance"
+    description: |
+      Disable inheritance to customize permissions.
+
+      Process:
+      ```powershell
+      $acl = Get-Acl parent/child.txt
+      # $acl.SetAccessRuleProtection($true, $true)
+      # Set-Acl -Path parent/child.txt -AclObject $acl
+      ```
+
+      Parameters:
+      - First $true: Disable inheritance
+      - Second $true: Keep inherited permissions as explicit
+
+      View SetAccessRuleProtection method:
+      ```powershell
+      Get-Acl parent/child.txt | Get-Member -Name SetAccessRuleProtection
+      ```
+    hint: "Disabling inheritance allows custom permissions"
+    validation:
+      type: "command-output"
+      command: "Get-Acl parent/child.txt | Get-Member -Name SetAccessRuleProtection | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "SetAccessRuleProtection"
+
+  - id: "inheritance-flags"
+    title: "Understanding Inheritance Flags"
+    description: |
+      Control how permissions propagate to children.
+
+      InheritanceFlags:
+      - `None`: No inheritance
+      - `ContainerInherit`: Folders inherit
+      - `ObjectInherit`: Files inherit
+      - `ContainerInherit, ObjectInherit`: Both inherit
+
+      PropagationFlags:
+      - `None`: Apply to this folder and children
+      - `NoPropagateInherit`: Apply to children only
+      - `InheritOnly`: Apply to children, not this object
+
+      View inheritance flags:
+      ```powershell
+      (Get-Acl parent).Access | Select-Object IdentityReference, InheritanceFlags, PropagationFlags
+      ```
+    hint: "Inheritance flags control permission flow through folder trees"
+    validation:
+      type: "command-output"
+      command: "(Get-Acl parent).Access | Select-Object InheritanceFlags, PropagationFlags | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "explicit-vs-inherited"
+    title: "Distinguish Explicit vs Inherited Permissions"
+    description: |
+      Permissions can be explicitly set or inherited.
+
+      View only explicit permissions:
+      ```powershell
+      (Get-Acl parent/child.txt).Access | Where-Object {$_.IsInherited -eq $false}
+      ```
+
+      View only inherited permissions:
+      ```powershell
+      (Get-Acl parent/child.txt).Access | Where-Object {$_.IsInherited -eq $true}
+      ```
+
+      Explicit permissions override inheritance.
+    hint: "Explicit permissions take precedence over inherited"
+    validation:
+      type: "command-output"
+      command: "(Get-Acl parent/child.txt).Access | Select-Object IsInherited | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "re-enable-inheritance"
+    title: "Understanding Re-enabling Inheritance"
+    description: |
+      Re-enable inheritance to restore parent permissions.
+
+      Process:
+      ```powershell
+      $acl = Get-Acl parent/child.txt
+      # $acl.SetAccessRuleProtection($false, $false)
+      # Set-Acl -Path parent/child.txt -AclObject $acl
+      ```
+
+      Parameters:
+      - First $false: Enable inheritance
+      - Second $false: Remove explicit permissions
+
+      This restores inheritance from parent.
+    hint: "Re-enabling inheritance simplifies management"
+    validation:
+      type: "command-output"
+      command: "$acl = Get-Acl parent/child.txt; $acl.GetType().Name"
+      matcher: "contains"
+      expected: "FileSecurity"
+
+  - id: "inheritance-best-practices"
+    title: "Permission Inheritance Best Practices"
+    description: |
+      Best practices for managing inheritance:
+
+      1. **Use inheritance by default**: Easier to manage
+      2. **Set permissions at parent level**: Propagates to children
+      3. **Disable inheritance sparingly**: Only for special cases
+      4. **Document exceptions**: Note why inheritance was disabled
+      5. **Test changes**: Use -WhatIf before applying
+      6. **Regular audits**: Review permission structure
+
+      View parent folder permissions:
+      ```powershell
+      (Get-Acl parent).Access | Format-Table IdentityReference, FileSystemRights, InheritanceFlags
+      ```
+    hint: "Inheritance reduces management overhead"
+    validation:
+      type: "command-output"
+      command: "(Get-Acl parent).Access | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+completion:
+  message: "Excellent! You now understand permission inheritance, a critical Windows security concept!"
+  xp: 300
+  unlocks:
+    - "powershell/networking/network-basics"

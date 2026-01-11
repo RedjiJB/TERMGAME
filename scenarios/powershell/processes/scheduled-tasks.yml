@@ -1,0 +1,167 @@
+mission:
+  id: "powershell/processes/scheduled-tasks"
+  title: "Working with Scheduled Tasks"
+  difficulty: intermediate
+  description: "Learn to view and manage Windows Task Scheduler tasks"
+  estimated_time: 25
+  tags:
+    - powershell
+    - processes
+    - intermediate
+    - week-10
+    - automation
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "get-scheduled-task"
+    title: "List Scheduled Tasks"
+    description: |
+      `Get-ScheduledTask` lists all scheduled tasks on the system.
+
+      View all scheduled tasks:
+      ```powershell
+      Get-ScheduledTask
+      ```
+
+      This shows task names, states, and paths.
+    hint: "Scheduled tasks automate recurring operations"
+    validation:
+      type: "command-output"
+      command: "Get-ScheduledTask | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "filter-ready-tasks"
+    title: "Filter Tasks by State"
+    description: |
+      Tasks have states: Ready, Running, Disabled.
+
+      Show only Ready tasks:
+      ```powershell
+      Get-ScheduledTask | Where-Object {$_.State -eq "Ready"}
+      ```
+
+      Ready tasks are enabled and waiting to run.
+    hint: "Use State property to filter tasks"
+    validation:
+      type: "command-output"
+      command: "Get-ScheduledTask | Where-Object {$_.State -ne $null} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "task-info"
+    title: "Get Detailed Task Information"
+    description: |
+      `Get-ScheduledTaskInfo` shows runtime information.
+
+      Get info about a specific task (if it exists):
+      ```powershell
+      Get-ScheduledTask | Select-Object -First 1 | Get-ScheduledTaskInfo
+      ```
+
+      This shows last run time, next run time, and result.
+    hint: "Get-ScheduledTaskInfo provides execution history"
+    validation:
+      type: "command-output"
+      command: "Get-Command Get-ScheduledTaskInfo | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Get-ScheduledTaskInfo"
+
+  - id: "register-task"
+    title: "Understanding Task Registration"
+    description: |
+      `Register-ScheduledTask` creates new scheduled tasks.
+
+      The cmdlet syntax (example - don't create in container):
+      ```powershell
+      # $action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-File C:\script.ps1"
+      # $trigger = New-ScheduledTaskTrigger -Daily -At 9am
+      # Register-ScheduledTask -TaskName "MyTask" -Action $action -Trigger $trigger
+      ```
+
+      Verify command exists:
+      ```powershell
+      Get-Command Register-ScheduledTask
+      ```
+    hint: "Registration requires actions, triggers, and optional settings"
+    validation:
+      type: "command-output"
+      command: "Get-Command Register-ScheduledTask | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Register-ScheduledTask"
+
+  - id: "task-actions"
+    title: "Understanding Task Actions"
+    description: |
+      Actions define what a task does when it runs.
+
+      View actions of existing tasks:
+      ```powershell
+      Get-ScheduledTask | Select-Object -First 1 | Select-Object TaskName, Actions
+      ```
+
+      Actions can execute programs, scripts, or send emails.
+    hint: "Each task must have at least one action"
+    validation:
+      type: "command-output"
+      command: "Get-Command New-ScheduledTaskAction | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "New-ScheduledTaskAction"
+
+  - id: "task-triggers"
+    title: "Understanding Task Triggers"
+    description: |
+      Triggers determine when tasks run.
+
+      Common trigger types:
+      - Time-based (daily, weekly, once)
+      - Event-based (on logon, on startup, on idle)
+      - Custom (specific event log entries)
+
+      Verify trigger command:
+      ```powershell
+      Get-Command New-ScheduledTaskTrigger
+      ```
+
+      Examples: `-Daily -At 9am`, `-AtLogon`, `-AtStartup`
+    hint: "Triggers automate task execution"
+    validation:
+      type: "command-output"
+      command: "Get-Command New-ScheduledTaskTrigger | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "New-ScheduledTaskTrigger"
+
+  - id: "unregister-task"
+    title: "Understanding Task Removal"
+    description: |
+      `Unregister-ScheduledTask` removes scheduled tasks.
+
+      Syntax (example):
+      ```powershell
+      # Unregister-ScheduledTask -TaskName "MyTask" -Confirm:$false
+      ```
+
+      Verify command exists:
+      ```powershell
+      Get-Command Unregister-ScheduledTask
+      ```
+
+      Use -Confirm:$false to skip confirmation prompt.
+    hint: "Always verify task name before unregistering"
+    validation:
+      type: "command-output"
+      command: "Get-Command Unregister-ScheduledTask | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Unregister-ScheduledTask"
+
+completion:
+  message: "Excellent! You understand Windows Task Scheduler automation with PowerShell!"
+  xp: 250
+  unlocks:
+    - "powershell/users/user-management"

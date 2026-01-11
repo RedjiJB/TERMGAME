@@ -1,0 +1,154 @@
+mission:
+  id: "powershell/files/file-properties"
+  title: "Working with File Properties"
+  difficulty: beginner
+  description: "Learn to view and modify file attributes and properties"
+  estimated_time: 20
+  tags:
+    - powershell
+    - files
+    - beginner
+    - week-1
+    - properties
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/example.txt -ItemType File -Value 'Test content' -Force"
+    - "New-Item -Path C:/learner/data.log -ItemType File -Value 'Log data' -Force"
+
+steps:
+  - id: "get-item-properties"
+    title: "View File Properties with Get-Item"
+    description: |
+      `Get-Item` retrieves file information including properties.
+
+      Get information about example.txt:
+      ```powershell
+      Get-Item example.txt
+      ```
+
+      This shows name, length, creation time, and more.
+    hint: "Get-Item returns a FileInfo object with many properties"
+    validation:
+      type: "command-output"
+      command: "Get-Item example.txt | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "example.txt"
+
+  - id: "select-properties"
+    title: "Select Specific Properties"
+    description: |
+      Use `Select-Object` to view specific properties.
+
+      View name and length of example.txt:
+      ```powershell
+      Get-Item example.txt | Select-Object Name, Length
+      ```
+
+      This shows only the selected properties.
+    hint: "Select-Object filters which properties to display"
+    validation:
+      type: "command-output"
+      command: "Get-Item example.txt | Select-Object -ExpandProperty Length"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "file-attributes"
+    title: "Check File Attributes"
+    description: |
+      Files have attributes like ReadOnly, Hidden, Archive, and System.
+
+      Check attributes of example.txt:
+      ```powershell
+      Get-Item example.txt | Select-Object -ExpandProperty Attributes
+      ```
+
+      Common attributes include Archive, ReadOnly, Hidden.
+    hint: "Attributes is a property that can contain multiple flags"
+    validation:
+      type: "command-output"
+      command: "Get-Item example.txt | Select-Object -ExpandProperty Attributes"
+      matcher: "regex"
+      expected: ".*"
+
+  - id: "set-readonly"
+    title: "Set ReadOnly Attribute"
+    description: |
+      Use `Set-ItemProperty` to modify file attributes.
+
+      Make data.log read-only:
+      ```powershell
+      Set-ItemProperty -Path "data.log" -Name IsReadOnly -Value $true
+      ```
+
+      The file cannot be modified until you remove this attribute.
+    hint: "$true enables the property, $false disables it"
+    validation:
+      type: "command-output"
+      command: "Get-Item data.log | Select-Object -ExpandProperty IsReadOnly"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "remove-readonly"
+    title: "Remove ReadOnly Attribute"
+    description: |
+      Remove the read-only attribute to make the file writable again.
+
+      Make data.log writable:
+      ```powershell
+      Set-ItemProperty -Path "data.log" -Name IsReadOnly -Value $false
+      ```
+
+      Now you can edit the file.
+    hint: "Always remove ReadOnly before trying to modify a file"
+    validation:
+      type: "command-output"
+      command: "Get-Item data.log | Select-Object -ExpandProperty IsReadOnly"
+      matcher: "exact"
+      expected: "False"
+
+  - id: "get-childitem-properties"
+    title: "List Files with Properties"
+    description: |
+      `Get-ChildItem` lists files with their properties.
+
+      List all files showing name and size:
+      ```powershell
+      Get-ChildItem | Select-Object Name, Length
+      ```
+
+      This gives you a formatted table of files and their sizes.
+    hint: "Combine Get-ChildItem with Select-Object for custom views"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem *.txt | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "sort-by-property"
+    title: "Sort Files by Property"
+    description: |
+      Use `Sort-Object` to sort files by any property.
+
+      List files sorted by size (largest first):
+      ```powershell
+      Get-ChildItem | Sort-Object Length -Descending
+      ```
+
+      `-Descending` shows largest files first.
+    hint: "Sort-Object can sort by any property: Name, Length, LastWriteTime, etc."
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Sort-Object Length -Descending | Select-Object -First 1 -ExpandProperty Name"
+      matcher: "regex"
+      expected: ".+"
+
+completion:
+  message: "Excellent! You can now view and modify file properties with confidence!"
+  xp: 150
+  unlocks:
+    - "powershell/files/recursive-operations"

@@ -1,0 +1,140 @@
+mission:
+  id: "powershell/registry/registry-basics"
+  title: "Understanding the Windows Registry"
+  difficulty: intermediate
+  description: "Learn Windows Registry structure and concepts"
+  estimated_time: 25
+  tags:
+    - powershell
+    - registry
+    - intermediate
+    - week-9
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "registry-overview"
+    title: "What is the Registry?"
+    description: |
+      The Registry is Windows' central configuration database.
+
+      Contains:
+      - System settings
+      - Application settings
+      - User preferences
+      - Hardware configuration
+
+      PowerShell can access registry like a file system:
+      ```powershell
+      Get-PSDrive -PSProvider Registry
+      ```
+
+      Shows HKLM and HKCU drives.
+    hint: "Registry is critical - incorrect changes can break Windows"
+    validation:
+      type: "command-output"
+      command: "Get-PSDrive -PSProvider Registry | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "registry-hives"
+    title: "Understanding Registry Hives"
+    description: |
+      Five main registry hives:
+      - **HKEY_LOCAL_MACHINE (HKLM)**: System-wide settings
+      - **HKEY_CURRENT_USER (HKCU)**: Current user settings
+      - **HKEY_CLASSES_ROOT**: File associations
+      - **HKEY_USERS**: All user profiles
+      - **HKEY_CURRENT_CONFIG**: Current hardware profile
+
+      View HKLM:
+      ```powershell
+      Get-ChildItem HKLM:\ | Select-Object -First 5
+      ```
+    hint: "HKLM = machine-wide, HKCU = user-specific"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem HKLM:\\ | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "registry-structure"
+    title: "Registry Structure: Keys and Values"
+    description: |
+      Registry hierarchy:
+      - **Keys**: Like folders (contain other keys or values)
+      - **Values**: Like files (store actual data)
+
+      Keys contain values with types:
+      - String (REG_SZ)
+      - DWORD (32-bit number)
+      - Binary (REG_BINARY)
+      - Multi-String (REG_MULTI_SZ)
+
+      View key contents:
+      ```powershell
+      Get-Item "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion" | Select-Object -ExpandProperty Property
+      ```
+    hint: "Keys organize, values store data"
+    validation:
+      type: "command-output"
+      command: "Get-Item 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion' | Select-Object -ExpandProperty Property | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "registry-paths"
+    title: "Understanding Registry Paths"
+    description: |
+      Registry paths use backslashes like file paths.
+
+      Full path format:
+      `HKLM:\\SOFTWARE\\Company\\Application\\Setting`
+
+      PowerShell uses : after hive name:
+      - `HKLM:\\`
+      - `HKCU:\\`
+
+      Test path existence:
+      ```powershell
+      Test-Path "HKLM:\\SOFTWARE\\Microsoft"
+      ```
+    hint: "Registry paths work like file paths in PowerShell"
+    validation:
+      type: "command-output"
+      command: "Test-Path 'HKLM:\\SOFTWARE\\Microsoft'"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "registry-safety"
+    title: "Registry Safety Precautions"
+    description: |
+      Registry modifications can break Windows!
+
+      Safety rules:
+      1. **Backup first**: Export keys before changes
+      2. **Test in HKCU**: User settings safer than HKLM
+      3. **Use -WhatIf**: Test changes before applying
+      4. **Document changes**: Know what you changed
+      5. **Have restore plan**: System Restore or backups
+
+      Always backup before changes:
+      ```powershell
+      # reg export HKLM\\SOFTWARE\\MyKey backup.reg
+      ```
+    hint: "One wrong registry change can require OS reinstall"
+    validation:
+      type: "command-output"
+      command: "Get-Command reg | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "reg.exe"
+
+completion:
+  message: "Excellent! You understand the Windows Registry structure. Proceed with caution!"
+  xp: 250
+  unlocks:
+    - "powershell/registry/navigate-registry"

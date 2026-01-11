@@ -23,9 +23,8 @@ from termgame.config import get_config
 from termgame.loaders.scenario_loader import ScenarioLoader
 from termgame.runtimes.exceptions import (
     ConnectionError as RuntimeConnectionError,
-)
-from termgame.runtimes.exceptions import (
     ContainerNotFoundError,
+    ImagePullError,
 )
 from termgame.ui.completer import SlashCommandCompleter
 from termgame.ui.progress import OperationProgress
@@ -225,12 +224,13 @@ class InteractiveCLI:
         except Exception as e:
             self._logger.error(f"Error loading completion status: {e}")
 
-        table = Table(show_header=True, header_style="bold dim")
-        table.add_column("✓", style="green", justify="center", width=3)
-        table.add_column("ID", style="cyan", no_wrap=True, width=45)
-        table.add_column("Title", style="white", width=42)
-        table.add_column("Difficulty", style="dim", width=12)
-        table.add_column("Time", style="dim", justify="right", width=8)
+        table = Table(show_header=True, header_style="bold white", border_style="dim")
+        table.add_column("✓", style="green bold", justify="center", width=3)
+        table.add_column("Platform", style="bold", justify="center", width=10)
+        table.add_column("ID", no_wrap=True, width=42)
+        table.add_column("Title", width=38)
+        table.add_column("Difficulty", justify="center", width=13)
+        table.add_column("Time", justify="right", width=7)
 
         # Difficulty order for sorting
         diff_order = {
@@ -239,17 +239,44 @@ class InteractiveCLI:
             "advanced": 2,
         }
 
-        # Sort by difficulty (beginner to advanced), then by ID
+        # Sort by platform (Linux first), then difficulty, then ID
         for mission in sorted(
-            missions, key=lambda m: (diff_order.get(m["difficulty"], 999), m["id"])
+            missions, key=lambda m: (
+                0 if m["id"].startswith("linux/") else 1,  # Linux first
+                diff_order.get(m["difficulty"], 999),
+                m["id"]
+            )
         ):
             completed = "✓" if mission["id"] in completed_missions else ""
+
+            # Determine platform and colors
+            is_powershell = mission["id"].startswith("powershell/")
+            if is_powershell:
+                platform = "PowerShell"
+                platform_color = "blue"
+                id_color = "bright_blue"
+                title_color = "cyan"
+            else:
+                platform = "Linux"
+                platform_color = "green"
+                id_color = "bright_green"
+                title_color = "white"
+
+            # Difficulty colors
+            diff_colors = {
+                "beginner": "green",
+                "intermediate": "yellow",
+                "advanced": "red"
+            }
+            diff_color = diff_colors.get(mission["difficulty"], "white")
+
             table.add_row(
                 completed,
-                mission["id"],
-                mission["title"],
-                mission["difficulty"],
-                f"{mission['time']} min",
+                f"[{platform_color}]{platform}[/{platform_color}]",
+                f"[{id_color}]{mission['id']}[/{id_color}]",
+                f"[{title_color}]{mission['title']}[/{title_color}]",
+                f"[{diff_color}]{mission['difficulty']}[/{diff_color}]",
+                f"[dim]{mission['time']} min[/dim]",
             )
 
         self.console.print(table)
@@ -301,20 +328,63 @@ class InteractiveCLI:
             self._display_step(step_info)
 
             # Show helpful tip for first-time users
+            is_powershell = mission_id.startswith("powershell/")
+            command_type = "PowerShell cmdlets" if is_powershell else "Linux commands"
+
             self.console.print("[bold yellow]💡 Quick Start:[/bold yellow]")
-            self.console.print("  • Run Linux commands to complete the step")
+            self.console.print(f"  • Run {command_type} to complete the step")
             self.console.print("  • Type [cyan]validate[/cyan] when done to check your work")
             self.console.print("  • Type [cyan]hint[/cyan] if you need help\n")
 
         except Exception as e:
-            self._logger.error(f"Failed to start mission: {e}", exc_info=True)
+            # Don't log full traceback for user-friendly errors
+            error_msg = str(e)
+
+            # Check if this is a Windows container image error
+            is_windows_image_error = (
+                "servercore" in error_msg.lower() or
+                ("windows" in error_msg.lower() and "image" in error_msg.lower())
+            )
+
+            # Log errors but suppress traceback for expected user errors
+            if is_windows_image_error or isinstance(e, RuntimeConnectionError | ContainerNotFoundError):
+                self._logger.error(f"Failed to start mission: {error_msg}")
+            else:
+                self._logger.error(f"Failed to start mission: {e}", exc_info=True)
 
             # Use specialized error handler for runtime errors
             if isinstance(e, RuntimeConnectionError | ContainerNotFoundError):
                 self._handle_runtime_error(e)
+            elif is_windows_image_error:
+                # Windows container image error (from ImagePullError or ContainerCreationError)
+                self.console.print("[red]Windows Container Image Not Found[/red]\n")
+                self.console.print("[bold white]What's happening:[/bold white]")
+                self.console.print("  • PowerShell missions require Windows containers")
+                self.console.print("  • Docker Desktop must be in Windows containers mode")
+                self.console.print()
+                self.console.print("[bold white]How to fix:[/bold white]")
+                self.console.print("  1. Right-click Docker Desktop system tray icon")
+                self.console.print("  2. Select [cyan]'Switch to Windows containers...'[/cyan]")
+                self.console.print("  3. Wait for Docker to restart")
+                self.console.print("  4. Pull the Windows image:")
+                self.console.print("     [cyan]docker pull mcr.microsoft.com/windows/servercore:ltsc2022[/cyan]")
+                self.console.print("  5. Try your mission again")
+                self.console.print()
+                self.console.print("[bold yellow]Note:[/bold yellow] Windows container images are large (~5-10GB)")
+                self.console.print("The first pull will take significant time.\n")
+                self.console.print("[dim]💡 Linux missions will continue to work in Linux containers mode[/dim]\n")
+            elif "image" in error_msg.lower() and "pull" in error_msg.lower():
+                # Generic image pull error
+                self.console.print(f"[red]Image Pull Error[/red]\n")
+                self.console.print("[bold white]What's happening:[/bold white]")
+                self.console.print(f"  • Failed to pull container image")
+                self.console.print()
+                self.console.print("[bold white]How to fix:[/bold white]")
+                self.console.print("  • Check your internet connection")
+                self.console.print("  • Verify Docker can access the registry")
+                self.console.print("  • Try manually: [cyan]docker pull <image-name>[/cyan]\n")
             else:
                 # Mission-specific errors
-                error_msg = str(e)
                 self.console.print(f"[red]Error starting mission:[/red] {error_msg}\n")
 
                 if "not found" in error_msg.lower():

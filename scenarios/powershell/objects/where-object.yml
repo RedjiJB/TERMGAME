@@ -1,0 +1,160 @@
+mission:
+  id: "powershell/objects/where-object"
+  title: "Filtering Objects with Where-Object"
+  difficulty: intermediate
+  description: "Learn to filter pipeline objects based on conditions"
+  estimated_time: 25
+  tags:
+    - powershell
+    - objects
+    - intermediate
+    - week-4
+    - filtering
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/small.txt -ItemType File -Value 'Small' -Force"
+    - "New-Item -Path C:/learner/large.txt -ItemType File -Value 'This is a much longer content string' -Force"
+    - "New-Item -Path C:/learner/data.log -ItemType File -Value 'Log data' -Force"
+    - "New-Item -Path C:/learner/readme.txt -ItemType File -Value 'Readme content' -Force"
+
+steps:
+  - id: "basic-where"
+    title: "Filter Objects with Where-Object"
+    description: |
+      `Where-Object` filters objects based on conditions.
+
+      Get files larger than 10 bytes:
+      ```powershell
+      Get-ChildItem | Where-Object {$_.Length -gt 10}
+      ```
+
+      Only files matching the condition pass through.
+    hint: "Where-Object is like a filter in the pipeline"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Where-Object {$_.Length -gt 10} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "comparison-operators"
+    title: "Use Comparison Operators"
+    description: |
+      PowerShell comparison operators:
+      - `-eq` (equal)
+      - `-ne` (not equal)
+      - `-gt` (greater than)
+      - `-lt` (less than)
+      - `-ge` (greater or equal)
+      - `-le` (less or equal)
+
+      Get .txt files only:
+      ```powershell
+      Get-ChildItem | Where-Object {$_.Extension -eq ".txt"}
+      ```
+    hint: "Comparison operators are case-insensitive by default"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Where-Object {$_.Extension -eq '.txt'} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "like-operator"
+    title: "Use Wildcard Matching with -like"
+    description: |
+      Use `-like` for wildcard pattern matching.
+
+      Get files with "data" in the name:
+      ```powershell
+      Get-ChildItem | Where-Object {$_.Name -like "*data*"}
+      ```
+
+      Wildcards: * (any characters), ? (single character)
+    hint: "-like supports * and ? wildcards"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Where-Object {$_.Name -like '*data*'} | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "data.log"
+
+  - id: "match-operator"
+    title: "Use Regular Expressions with -match"
+    description: |
+      Use `-match` for regular expression matching.
+
+      Get files starting with 'r':
+      ```powershell
+      Get-ChildItem | Where-Object {$_.Name -match "^r"}
+      ```
+
+      Regular expressions are more powerful than wildcards.
+    hint: "-match uses .NET regular expressions"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Where-Object {$_.Name -match '^r'} | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "readme.txt"
+
+  - id: "logical-and"
+    title: "Combine Conditions with -and"
+    description: |
+      Use `-and` to require multiple conditions.
+
+      Get .txt files larger than 10 bytes:
+      ```powershell
+      Get-ChildItem | Where-Object {($_.Extension -eq ".txt") -and ($_.Length -gt 10)}
+      ```
+
+      Both conditions must be true.
+    hint: "Use parentheses to group conditions clearly"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Where-Object {($_.Extension -eq '.txt') -and ($_.Length -gt 10)} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "logical-or"
+    title: "Use Alternative Conditions with -or"
+    description: |
+      Use `-or` when any condition can be true.
+
+      Get files named "small.txt" OR "large.txt":
+      ```powershell
+      Get-ChildItem | Where-Object {($_.Name -eq "small.txt") -or ($_.Name -eq "large.txt")}
+      ```
+
+      Either condition passing includes the object.
+    hint: "-or is useful for multiple possible matches"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Where-Object {($_.Name -eq 'small.txt') -or ($_.Name -eq 'large.txt')} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "exact"
+      expected: "2"
+
+  - id: "not-operator"
+    title: "Negate Conditions with -not"
+    description: |
+      Use `-not` to reverse a condition.
+
+      Get files that are NOT .log files:
+      ```powershell
+      Get-ChildItem | Where-Object {-not ($_.Extension -eq ".log")}
+      ```
+
+      Also can use `!` instead of `-not`.
+    hint: "! is a shorter alternative to -not"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Where-Object {-not ($_.Extension -eq '.log')} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+completion:
+  message: "Excellent! Where-Object filtering is essential for working with large datasets. You've mastered it!"
+  xp: 250
+  unlocks:
+    - "powershell/objects/foreach-object"

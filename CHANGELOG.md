@@ -7,6 +7,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - 2026-01-11 Session
+
+#### PowerShell Mission Content - Complete Windows Server Curriculum
+- **66 New PowerShell Missions Created**: Comprehensive Windows Server administration training
+  - Total PowerShell content: 16,750 XP worth of missions
+  - Complete 15-week Windows Server course coverage
+  - Progressive difficulty: 22 Beginner, 31 Intermediate, 13 Advanced
+  - Windows Server Core container environment (ltsc2022)
+
+**Mission Breakdown by Topic:**
+- **Basics** (6 missions, beginner): PowerShell fundamentals, cmdlets, Get-Help, navigation, aliases, tab completion
+- **Files** (4 missions, beginner): File operations with New-Item, Copy-Item, Remove-Item, properties
+- **Cmdlets** (5 missions, beginner → intermediate): Syntax, parameters, discovery, advanced parameters, best practices
+- **Objects** (5 missions, intermediate): Pipeline, Select-Object, Where-Object, ForEach-Object, methods
+- **Processes** (4 missions, beginner → intermediate): Get-Process, process management, services, scheduled tasks
+- **Users** (4 missions, beginner → intermediate): User/group management, properties, bulk operations
+- **Security** (4 missions, intermediate): Permissions, Get-Acl, Set-Acl, inheritance
+- **Networking** (4 missions, beginner → intermediate): Network basics, Test-Connection, DNS, troubleshooting
+- **Shares** (4 missions, intermediate): SMB file shares, permissions, access, troubleshooting
+- **Compression** (3 missions, beginner): Compress-Archive, Expand-Archive, backup scenarios
+- **Backup** (4 missions, intermediate): Backup strategies, Copy-Item backups, wbadmin, disaster recovery
+- **Registry** (5 missions, intermediate → advanced): Registry basics, navigation, read/modify operations, safety
+- **Encryption** (4 missions, advanced): BitLocker intro/enable/manage, certificates
+- **Scripting** (6 missions, intermediate → advanced): Functions, parameters, loops, conditionals, error handling, best practices
+- **Cloud** (4 missions, advanced): Azure PowerShell, resources, VMs, hybrid cloud
+
+**Key Features:**
+- Windows Server Core containers (mcr.microsoft.com/windows/servercore:ltsc2022)
+- Full Windows feature support (Registry, BitLocker, SMB, etc.)
+- Real-world Windows administration scenarios
+- Azure cloud integration and hybrid infrastructure
+- Progressive unlock chains for guided learning
+- Comprehensive validation across all mission types
+
+#### Testing Infrastructure
+- **Comprehensive PowerShell Test Suite**: 41 automated tests validating all PowerShell missions
+  - `test_powershell_mission_schema.py`: 26 tests for YAML structure, fields, organization
+  - `test_powershell_content_quality.py`: 15 tests for content quality, command syntax, descriptions
+- **Test Coverage**:
+  - Schema validation (required fields, data types, format)
+  - PowerShell-specific requirements (Windows Server Core image, execution policy, workdir)
+  - Content quality (PowerShell cmdlet usage, code examples, hint quality)
+  - Mission organization (topic structure, counts, distribution)
+  - Progression quality (unlock chains, difficulty progression, XP distribution)
+  - Command syntax validation (PowerShell cmdlets vs Linux commands)
+- All 66 PowerShell missions verified and passing
+
+#### Documentation Updates
+- **README.md**: Reorganized mission library section with collapsible details
+  - Added summary table showing 126 total missions, 25,800+ total XP
+  - Compact topic lists for quick scanning
+  - Reduced verbosity while maintaining essential information
+  - Added Windows Containers requirements and troubleshooting
+- **CHANGELOG.md**: Updated with accurate XP totals and difficulty distribution
+- **docs/WINDOWS_CONTAINERS.md**: Comprehensive guide for PowerShell mission setup
+  - Docker Desktop configuration for Windows containers
+  - Image pulling instructions and troubleshooting
+  - Performance optimization tips
+  - FAQ and common issues
+
+#### User Interface Improvements
+- **Enhanced mission list display** with color-coded platforms:
+  - Added "Platform" column showing Linux (green) or PowerShell (blue)
+  - Color-coded mission IDs: Linux (bright green), PowerShell (bright blue)
+  - Color-coded titles: Linux (white), PowerShell (cyan)
+  - Difficulty colors: Beginner (green), Intermediate (yellow), Advanced (red)
+  - Improved table legibility with better column widths and borders
+  - Missions sorted by platform (Linux first), then difficulty
+- **Better error messages** for Windows container issues:
+  - Specific detection of Windows Server Core image errors
+  - Step-by-step instructions to switch to Windows containers mode
+  - Clear explanation of image size and pull time expectations
+  - Helpful notes about platform limitations
+- **Context-aware quick tips** when starting missions:
+  - Shows "PowerShell cmdlets" for PowerShell missions
+  - Shows "Linux commands" for Linux missions
+- **Cleaner error output**:
+  - Suppressed verbose logging tracebacks for expected user errors
+  - Image pull errors now show only user-friendly messages
+  - Reduced console clutter during error scenarios
+
 ### Added - 2026-01-09 Session
 
 #### Mission Content Expansion

@@ -1,0 +1,222 @@
+mission:
+  id: "powershell/scripting/conditionals"
+  title: "Conditional Logic and Decision Making"
+  difficulty: advanced
+  description: "Master If/ElseIf/Else and Switch statements for complex logic"
+  estimated_time: 30
+  tags:
+    - powershell
+    - scripting
+    - advanced
+    - week-11
+    - conditionals
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "if-statement"
+    title: "Basic If Statement"
+    description: |
+      If statements execute code based on conditions.
+
+      Basic if:
+      ```powershell
+      $number = 10
+      if ($number -gt 5) {
+          Write-Output "Greater than 5"
+      }
+      ```
+
+      Code executes only if condition is true.
+    hint: "Use comparison operators: -eq, -ne, -gt, -lt, -ge, -le"
+    validation:
+      type: "command-output"
+      command: "$number = 10; if ($number -gt 5) { Write-Output 'Greater than 5' }"
+      matcher: "exact"
+      expected: "Greater than 5"
+
+  - id: "if-else"
+    title: "If-Else Statement"
+    description: |
+      Else provides alternative when condition is false.
+
+      If-Else example:
+      ```powershell
+      $number = 3
+      if ($number -gt 5) {
+          Write-Output "Greater than 5"
+      } else {
+          Write-Output "5 or less"
+      }
+      ```
+
+      One branch always executes.
+    hint: "Else handles all cases where if condition is false"
+    validation:
+      type: "command-output"
+      command: "$number = 3; if ($number -gt 5) { Write-Output 'Greater than 5' } else { Write-Output '5 or less' }"
+      matcher: "exact"
+      expected: "5 or less"
+
+  - id: "elseif-chain"
+    title: "ElseIf for Multiple Conditions"
+    description: |
+      ElseIf tests additional conditions.
+
+      ElseIf chain:
+      ```powershell
+      $number = 5
+      if ($number -lt 5) {
+          Write-Output "Less than 5"
+      } elseif ($number -eq 5) {
+          Write-Output "Exactly 5"
+      } else {
+          Write-Output "Greater than 5"
+      }
+      ```
+
+      First true condition executes, rest are skipped.
+    hint: "ElseIf allows multiple distinct conditions"
+    validation:
+      type: "command-output"
+      command: "$number = 5; if ($number -lt 5) { Write-Output 'Less than 5' } elseif ($number -eq 5) { Write-Output 'Exactly 5' } else { Write-Output 'Greater than 5' }"
+      matcher: "exact"
+      expected: "Exactly 5"
+
+  - id: "logical-operators"
+    title: "Logical Operators (And/Or/Not)"
+    description: |
+      Combine conditions with -and, -or, -not.
+
+      Logical operators:
+      ```powershell
+      $age = 25
+      $hasLicense = $true
+
+      if ($age -ge 18 -and $hasLicense) {
+          Write-Output "Can drive"
+      }
+
+      if ($age -lt 16 -or -not $hasLicense) {
+          Write-Output "Cannot drive"
+      }
+      ```
+
+      -and requires both true, -or requires one true.
+    hint: "-not inverts boolean values"
+    validation:
+      type: "command-output"
+      command: "$age = 25; $hasLicense = $true; if ($age -ge 18 -and $hasLicense) { Write-Output 'Can drive' }"
+      matcher: "exact"
+      expected: "Can drive"
+
+  - id: "switch-statement"
+    title: "Switch Statement - Multiple Cases"
+    description: |
+      Switch tests one value against multiple cases.
+
+      Basic switch:
+      ```powershell
+      $day = "Monday"
+      switch ($day) {
+          "Monday"    { Write-Output "Start of week" }
+          "Friday"    { Write-Output "End of week" }
+          "Saturday"  { Write-Output "Weekend" }
+          "Sunday"    { Write-Output "Weekend" }
+          default     { Write-Output "Mid-week" }
+      }
+      ```
+
+      Cleaner than multiple if/elseif for single variable.
+    hint: "default handles unmatched cases"
+    validation:
+      type: "command-output"
+      command: "$day = 'Monday'; switch ($day) { 'Monday' { Write-Output 'Start of week' } 'Friday' { Write-Output 'End of week' } default { Write-Output 'Other' } }"
+      matcher: "exact"
+      expected: "Start of week"
+
+  - id: "switch-regex"
+    title: "Switch with Regex Matching"
+    description: |
+      Switch supports regex pattern matching.
+
+      Regex switch:
+      ```powershell
+      $file = "report.txt"
+      switch -Regex ($file) {
+          "\.txt$"  { Write-Output "Text file" }
+          "\.log$"  { Write-Output "Log file" }
+          "\.ps1$"  { Write-Output "PowerShell script" }
+          default   { Write-Output "Unknown type" }
+      }
+      ```
+
+      -Regex enables pattern matching.
+    hint: "Regex patterns use .NET regex syntax"
+    validation:
+      type: "command-output"
+      command: "$file = 'report.txt'; switch -Regex ($file) { '\\.txt$' { Write-Output 'Text file' } '\\.log$' { Write-Output 'Log file' } default { Write-Output 'Unknown' } }"
+      matcher: "exact"
+      expected: "Text file"
+
+  - id: "switch-wildcard"
+    title: "Switch with Wildcard Matching"
+    description: |
+      Switch supports wildcard patterns.
+
+      Wildcard switch:
+      ```powershell
+      $file = "backup_2024.zip"
+      switch -Wildcard ($file) {
+          "backup*"   { Write-Output "Backup file" }
+          "*.zip"     { Write-Output "Archive file" }
+          "*.txt"     { Write-Output "Text file" }
+          default     { Write-Output "Other file" }
+      }
+      ```
+
+      -Wildcard uses * and ? patterns.
+      Note: Multiple matches will execute multiple blocks.
+    hint: "Wildcard is simpler than regex for basic patterns"
+    validation:
+      type: "command-output"
+      command: "$file = 'backup_2024.zip'; switch -Wildcard ($file) { 'backup*' { Write-Output 'Backup file'; break } '*.zip' { Write-Output 'Archive file' } default { Write-Output 'Other' } }"
+      matcher: "exact"
+      expected: "Backup file"
+
+  - id: "ternary-operator"
+    title: "Ternary Operator (PowerShell 7+)"
+    description: |
+      PowerShell 7+ supports ternary operator for simple conditions.
+
+      Ternary syntax:
+      ```powershell
+      $age = 20
+      $status = ($age -ge 18) ? "Adult" : "Minor"
+      Write-Output $status
+      ```
+
+      Syntax: condition ? trueValue : falseValue
+
+      Note: May not work in PowerShell 5.x (Windows Server Core).
+      Traditional approach:
+      ```powershell
+      $status = if ($age -ge 18) { "Adult" } else { "Minor" }
+      ```
+    hint: "Use traditional if/else for PowerShell 5.x compatibility"
+    validation:
+      type: "command-output"
+      command: "$age = 20; $status = if ($age -ge 18) { 'Adult' } else { 'Minor' }; Write-Output $status"
+      matcher: "exact"
+      expected: "Adult"
+
+completion:
+  message: "Excellent! You've mastered conditional logic for complex decision-making!"
+  xp: 350
+  unlocks:
+    - "powershell/scripting/error-handling"

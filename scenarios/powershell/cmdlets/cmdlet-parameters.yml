@@ -1,0 +1,132 @@
+mission:
+  id: "powershell/cmdlets/cmdlet-parameters"
+  title: "Mastering Cmdlet Parameters"
+  difficulty: beginner
+  description: "Understand parameter types, positions, and advanced parameter usage"
+  estimated_time: 20
+  tags:
+    - powershell
+    - cmdlets
+    - beginner
+    - week-4
+    - parameters
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/sample.txt -ItemType File -Value 'Sample' -Force"
+
+steps:
+  - id: "named-parameters"
+    title: "Use Named Parameters"
+    description: |
+      Named parameters use the parameter name with a dash (-).
+
+      Create a file using named parameters:
+      ```powershell
+      New-Item -Path "named.txt" -ItemType File -Value "Named param"
+      ```
+
+      This is explicit and clear.
+    hint: "Named parameters make code more readable"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/named.txt"
+      matcher: "exists"
+
+  - id: "positional-parameters"
+    title: "Use Positional Parameters"
+    description: |
+      Positional parameters rely on parameter order, not names.
+
+      Create a file using position:
+      ```powershell
+      New-Item "positional.txt" File
+      ```
+
+      First position is -Path, second is -ItemType.
+    hint: "Positional is faster but less clear than named"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/positional.txt"
+      matcher: "exists"
+
+  - id: "mandatory-parameters"
+    title: "Understand Mandatory Parameters"
+    description: |
+      Some parameters are mandatory - you must provide them.
+
+      Get-Content requires -Path:
+      ```powershell
+      Get-Content -Path sample.txt
+      ```
+
+      Without -Path, PowerShell prompts you for it.
+    hint: "Mandatory parameters cannot be omitted"
+    validation:
+      type: "command-output"
+      command: "Get-Content sample.txt"
+      matcher: "contains"
+      expected: "Sample"
+
+  - id: "optional-parameters"
+    title: "Use Optional Parameters"
+    description: |
+      Optional parameters have default values if not specified.
+
+      Get-ChildItem's -Path parameter defaults to current directory:
+      ```powershell
+      Get-ChildItem
+      ```
+
+      This uses the default path (current directory).
+    hint: "Optional parameters enhance functionality but aren't required"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "switch-parameters"
+    title: "Master Switch Parameters"
+    description: |
+      Switch parameters are boolean flags (on/off).
+
+      Use -Recurse switch with Get-ChildItem:
+      ```powershell
+      Get-ChildItem -Recurse
+      ```
+
+      Switches don't need values - their presence means "true".
+    hint: "Common switches: -Force, -Recurse, -Verbose, -WhatIf"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem -Recurse -File | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "parameter-aliases"
+    title: "Use Parameter Aliases"
+    description: |
+      Many parameters have shorter aliases.
+
+      Copy-Item's -Path can be shortened to -P:
+      ```powershell
+      Copy-Item sample.txt alias.txt
+      ```
+
+      PowerShell recognizes partial parameter names if unique.
+    hint: "Tab completion helps find parameter aliases"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/alias.txt"
+      matcher: "exists"
+
+completion:
+  message: "Great work! You understand how to use all types of cmdlet parameters effectively!"
+  xp: 150
+  unlocks:
+    - "powershell/cmdlets/cmdlet-discovery"

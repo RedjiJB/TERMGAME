@@ -1,0 +1,119 @@
+mission:
+  id: "powershell/basics/cmdlet-syntax"
+  title: "Understanding Cmdlet Syntax"
+  difficulty: beginner
+  description: "Master the Verb-Noun naming convention and basic cmdlet parameters"
+  estimated_time: 15
+  tags:
+    - powershell
+    - basics
+    - beginner
+    - week-1
+    - cmdlets
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "verb-noun-pattern"
+    title: "Discover the Verb-Noun Pattern"
+    description: |
+      PowerShell cmdlets follow a consistent Verb-Noun naming pattern. Examples:
+      - `Get-Process` - Gets running processes
+      - `Set-Location` - Sets the current directory
+      - `New-Item` - Creates a new item
+
+      Run this command to see all available verbs:
+      ```powershell
+      Get-Verb
+      ```
+
+      This shows approved PowerShell verbs like Get, Set, New, Remove, etc.
+    hint: "Verbs are standardized actions, nouns are the objects they act upon"
+    validation:
+      type: "command-output"
+      command: "Get-Verb | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "named-parameters"
+    title: "Using Named Parameters"
+    description: |
+      Cmdlets use named parameters with a dash (-) prefix.
+
+      Try creating a directory with the `-Path` parameter:
+      ```powershell
+      New-Item -Path "TestFolder" -ItemType Directory
+      ```
+
+      This explicitly specifies the path and item type.
+    hint: "Named parameters make your code more readable"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/TestFolder"
+      matcher: "exists"
+
+  - id: "positional-parameters"
+    title: "Understand Positional Parameters"
+    description: |
+      You can also use positional parameters (without parameter names).
+
+      Create a file using positional syntax:
+      ```powershell
+      New-Item example.txt File
+      ```
+
+      This works because `-Path` is the first parameter and `-ItemType` is the second.
+    hint: "Named parameters are clearer, but positional works for quick commands"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/example.txt"
+      matcher: "exists"
+
+  - id: "switch-parameters"
+    title: "Use Switch Parameters"
+    description: |
+      Some parameters are switches (true/false flags) that don't need values.
+
+      Create a directory and force it (even if it exists) using `-Force`:
+      ```powershell
+      New-Item -Path "ForceFolder" -ItemType Directory -Force
+      ```
+
+      The `-Force` switch doesn't require a value—it's presence means "true".
+    hint: "Switch parameters are like flags—they're either on or off"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/ForceFolder"
+      matcher: "exists"
+
+  - id: "parameter-values"
+    title: "Understanding Parameter Values"
+    description: |
+      Parameters can accept different value types:
+      - Strings: `"text"` or `'text'`
+      - Numbers: `42` or `3.14`
+      - Booleans: `$true` or `$false`
+
+      Create a file with content:
+      ```powershell
+      New-Item -Path "content.txt" -ItemType File -Value "This is content"
+      ```
+
+      The `-Value` parameter accepts a string.
+    hint: "Use quotes for strings with spaces"
+    validation:
+      type: "file-content"
+      file: "C:/learner/content.txt"
+      matcher: "contains"
+      expected: "This is content"
+
+completion:
+  message: "Excellent! You now understand PowerShell cmdlet syntax. You're ready to explore more powerful commands!"
+  xp: 150
+  unlocks:
+    - "powershell/basics/get-help"

@@ -1,0 +1,115 @@
+mission:
+  id: "powershell/networking/test-connection"
+  title: "Testing Network Connectivity"
+  difficulty: beginner
+  description: "Learn to test network connectivity and troubleshoot connection issues"
+  estimated_time: 20
+  tags:
+    - powershell
+    - networking
+    - beginner
+    - week-7
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "test-connection-basic"
+    title: "Test Connectivity with Test-Connection"
+    description: |
+      `Test-Connection` is PowerShell's ping command.
+
+      Test connectivity to localhost:
+      ```powershell
+      Test-Connection -ComputerName localhost -Count 2
+      ```
+
+      This sends 2 ping packets.
+    hint: "Test-Connection is like ping but returns objects"
+    validation:
+      type: "command-output"
+      command: "Test-Connection -ComputerName localhost -Count 1 -Quiet"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "quiet-mode"
+    title: "Use Quiet Mode for Boolean Results"
+    description: |
+      `-Quiet` returns True/False instead of ping results.
+
+      Test with quiet mode:
+      ```powershell
+      Test-Connection -ComputerName localhost -Quiet
+      ```
+
+      Returns True if reachable, False otherwise.
+    hint: "-Quiet is perfect for scripts that need yes/no answers"
+    validation:
+      type: "command-output"
+      command: "Test-Connection -ComputerName localhost -Quiet"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "test-netconnection"
+    title: "Use Test-NetConnection for Advanced Testing"
+    description: |
+      `Test-NetConnection` provides more details than Test-Connection.
+
+      Test network connection:
+      ```powershell
+      Test-NetConnection -ComputerName localhost
+      ```
+
+      Shows ping success, latency, and more.
+    hint: "Test-NetConnection is more powerful than Test-Connection"
+    validation:
+      type: "command-output"
+      command: "Test-NetConnection -ComputerName localhost | Select-Object -ExpandProperty PingSucceeded"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "test-port"
+    title: "Test Specific Ports"
+    description: |
+      Test if a specific port is open.
+
+      Test port (example):
+      ```powershell
+      Test-NetConnection -ComputerName localhost -Port 80
+      ```
+
+      This checks if port 80 (HTTP) is listening.
+    hint: "Port testing helps diagnose service connectivity"
+    validation:
+      type: "command-output"
+      command: "Test-NetConnection -ComputerName localhost -InformationLevel Quiet"
+      matcher: "exact"
+      expected: "True"
+
+  - id: "tracert"
+    title: "Trace Network Route"
+    description: |
+      Use `Test-NetConnection` with `-TraceRoute` to see the path packets take.
+
+      Trace route:
+      ```powershell
+      Test-NetConnection -ComputerName localhost -TraceRoute
+      ```
+
+      Shows each hop packets traverse.
+    hint: "TraceRoute helps identify where connections fail"
+    validation:
+      type: "command-output"
+      command: "Test-NetConnection -ComputerName localhost | Select-Object -ExpandProperty PingSucceeded"
+      matcher: "exact"
+      expected: "True"
+
+completion:
+  message: "Excellent! You can now test and troubleshoot network connectivity!"
+  xp: 150
+  unlocks:
+    - "powershell/networking/dns-operations"

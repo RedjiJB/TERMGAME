@@ -1,0 +1,138 @@
+mission:
+  id: "powershell/encryption/manage-bitlocker"
+  title: "Managing BitLocker Volumes"
+  difficulty: advanced
+  description: "Learn to manage, suspend, and monitor BitLocker encryption"
+  estimated_time: 25
+  tags:
+    - powershell
+    - encryption
+    - advanced
+    - week-10
+    - bitlocker
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "get-bitlocker-status"
+    title: "Check Encryption Status"
+    description: |
+      Monitor encryption progress and status.
+
+      Check volume status:
+      ```powershell
+      Get-BitLockerVolume | Select-Object MountPoint, EncryptionPercentage, VolumeStatus, ProtectionStatus
+      ```
+
+      Shows encryption progress and state.
+    hint: "Monitor encryption progress regularly"
+    validation:
+      type: "command-output"
+      command: "Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Get-BitLockerVolume"
+
+  - id: "suspend-bitlocker"
+    title: "Suspend BitLocker Protection"
+    description: |
+      Temporarily disable protection (e.g., for BIOS updates).
+
+      Suspend syntax:
+      ```powershell
+      # Suspend-BitLocker -MountPoint "C:" -RebootCount 2
+      ```
+
+      -RebootCount: Auto-resume after N reboots
+
+      Verify command:
+      ```powershell
+      Get-Command Suspend-BitLocker
+      ```
+
+      Protection resumes automatically.
+    hint: "Suspend before BIOS/firmware updates"
+    validation:
+      type: "command-output"
+      command: "Get-Command Suspend-BitLocker -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Suspend-BitLocker"
+
+  - id: "resume-bitlocker"
+    title: "Resume BitLocker Protection"
+    description: |
+      Manually resume after suspension.
+
+      Resume syntax:
+      ```powershell
+      # Resume-BitLocker -MountPoint "C:"
+      ```
+
+      Verify command:
+      ```powershell
+      Get-Command Resume-BitLocker
+      ```
+
+      Re-enables protection immediately.
+    hint: "Resume protection as soon as maintenance is done"
+    validation:
+      type: "command-output"
+      command: "Get-Command Resume-BitLocker -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Resume-BitLocker"
+
+  - id: "unlock-volume"
+    title: "Unlock Encrypted Volumes"
+    description: |
+      Unlock volumes with password or recovery key.
+
+      Unlock syntax:
+      ```powershell
+      # Unlock-BitLocker -MountPoint "D:" -Password (ConvertTo-SecureString "Password" -AsPlainText -Force)
+      ```
+
+      Verify command:
+      ```powershell
+      Get-Command Unlock-BitLocker
+      ```
+
+      Unlocks remain until reboot.
+    hint: "Recovery keys unlock when password is forgotten"
+    validation:
+      type: "command-output"
+      command: "Get-Command Unlock-BitLocker -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Unlock-BitLocker"
+
+  - id: "disable-bitlocker"
+    title: "Disable BitLocker Permanently"
+    description: |
+      Decrypt and disable BitLocker.
+
+      Disable syntax:
+      ```powershell
+      # Disable-BitLocker -MountPoint "D:"
+      ```
+
+      Verify command:
+      ```powershell
+      Get-Command Disable-BitLocker
+      ```
+
+      Decryption can take hours.
+    hint: "Disabling permanently decrypts the drive"
+    validation:
+      type: "command-output"
+      command: "Get-Command Disable-BitLocker -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Disable-BitLocker"
+
+completion:
+  message: "Outstanding! You can now fully manage BitLocker encrypted volumes!"
+  xp: 400
+  unlocks:
+    - "powershell/encryption/certificates"

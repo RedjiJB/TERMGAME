@@ -1,0 +1,141 @@
+mission:
+  id: "powershell/processes/process-management"
+  title: "Managing Processes"
+  difficulty: beginner
+  description: "Learn to start and stop processes with PowerShell"
+  estimated_time: 20
+  tags:
+    - powershell
+    - processes
+    - beginner
+    - week-10
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "start-process"
+    title: "Start a Process"
+    description: |
+      `Start-Process` launches applications and commands.
+
+      Start Notepad (note: may not have GUI in container, but command works):
+      ```powershell
+      Start-Process notepad -PassThru
+      ```
+
+      `-PassThru` returns the process object so you can work with it.
+    hint: "Start-Process is like double-clicking an application"
+    validation:
+      type: "command-output"
+      command: "Get-Command Start-Process | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Start-Process"
+
+  - id: "start-with-arguments"
+    title: "Start Process with Arguments"
+    description: |
+      Pass arguments to the started process.
+
+      Start PowerShell with a command (creating a new process):
+      ```powershell
+      Start-Process powershell -ArgumentList "-Command", "Get-Date" -NoNewWindow -Wait
+      ```
+
+      `-NoNewWindow` keeps output in current window.
+    hint: "-ArgumentList passes parameters to the process"
+    validation:
+      type: "command-output"
+      command: "Get-Command Start-Process | Get-Member | Where-Object {$_.Name -eq 'ArgumentList'} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "stop-process-name"
+    title: "Stop a Process by Name"
+    description: |
+      `Stop-Process` terminates processes.
+
+      First, let's verify Stop-Process exists:
+      ```powershell
+      Get-Command Stop-Process
+      ```
+
+      Example usage (don't run this on critical processes!):
+      `Stop-Process -Name notepad`
+
+      This would close all Notepad instances.
+    hint: "Be careful with Stop-Process - it forcefully terminates"
+    validation:
+      type: "command-output"
+      command: "Get-Command Stop-Process | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Stop-Process"
+
+  - id: "stop-process-id"
+    title: "Stop a Process by ID"
+    description: |
+      You can stop processes by their Process ID (PID).
+
+      Start a test process and capture it:
+      ```powershell
+      $proc = Start-Process powershell -ArgumentList "-Command", "Start-Sleep 10" -PassThru
+      ```
+
+      Then stop it:
+      ```powershell
+      Stop-Process -Id $proc.Id
+      ```
+
+      The process is terminated immediately.
+    hint: "Stopping by ID is more precise than stopping by name"
+    validation:
+      type: "command-output"
+      command: "$proc = Start-Process powershell -ArgumentList '-Command', 'Start-Sleep 5' -PassThru; Stop-Process -Id $proc.Id; 'Stopped'"
+      matcher: "contains"
+      expected: "Stopped"
+
+  - id: "whatif-stop"
+    title: "Preview Stop with -WhatIf"
+    description: |
+      Always test Stop-Process with -WhatIf first!
+
+      See what would happen without actually stopping:
+      ```powershell
+      Get-Process powershell | Stop-Process -WhatIf
+      ```
+
+      This shows what would be stopped without doing it.
+    hint: "-WhatIf is essential before stopping processes"
+    validation:
+      type: "command-output"
+      command: "Get-Process powershell | Select-Object -First 1 -ExpandProperty Name"
+      matcher: "exact"
+      expected: "powershell"
+
+  - id: "wait-process"
+    title: "Wait for Process to Complete"
+    description: |
+      `Wait-Process` pauses until a process exits.
+
+      Start a process and wait for it:
+      ```powershell
+      Start-Process powershell -ArgumentList "-Command", "Start-Sleep 2" -PassThru | Wait-Process
+      ```
+
+      This blocks until the process completes.
+    hint: "Wait-Process is useful in scripts that need synchronization"
+    validation:
+      type: "command-output"
+      command: "Start-Process powershell -ArgumentList '-Command', 'exit' -PassThru | Wait-Process; 'Completed'"
+      matcher: "contains"
+      expected: "Completed"
+
+completion:
+  message: "Excellent! You can now start, stop, and manage processes effectively!"
+  xp: 150
+  unlocks:
+    - "powershell/processes/services"

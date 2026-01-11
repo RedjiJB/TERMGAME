@@ -1,0 +1,137 @@
+mission:
+  id: "powershell/basics/navigation"
+  title: "Navigating the File System"
+  difficulty: beginner
+  description: "Master PowerShell cmdlets for navigating directories and drives"
+  estimated_time: 20
+  tags:
+    - powershell
+    - basics
+    - beginner
+    - week-1
+    - navigation
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/docs -ItemType Directory -Force"
+    - "New-Item -Path C:/learner/docs/reports -ItemType Directory -Force"
+    - "New-Item -Path C:/learner/scripts -ItemType Directory -Force"
+
+steps:
+  - id: "get-location"
+    title: "Check Current Location"
+    description: |
+      `Get-Location` shows your current directory (like `pwd` in Linux).
+
+      Check where you are:
+      ```powershell
+      Get-Location
+      ```
+
+      You should be in C:/learner.
+    hint: "The alias 'pwd' also works"
+    validation:
+      type: "command-output"
+      command: "Get-Location | Select-Object -ExpandProperty Path"
+      matcher: "contains"
+      expected: "learner"
+
+  - id: "set-location-absolute"
+    title: "Navigate with Absolute Paths"
+    description: |
+      `Set-Location` changes your current directory (like `cd` in Linux).
+
+      Navigate to the docs folder:
+      ```powershell
+      Set-Location C:/learner/docs
+      ```
+
+      This uses an absolute path.
+    hint: "Absolute paths start from the drive root"
+    validation:
+      type: "command-output"
+      command: "Get-Location | Select-Object -ExpandProperty Path"
+      matcher: "contains"
+      expected: "docs"
+
+  - id: "set-location-relative"
+    title: "Navigate with Relative Paths"
+    description: |
+      You can use relative paths for navigation.
+
+      Navigate to the reports subfolder:
+      ```powershell
+      Set-Location reports
+      ```
+
+      This goes into the "reports" folder within your current location.
+    hint: "Relative paths are relative to your current directory"
+    validation:
+      type: "command-output"
+      command: "Get-Location | Select-Object -ExpandProperty Path"
+      matcher: "contains"
+      expected: "reports"
+
+  - id: "parent-directory"
+    title: "Navigate to Parent Directory"
+    description: |
+      Use `..` to go up one level to the parent directory.
+
+      Go back to the docs folder:
+      ```powershell
+      Set-Location ..
+      ```
+
+      `..` means "parent directory".
+    hint: ".. always means the parent directory"
+    validation:
+      type: "command-output"
+      command: "(Get-Location | Select-Object -ExpandProperty Path) -replace '\\\\', '/' -replace '^[A-Z]:', ''"
+      matcher: "regex"
+      expected: "/learner/docs$"
+
+  - id: "push-location"
+    title: "Save Location with Push-Location"
+    description: |
+      `Push-Location` saves your current location and navigates elsewhere.
+
+      Save your location and go to scripts:
+      ```powershell
+      Push-Location C:/learner/scripts
+      ```
+
+      This lets you return later with Pop-Location.
+    hint: "Push-Location saves locations in a stack"
+    validation:
+      type: "command-output"
+      command: "Get-Location | Select-Object -ExpandProperty Path"
+      matcher: "contains"
+      expected: "scripts"
+
+  - id: "pop-location"
+    title: "Return with Pop-Location"
+    description: |
+      `Pop-Location` returns to the location saved by Push-Location.
+
+      Return to the previous location:
+      ```powershell
+      Pop-Location
+      ```
+
+      You should be back in the docs folder.
+    hint: "Pop-Location retrieves the last pushed location"
+    validation:
+      type: "command-output"
+      command: "Get-Location | Select-Object -ExpandProperty Path"
+      matcher: "contains"
+      expected: "docs"
+
+completion:
+  message: "Excellent navigation skills! You can now move around the file system with confidence."
+  xp: 150
+  unlocks:
+    - "powershell/basics/aliases"

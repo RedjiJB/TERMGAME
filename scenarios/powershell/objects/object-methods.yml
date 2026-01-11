@@ -1,0 +1,163 @@
+mission:
+  id: "powershell/objects/object-methods"
+  title: "Working with Object Methods"
+  difficulty: intermediate
+  description: "Discover and use object methods to perform actions"
+  estimated_time: 25
+  tags:
+    - powershell
+    - objects
+    - intermediate
+    - week-4
+    - methods
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/example.txt -ItemType File -Value 'Example Content' -Force"
+
+steps:
+  - id: "discover-methods"
+    title: "Discover Object Methods"
+    description: |
+      Use `Get-Member -MemberType Method` to see available methods.
+
+      View methods on a file object:
+      ```powershell
+      Get-Item example.txt | Get-Member -MemberType Method
+      ```
+
+      This shows methods like Delete(), MoveTo(), CopyTo(), etc.
+    hint: "Methods are actions you can perform on objects"
+    validation:
+      type: "command-output"
+      command: "Get-Item example.txt | Get-Member -MemberType Method | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+  - id: "string-methods"
+    title: "Use String Methods"
+    description: |
+      String objects have many useful methods.
+
+      Convert a filename to uppercase:
+      ```powershell
+      $name = "example.txt"
+      $upper = $name.ToUpper()
+      Write-Output $upper
+      ```
+
+      Common string methods: ToUpper(), ToLower(), Replace(), Split(), Trim()
+    hint: "String methods are inherited from .NET"
+    validation:
+      type: "command-output"
+      command: "'example'.ToUpper()"
+      matcher: "exact"
+      expected: "EXAMPLE"
+
+  - id: "replace-method"
+    title: "Use the Replace Method"
+    description: |
+      The Replace() method substitutes text within strings.
+
+      Replace "example" with "sample":
+      ```powershell
+      $text = "example.txt"
+      $newText = $text.Replace("example", "sample")
+      Write-Output $newText
+      ```
+
+      This returns "sample.txt".
+    hint: "Replace(oldText, newText) changes strings"
+    validation:
+      type: "command-output"
+      command: "'example.txt'.Replace('example', 'sample')"
+      matcher: "exact"
+      expected: "sample.txt"
+
+  - id: "split-method"
+    title: "Split Strings with Split Method"
+    description: |
+      Split() breaks strings into arrays based on a delimiter.
+
+      Split a path into parts:
+      ```powershell
+      $path = "C:/learner/example.txt"
+      $parts = $path.Split("/")
+      Write-Output $parts
+      ```
+
+      This creates an array: ["C:", "learner", "example.txt"]
+    hint: "Split returns an array of strings"
+    validation:
+      type: "command-output"
+      command: "'one,two,three'.Split(',').Count"
+      matcher: "exact"
+      expected: "3"
+
+  - id: "datetime-methods"
+    title: "Use DateTime Methods"
+    description: |
+      DateTime objects have methods for date manipulation.
+
+      Get a file's last write time and add days:
+      ```powershell
+      $file = Get-Item example.txt
+      $future = $file.LastWriteTime.AddDays(7)
+      Write-Output $future
+      ```
+
+      DateTime methods: AddDays(), AddHours(), AddMonths(), etc.
+    hint: "DateTime methods perform date arithmetic"
+    validation:
+      type: "command-output"
+      command: "Get-Item example.txt | Select-Object -ExpandProperty LastWriteTime | Get-Member -MemberType Method | Where-Object {$_.Name -eq 'AddDays'} | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "AddDays"
+
+  - id: "method-chaining"
+    title: "Chain Methods Together"
+    description: |
+      Call multiple methods in sequence (method chaining).
+
+      Transform a filename:
+      ```powershell
+      $original = "EXAMPLE.TXT"
+      $result = $original.ToLower().Replace("example", "sample")
+      Write-Output $result
+      ```
+
+      Each method returns an object for the next method.
+    hint: "Method chaining makes code concise"
+    validation:
+      type: "command-output"
+      command: "'HELLO WORLD'.ToLower().Replace('world', 'powershell')"
+      matcher: "exact"
+      expected: "hello powershell"
+
+  - id: "custom-method-calls"
+    title: "Call Methods in Pipeline"
+    description: |
+      Combine methods with pipeline operations.
+
+      Get all .txt files and show uppercased names:
+      ```powershell
+      Get-ChildItem *.txt | ForEach-Object { $_.Name.ToUpper() }
+      ```
+
+      Methods work seamlessly in pipelines.
+    hint: "Pipeline + methods = powerful transformations"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem *.txt | ForEach-Object { $_.Name.ToUpper() } | Select-Object -First 1"
+      matcher: "regex"
+      expected: "[A-Z]+\\.TXT"
+
+completion:
+  message: "Fantastic! Understanding object methods opens up the full power of .NET in PowerShell!"
+  xp: 300
+  unlocks:
+    - "powershell/backup/backup-basics"

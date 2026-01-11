@@ -1,0 +1,163 @@
+mission:
+  id: "powershell/files/recursive-operations"
+  title: "Recursive File Operations"
+  difficulty: beginner
+  description: "Master the -Recurse parameter for working with folder hierarchies"
+  estimated_time: 25
+  tags:
+    - powershell
+    - files
+    - beginner
+    - week-1
+    - recursion
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/Project/src/app.ps1 -ItemType File -Value '# Code' -Force"
+    - "New-Item -Path C:/learner/Project/src/utils.ps1 -ItemType File -Value '# Utils' -Force"
+    - "New-Item -Path C:/learner/Project/docs/readme.txt -ItemType File -Value 'README' -Force"
+    - "New-Item -Path C:/learner/Project/tests/test.ps1 -ItemType File -Value '# Tests' -Force"
+    - "New-Item -Path C:/learner/Data/logs/2024/jan.log -ItemType File -Value 'Jan logs' -Force"
+    - "New-Item -Path C:/learner/Data/logs/2024/feb.log -ItemType File -Value 'Feb logs' -Force"
+
+steps:
+  - id: "list-recursive"
+    title: "List Files Recursively"
+    description: |
+      The `-Recurse` parameter makes cmdlets work through entire folder trees.
+
+      List all files in Project folder and subfolders:
+      ```powershell
+      Get-ChildItem -Path "Project" -Recurse
+      ```
+
+      This shows files in Project/, Project/src/, Project/docs/, etc.
+    hint: "-Recurse processes all subdirectories"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem -Path Project -Recurse -File | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "filter-by-extension"
+    title: "Find Files by Extension Recursively"
+    description: |
+      Combine `-Recurse` with `-Filter` to find specific file types.
+
+      Find all .ps1 files in Project:
+      ```powershell
+      Get-ChildItem -Path "Project" -Recurse -Filter "*.ps1"
+      ```
+
+      This finds PowerShell scripts anywhere in the folder tree.
+    hint: "Use -Filter for file patterns like *.txt, *.ps1, etc."
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem -Path Project -Recurse -Filter '*.ps1' | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[2-9]\\d*"
+
+  - id: "directories-only"
+    title: "List Only Directories Recursively"
+    description: |
+      Use `-Directory` to list only folders, not files.
+
+      List all folders in Project:
+      ```powershell
+      Get-ChildItem -Path "Project" -Recurse -Directory
+      ```
+
+      This shows all subfolders in the hierarchy.
+    hint: "Use -Directory for folders, -File for files"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem -Path Project -Recurse -Directory | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "copy-recursive"
+    title: "Copy Folders Recursively"
+    description: |
+      Copy entire folder structures with `-Recurse`.
+
+      Copy the entire Project folder to ProjectBackup:
+      ```powershell
+      Copy-Item -Path "Project" -Destination "ProjectBackup" -Recurse
+      ```
+
+      All files and subfolders are copied.
+    hint: "Without -Recurse, only an empty folder is created"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/ProjectBackup/src/app.ps1"
+      matcher: "exists"
+
+  - id: "remove-recursive"
+    title: "Remove Folders Recursively"
+    description: |
+      Remove folders and all their contents with `-Recurse`.
+
+      First create a test folder:
+      ```powershell
+      New-Item -Path "TempTest/sub/deep" -ItemType Directory -Force
+      New-Item -Path "TempTest/file.txt" -ItemType File -Force
+      ```
+
+      Then remove everything:
+      ```powershell
+      Remove-Item -Path "TempTest" -Recurse -Force
+      ```
+
+      `-Force` suppresses confirmation prompts.
+    hint: "Be very careful with Remove-Item -Recurse!"
+    validation:
+      type: "command-output"
+      command: "Test-Path TempTest"
+      matcher: "exact"
+      expected: "False"
+
+  - id: "search-content"
+    title: "Search File Contents Recursively"
+    description: |
+      Use `Select-String` to search file contents across folders.
+
+      Search for "logs" in all .log files:
+      ```powershell
+      Get-ChildItem -Path "Data" -Recurse -Filter "*.log" | Select-String -Pattern "logs"
+      ```
+
+      This searches file contents, not just names.
+    hint: "Select-String is like grep in Linux"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem -Path Data -Recurse -Filter '*.log' | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "depth-limit"
+    title: "Limit Recursion Depth"
+    description: |
+      Use `-Depth` to control how deep recursion goes.
+
+      List files only 2 levels deep from current directory:
+      ```powershell
+      Get-ChildItem -Recurse -Depth 2
+      ```
+
+      This prevents going too deep into folder structures.
+    hint: "-Depth 0 means current directory only, 1 means one level down, etc."
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem -Recurse -Depth 1 -File | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+completion:
+  message: "Fantastic! You can now work with entire folder hierarchies efficiently using -Recurse!"
+  xp: 200
+  unlocks:
+    - "powershell/cmdlets/common-cmdlets"

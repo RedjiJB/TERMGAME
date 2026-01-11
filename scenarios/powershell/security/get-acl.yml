@@ -1,0 +1,159 @@
+mission:
+  id: "powershell/security/get-acl"
+  title: "Reading Permissions with Get-Acl"
+  difficulty: intermediate
+  description: "Learn to view and analyze Access Control Lists on files and folders"
+  estimated_time: 25
+  tags:
+    - powershell
+    - security
+    - intermediate
+    - week-5
+    - acl
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/protected.txt -ItemType File -Value 'Protected content' -Force"
+    - "New-Item -Path C:/learner/SecureFolder -ItemType Directory -Force"
+
+steps:
+  - id: "basic-get-acl"
+    title: "View ACL with Get-Acl"
+    description: |
+      `Get-Acl` displays Access Control Lists.
+
+      View ACL of a file:
+      ```powershell
+      Get-Acl protected.txt
+      ```
+
+      This shows owner and access rules.
+    hint: "ACL = Access Control List"
+    validation:
+      type: "command-output"
+      command: "Get-Acl protected.txt | Select-Object -ExpandProperty Path"
+      matcher: "contains"
+      expected: "protected.txt"
+
+  - id: "view-owner"
+    title: "View File Owner"
+    description: |
+      Every file has an owner.
+
+      Get the owner:
+      ```powershell
+      (Get-Acl protected.txt).Owner
+      ```
+
+      The owner can always modify permissions.
+    hint: "Owners have special rights to their files"
+    validation:
+      type: "command-output"
+      command: "(Get-Acl protected.txt).Owner"
+      matcher: "regex"
+      expected: ".+\\\\.+"
+
+  - id: "view-access-rules"
+    title: "View Access Rules"
+    description: |
+      Access rules define who can do what.
+
+      View all access rules:
+      ```powershell
+      (Get-Acl protected.txt).Access
+      ```
+
+      Each rule specifies: Identity, Rights, and Type (Allow/Deny).
+    hint: "Access rules are the heart of Windows security"
+    validation:
+      type: "command-output"
+      command: "(Get-Acl protected.txt).Access | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "format-access-rules"
+    title: "Format Access Rules for Reading"
+    description: |
+      Format rules for better readability.
+
+      Display in a table:
+      ```powershell
+      (Get-Acl protected.txt).Access | Format-Table IdentityReference, FileSystemRights, AccessControlType
+      ```
+
+      This shows who has what permissions.
+    hint: "Use Format-Table to make ACLs readable"
+    validation:
+      type: "command-output"
+      command: "(Get-Acl protected.txt).Access | Select-Object IdentityReference, FileSystemRights, AccessControlType | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "filter-specific-identity"
+    title: "Filter Rules by Identity"
+    description: |
+      Find permissions for a specific user or group.
+
+      View Administrators permissions:
+      ```powershell
+      (Get-Acl protected.txt).Access | Where-Object {$_.IdentityReference -like "*Administrators*"}
+      ```
+
+      This filters to show only admin permissions.
+    hint: "Filter to audit specific user/group access"
+    validation:
+      type: "command-output"
+      command: "(Get-Acl protected.txt).Access | Where-Object {$_.IdentityReference -like '*Administrators*'} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "check-inheritance"
+    title: "Check if Permissions Are Inherited"
+    description: |
+      Determine if permissions come from parent folder.
+
+      Check inheritance:
+      ```powershell
+      (Get-Acl protected.txt).Access | Select-Object IdentityReference, IsInherited
+      ```
+
+      IsInherited = True means permission comes from parent.
+    hint: "Inherited permissions maintain consistency across folders"
+    validation:
+      type: "command-output"
+      command: "(Get-Acl protected.txt).Access | Select-Object IsInherited | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "audit-folder-permissions"
+    title: "Audit All Files in a Folder"
+    description: |
+      Check permissions on multiple files at once.
+
+      Audit all files:
+      ```powershell
+      Get-ChildItem | ForEach-Object {
+          [PSCustomObject]@{
+              Name = $_.Name
+              Owner = (Get-Acl $_.FullName).Owner
+          }
+      }
+      ```
+
+      This creates an ownership report.
+    hint: "Bulk auditing helps identify permission issues"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | ForEach-Object { (Get-Acl $_.FullName).Owner } | Select-Object -First 1"
+      matcher: "regex"
+      expected: ".+\\\\.+"
+
+completion:
+  message: "Great job! You can now read and analyze Windows permissions effectively!"
+  xp: 250
+  unlocks:
+    - "powershell/security/set-acl"

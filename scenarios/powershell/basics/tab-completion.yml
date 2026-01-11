@@ -1,0 +1,157 @@
+mission:
+  id: "powershell/basics/tab-completion"
+  title: "Mastering Tab Completion"
+  difficulty: beginner
+  description: "Learn to use tab completion for commands, parameters, and file paths"
+  estimated_time: 15
+  tags:
+    - powershell
+    - basics
+    - beginner
+    - week-2
+    - productivity
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/TestFile.txt -ItemType File -Force"
+    - "New-Item -Path C:/learner/TestDocument.txt -ItemType File -Force"
+    - "New-Item -Path C:/learner/ProductionData.csv -ItemType File -Force"
+
+steps:
+  - id: "cmdlet-completion"
+    title: "Tab Complete Cmdlet Names"
+    description: |
+      Tab completion saves typing and reduces errors.
+
+      When you type `Get-Ch` and press Tab, PowerShell completes to `Get-ChildItem`.
+
+      In practice, you would:
+      1. Type: `Get-Ch` and press Tab
+      2. PowerShell completes it to `Get-ChildItem`
+
+      For this validation, verify you understand by running Get-ChildItem:
+      ```powershell
+      Get-ChildItem
+      ```
+
+      Note: Tab completion works interactively but we validate the completed command here.
+    hint: "Tab cycles through matching cmdlets if there are multiple options"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "parameter-completion"
+    title: "Tab Complete Parameter Names"
+    description: |
+      You can tab complete parameter names too!
+
+      Type `Get-ChildItem -P` and press Tab to cycle through parameters starting with P:
+      - `-Path`
+      - `-Property`
+      - etc.
+
+      Try getting items with the `-Path` parameter:
+      ```powershell
+      Get-ChildItem -Path C:/learner
+      ```
+    hint: "Tab completion shows all matching parameters"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem -Path C:/learner | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "file-path-completion"
+    title: "Tab Complete File Paths"
+    description: |
+      Tab completion works brilliantly with file paths!
+
+      When you type `Get-Content Te` and press Tab, it completes to file names starting with "Te".
+
+      List a file that starts with "Test":
+      ```powershell
+      Get-Content TestFile.txt
+      ```
+
+      In interactive mode, Tab would show you matching files.
+    hint: "Tab completion prevents typos in long file names"
+    validation:
+      type: "command-output"
+      command: "Get-Item TestFile.txt | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "TestFile.txt"
+
+  - id: "wildcard-completion"
+    title: "Use Wildcards with Tab"
+    description: |
+      Combine wildcards (*) with Tab completion for powerful file finding.
+
+      Type `Get-ChildItem *Data*` to find files with "Data" in the name:
+      ```powershell
+      Get-ChildItem *Data*
+      ```
+
+      This finds "ProductionData.csv".
+    hint: "Wildcards help narrow down Tab completion options"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem *Data* | Select-Object -ExpandProperty Name"
+      matcher: "contains"
+      expected: "Data"
+
+  - id: "value-completion"
+    title: "Tab Complete Parameter Values"
+    description: |
+      PowerShell can even complete parameter values!
+
+      For example, with `Get-Service -Name`, Tab completes service names.
+
+      Try listing services (Tab would complete names interactively):
+      ```powershell
+      Get-Service
+      ```
+
+      Count all services:
+      ```powershell
+      Get-Service | Measure-Object
+      ```
+    hint: "Tab completion knows valid values for many parameters"
+    validation:
+      type: "command-output"
+      command: "Get-Service | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "command-history"
+    title: "Navigate Command History"
+    description: |
+      Use arrow keys to navigate command history:
+      - ↑ (Up Arrow): Previous command
+      - ↓ (Down Arrow): Next command
+
+      Tab completion + history = maximum productivity!
+
+      Run a simple command to verify history works:
+      ```powershell
+      Get-Location
+      ```
+
+      Then you could press ↑ to recall it (in interactive mode).
+    hint: "F7 shows command history in a window (on Windows)"
+    validation:
+      type: "command-output"
+      command: "Get-Location | Select-Object -ExpandProperty Path"
+      matcher: "contains"
+      expected: "learner"
+
+completion:
+  message: "Fantastic! Tab completion will save you countless hours of typing. Use it always!"
+  xp: 150
+  unlocks:
+    - "powershell/files/file-basics"

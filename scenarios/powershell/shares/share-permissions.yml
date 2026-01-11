@@ -1,0 +1,133 @@
+mission:
+  id: "powershell/shares/share-permissions"
+  title: "Managing Share Permissions"
+  difficulty: intermediate
+  description: "Learn to configure share-level permissions with PowerShell"
+  estimated_time: 25
+  tags:
+    - powershell
+    - shares
+    - intermediate
+    - week-7
+    - permissions
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "two-permission-layers"
+    title: "Understanding Two Permission Layers"
+    description: |
+      Windows shares have TWO permission layers:
+      1. **Share permissions**: Control network access to share
+      2. **NTFS permissions**: Control file system access
+
+      Both are evaluated; most restrictive wins.
+
+      View share permissions:
+      ```powershell
+      Get-SmbShare | Select-Object Name, Path
+      ```
+
+      Always configure both permission types.
+    hint: "Share permissions + NTFS permissions = effective access"
+    validation:
+      type: "command-output"
+      command: "Get-SmbShare | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "get-smbshareaccess"
+    title: "View Share Permissions"
+    description: |
+      `Get-SmbShareAccess` shows share-level permissions.
+
+      View permissions for a share:
+      ```powershell
+      Get-SmbShare | Select-Object -First 1 | Get-SmbShareAccess
+      ```
+
+      Shows who can access the share via network.
+    hint: "Share permissions control network access only"
+    validation:
+      type: "command-output"
+      command: "Get-Command Get-SmbShareAccess | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Get-SmbShareAccess"
+
+  - id: "share-permission-types"
+    title: "Understanding Share Permission Types"
+    description: |
+      Share permissions:
+      - **Read**: View files
+      - **Change**: Read + Write + Delete
+      - **Full Control**: All permissions including changing share settings
+
+      Default: Everyone group has Read access.
+
+      Verify Grant command:
+      ```powershell
+      Get-Command Grant-SmbShareAccess
+      ```
+    hint: "Full Control is rarely needed for users"
+    validation:
+      type: "command-output"
+      command: "Get-Command Grant-SmbShareAccess | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Grant-SmbShareAccess"
+
+  - id: "grant-share-access"
+    title: "Understanding Granting Access"
+    description: |
+      `Grant-SmbShareAccess` adds share permissions.
+
+      Example (requires admin):
+      ```powershell
+      # Grant-SmbShareAccess -Name "Share1" -AccountName "Users" -AccessRight Change
+      ```
+
+      Access Rights: Read, Change, Full
+
+      Verify command exists:
+      ```powershell
+      Get-Command Grant-SmbShareAccess
+      ```
+    hint: "Grant minimum necessary permissions"
+    validation:
+      type: "command-output"
+      command: "Get-Command Grant-SmbShareAccess -Syntax"
+      matcher: "contains"
+      expected: "Grant-SmbShareAccess"
+
+  - id: "revoke-share-access"
+    title: "Understanding Revoking Access"
+    description: |
+      `Revoke-SmbShareAccess` removes share permissions.
+
+      Example (requires admin):
+      ```powershell
+      # Revoke-SmbShareAccess -Name "Share1" -AccountName "Guest"
+      ```
+
+      Verify command exists:
+      ```powershell
+      Get-Command Revoke-SmbShareAccess
+      ```
+
+      Revoke unnecessary access for security.
+    hint: "Regularly audit and revoke unneeded permissions"
+    validation:
+      type: "command-output"
+      command: "Get-Command Revoke-SmbShareAccess | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Revoke-SmbShareAccess"
+
+completion:
+  message: "Excellent! You understand share permission management!"
+  xp: 250
+  unlocks:
+    - "powershell/shares/share-access"

@@ -1,0 +1,125 @@
+mission:
+  id: "powershell/shares/file-shares"
+  title: "Managing SMB File Shares"
+  difficulty: intermediate
+  description: "Learn to create and manage Windows file shares with PowerShell"
+  estimated_time: 25
+  tags:
+    - powershell
+    - shares
+    - intermediate
+    - week-7
+    - smb
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/SharedFolder -ItemType Directory -Force"
+
+steps:
+  - id: "get-smbshare"
+    title: "List Existing Shares"
+    description: |
+      `Get-SmbShare` lists all SMB shares on the computer.
+
+      View existing shares:
+      ```powershell
+      Get-SmbShare
+      ```
+
+      Shows share names, paths, and descriptions.
+    hint: "SMB shares allow network file access"
+    validation:
+      type: "command-output"
+      command: "Get-SmbShare | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "share-properties"
+    title: "View Share Properties"
+    description: |
+      Shares have properties like Path, Description, and CurrentUsers.
+
+      View detailed share info:
+      ```powershell
+      Get-SmbShare | Select-Object Name, Path, Description
+      ```
+
+      Path shows the local folder being shared.
+    hint: "Share properties determine how the share behaves"
+    validation:
+      type: "command-output"
+      command: "Get-SmbShare | Select-Object Name, Path | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "new-smbshare"
+    title: "Understanding Share Creation"
+    description: |
+      `New-SmbShare` creates new file shares.
+
+      Example (requires admin):
+      ```powershell
+      # New-SmbShare -Name "Share1" -Path "C:/learner/SharedFolder" -Description "Shared folder"
+      ```
+
+      Verify command exists:
+      ```powershell
+      Get-Command New-SmbShare
+      ```
+    hint: "Creating shares requires administrator privileges"
+    validation:
+      type: "command-output"
+      command: "Get-Command New-SmbShare | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "New-SmbShare"
+
+  - id: "remove-smbshare"
+    title: "Understanding Share Removal"
+    description: |
+      `Remove-SmbShare` deletes shares.
+
+      Example (requires admin):
+      ```powershell
+      # Remove-SmbShare -Name "Share1" -Force
+      ```
+
+      Verify command exists:
+      ```powershell
+      Get-Command Remove-SmbShare
+      ```
+
+      Removing a share doesn't delete the files.
+    hint: "Removing shares only stops sharing, doesn't delete files"
+    validation:
+      type: "command-output"
+      command: "Get-Command Remove-SmbShare | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Remove-SmbShare"
+
+  - id: "share-sessions"
+    title: "View Active Share Sessions"
+    description: |
+      `Get-SmbSession` shows who's connected to shares.
+
+      View sessions:
+      ```powershell
+      Get-SmbSession
+      ```
+
+      Shows connected users and their sessions.
+    hint: "Sessions show active share connections"
+    validation:
+      type: "command-output"
+      command: "Get-Command Get-SmbSession | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Get-SmbSession"
+
+completion:
+  message: "Great job! You understand Windows file sharing basics!"
+  xp: 250
+  unlocks:
+    - "powershell/shares/share-permissions"

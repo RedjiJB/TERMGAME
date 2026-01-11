@@ -1,0 +1,134 @@
+mission:
+  id: "powershell/basics/get-help"
+  title: "Mastering the Help System"
+  difficulty: beginner
+  description: "Learn to use Get-Help to discover cmdlet usage and examples"
+  estimated_time: 20
+  tags:
+    - powershell
+    - basics
+    - beginner
+    - week-1
+    - help
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "basic-help"
+    title: "Get Basic Help"
+    description: |
+      PowerShell has built-in documentation for every cmdlet.
+
+      View help for `Get-Process`:
+      ```powershell
+      Get-Help Get-Process
+      ```
+
+      This shows syntax, description, and basic usage.
+    hint: "Get-Help is your best friend when learning PowerShell"
+    validation:
+      type: "command-output"
+      command: "Get-Help Get-Process | Select-Object -First 1"
+      matcher: "regex"
+      expected: ".*"
+
+  - id: "detailed-help"
+    title: "Get Detailed Help"
+    description: |
+      Add `-Detailed` for more information including parameter descriptions.
+
+      Try it with `Get-ChildItem`:
+      ```powershell
+      Get-Help Get-ChildItem -Detailed
+      ```
+
+      This shows comprehensive parameter details.
+    hint: "Use -Detailed to see parameter explanations"
+    validation:
+      type: "command-output"
+      command: "Get-Help Get-ChildItem -Detailed | Select-Object -First 1"
+      matcher: "regex"
+      expected: ".*"
+
+  - id: "examples"
+    title: "View Command Examples"
+    description: |
+      The `-Examples` parameter shows practical usage examples.
+
+      See examples for `Get-Service`:
+      ```powershell
+      Get-Help Get-Service -Examples
+      ```
+
+      Examples are the fastest way to learn how to use a cmdlet.
+    hint: "Examples show real-world usage patterns"
+    validation:
+      type: "command-output"
+      command: "Get-Help Get-Service -Examples | Select-Object -First 1"
+      matcher: "regex"
+      expected: ".*"
+
+  - id: "parameter-help"
+    title: "Get Help on Specific Parameters"
+    description: |
+      You can get help on a specific parameter using `-Parameter`.
+
+      View help for the `-Path` parameter of `Get-Item`:
+      ```powershell
+      Get-Help Get-Item -Parameter Path
+      ```
+
+      This shows detailed info about that single parameter.
+    hint: "Use -Parameter to focus on specific parameter details"
+    validation:
+      type: "command-output"
+      command: "Get-Help Get-Item -Parameter Path | Select-Object -First 1"
+      matcher: "regex"
+      expected: ".*"
+
+  - id: "online-help"
+    title: "Access Online Help"
+    description: |
+      PowerShell can open cmdlet help in your web browser using `-Online`.
+
+      Note: In containers without a browser, this command may not work, but try it:
+      ```powershell
+      Get-Help Get-Process -Online
+      ```
+
+      On normal systems, this opens the Microsoft docs website.
+    hint: "Online help has the most up-to-date information"
+    validation:
+      type: "command-output"
+      command: "Get-Command Get-Help | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Get-Help"
+
+  - id: "find-commands"
+    title: "Find Commands by Topic"
+    description: |
+      Use `Get-Help` with wildcards to find commands by topic.
+
+      Find all file-related cmdlets:
+      ```powershell
+      Get-Help *file*
+      ```
+
+      This searches help topics containing "file".
+    hint: "Wildcards (*) help you discover relevant cmdlets"
+    validation:
+      type: "command-output"
+      command: "Get-Help *file* | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+completion:
+  message: "Great work! You can now use Get-Help to learn any PowerShell cmdlet. This skill makes you self-sufficient!"
+  xp: 150
+  unlocks:
+    - "powershell/basics/navigation"

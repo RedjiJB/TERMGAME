@@ -1,0 +1,107 @@
+mission:
+  id: "powershell/encryption/bitlocker-intro"
+  title: "Introduction to BitLocker"
+  difficulty: advanced
+  description: "Learn BitLocker drive encryption fundamentals"
+  estimated_time: 25
+  tags:
+    - powershell
+    - encryption
+    - advanced
+    - week-10
+    - bitlocker
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "bitlocker-overview"
+    title: "What is BitLocker?"
+    description: |
+      BitLocker provides full-disk encryption for Windows.
+
+      Features:
+      - Encrypts entire volumes
+      - Protects data at rest
+      - Transparent to users
+      - TPM integration
+
+      Check if BitLocker cmdlets are available:
+      ```powershell
+      Get-Command *BitLocker* | Select-Object -First 5 Name
+      ```
+    hint: "BitLocker protects data if device is lost or stolen"
+    validation:
+      type: "command-output"
+      command: "Get-Command *BitLocker* -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "bitlocker-requirements"
+    title: "BitLocker Requirements"
+    description: |
+      BitLocker requirements:
+      - TPM chip (or USB key)
+      - UEFI/BIOS support
+      - Minimum 2 partitions
+      - Windows Pro/Enterprise
+
+      Note: May not work in containers.
+
+      Verify BitLocker module:
+      ```powershell
+      Get-Module -ListAvailable -Name BitLocker
+      ```
+    hint: "Not all Windows editions support BitLocker"
+    validation:
+      type: "command-output"
+      command: "Get-Module -ListAvailable -Name BitLocker -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+  - id: "get-bitlockervol"
+    title: "Check BitLocker Status"
+    description: |
+      Get-BitLockerVolume shows encryption status.
+
+      Check volume status:
+      ```powershell
+      Get-BitLockerVolume -ErrorAction SilentlyContinue
+      ```
+
+      Shows protection status for each volume.
+    hint: "Check status before enabling BitLocker"
+    validation:
+      type: "command-output"
+      command: "Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Get-BitLockerVolume"
+
+  - id: "recovery-key-importance"
+    title: "Understanding Recovery Keys"
+    description: |
+      Recovery keys unlock encrypted volumes if password is lost.
+
+      CRITICAL: Save recovery keys securely:
+      - Print and store physically
+      - Save to USB
+      - Save to Active Directory
+      - Save to Microsoft Account
+
+      Without recovery key, data is permanently lost!
+    hint: "Recovery key = last resort access"
+    validation:
+      type: "command-output"
+      command: "Get-Command Backup-BitLockerKeyProtector -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name"
+      matcher: "exact"
+      expected: "Backup-BitLockerKeyProtector"
+
+completion:
+  message: "Great! You understand BitLocker fundamentals. Always save recovery keys!"
+  xp: 350
+  unlocks:
+    - "powershell/encryption/enable-bitlocker"

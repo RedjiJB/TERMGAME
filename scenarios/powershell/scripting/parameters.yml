@@ -1,0 +1,213 @@
+mission:
+  id: "powershell/scripting/parameters"
+  title: "Advanced Function Parameters"
+  difficulty: intermediate
+  description: "Master parameter validation, mandatory parameters, and advanced attributes"
+  estimated_time: 30
+  tags:
+    - powershell
+    - scripting
+    - intermediate
+    - week-11
+    - parameters
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+
+steps:
+  - id: "mandatory-parameters"
+    title: "Mandatory Parameters"
+    description: |
+      Make parameters required with [Parameter(Mandatory)].
+
+      Mandatory parameter example:
+      ```powershell
+      function Get-UserInfo {
+          param(
+              [Parameter(Mandatory=$true)]
+              [string]$Username
+          )
+          Write-Output "User: $Username"
+      }
+
+      # Will prompt if not provided
+      Get-UserInfo -Username "admin"
+      ```
+
+      PowerShell prompts for mandatory parameters if omitted.
+    hint: "Use Mandatory for required inputs"
+    validation:
+      type: "command-output"
+      command: "function Get-UserInfo { param([Parameter(Mandatory=$false)][string]$Username = 'test'); Write-Output \"User: $Username\" }; Get-UserInfo -Username 'admin'"
+      matcher: "exact"
+      expected: "User: admin"
+
+  - id: "validateset"
+    title: "ValidateSet - Limit Values"
+    description: |
+      Restrict parameter to specific values.
+
+      ValidateSet example:
+      ```powershell
+      function Get-ServerAction {
+          param(
+              [ValidateSet("Start", "Stop", "Restart")]
+              [string]$Action
+          )
+          Write-Output "Action: $Action"
+      }
+
+      Get-ServerAction -Action "Start"
+      ```
+
+      Only accepts listed values.
+    hint: "ValidateSet provides autocomplete"
+    validation:
+      type: "command-output"
+      command: "function Get-ServerAction { param([ValidateSet('Start','Stop','Restart')][string]$Action = 'Start'); Write-Output \"Action: $Action\" }; Get-ServerAction -Action 'Start'"
+      matcher: "exact"
+      expected: "Action: Start"
+
+  - id: "validaterange"
+    title: "ValidateRange - Numeric Limits"
+    description: |
+      Ensure numeric parameters fall within a range.
+
+      ValidateRange example:
+      ```powershell
+      function Get-Percentage {
+          param(
+              [ValidateRange(0, 100)]
+              [int]$Percent
+          )
+          Write-Output "Percentage: $Percent%"
+      }
+
+      Get-Percentage -Percent 75
+      ```
+
+      Rejects values outside 0-100.
+    hint: "Use ValidateRange for bounded numbers"
+    validation:
+      type: "command-output"
+      command: "function Get-Percentage { param([ValidateRange(0,100)][int]$Percent = 50); Write-Output \"Percentage: $Percent%\" }; Get-Percentage -Percent 75"
+      matcher: "exact"
+      expected: "Percentage: 75%"
+
+  - id: "validatenotnullorempty"
+    title: "ValidateNotNullOrEmpty"
+    description: |
+      Ensure string parameters aren't empty.
+
+      ValidateNotNullOrEmpty example:
+      ```powershell
+      function Get-ComputerName {
+          param(
+              [ValidateNotNullOrEmpty()]
+              [string]$Name
+          )
+          Write-Output "Computer: $Name"
+      }
+
+      Get-ComputerName -Name "SERVER01"
+      ```
+
+      Prevents empty or null strings.
+    hint: "Use for strings that must have content"
+    validation:
+      type: "command-output"
+      command: "function Get-ComputerName { param([ValidateNotNullOrEmpty()][string]$Name = 'SERVER01'); Write-Output \"Computer: $Name\" }; Get-ComputerName -Name 'SERVER01'"
+      matcher: "exact"
+      expected: "Computer: SERVER01"
+
+  - id: "validatepattern"
+    title: "ValidatePattern - Regex Validation"
+    description: |
+      Validate parameters against regex patterns.
+
+      ValidatePattern example:
+      ```powershell
+      function Get-IPAddress {
+          param(
+              [ValidatePattern("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")]
+              [string]$IP
+          )
+          Write-Output "IP: $IP"
+      }
+
+      Get-IPAddress -IP "192.168.1.1"
+      ```
+
+      Ensures basic IP format (simple pattern).
+    hint: "ValidatePattern uses regex for complex validation"
+    validation:
+      type: "command-output"
+      command: "function Get-IPAddress { param([ValidatePattern('^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$')][string]$IP = '192.168.1.1'); Write-Output \"IP: $IP\" }; Get-IPAddress -IP '192.168.1.1'"
+      matcher: "exact"
+      expected: "IP: 192.168.1.1"
+
+  - id: "parameter-position"
+    title: "Positional Parameters"
+    description: |
+      Allow parameters without names.
+
+      Positional parameter:
+      ```powershell
+      function Get-CopyInfo {
+          param(
+              [Parameter(Position=0)]
+              [string]$Source,
+
+              [Parameter(Position=1)]
+              [string]$Destination
+          )
+          Write-Output "Copy from $Source to $Destination"
+      }
+
+      Get-CopyInfo "file1.txt" "file2.txt"
+      ```
+
+      Position=0 is first positional parameter.
+    hint: "Positional parameters enable shorthand syntax"
+    validation:
+      type: "command-output"
+      command: "function Get-CopyInfo { param([Parameter(Position=0)][string]$Source = 'file1.txt', [Parameter(Position=1)][string]$Destination = 'file2.txt'); Write-Output \"Copy from $Source to $Destination\" }; Get-CopyInfo 'file1.txt' 'file2.txt'"
+      matcher: "exact"
+      expected: "Copy from file1.txt to file2.txt"
+
+  - id: "parameter-aliases"
+    title: "Parameter Aliases"
+    description: |
+      Create shortcuts for parameter names.
+
+      Parameter alias example:
+      ```powershell
+      function Get-FileSize {
+          param(
+              [Alias("FileName", "Name")]
+              [string]$Path
+          )
+          Write-Output "Checking: $Path"
+      }
+
+      Get-FileSize -FileName "test.txt"
+      Get-FileSize -Path "test.txt"
+      ```
+
+      Both -FileName and -Path work.
+    hint: "Aliases improve usability"
+    validation:
+      type: "command-output"
+      command: "function Get-FileSize { param([Alias('FileName','Name')][string]$Path = 'test.txt'); Write-Output \"Checking: $Path\" }; Get-FileSize -FileName 'test.txt'"
+      matcher: "exact"
+      expected: "Checking: test.txt"
+
+completion:
+  message: "Outstanding! You've mastered advanced parameter validation and attributes!"
+  xp: 300
+  unlocks:
+    - "powershell/scripting/loops"

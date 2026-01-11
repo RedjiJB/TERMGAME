@@ -21,7 +21,7 @@
 
 TermGame transforms command-line learning into an engaging, game-like experience. Practice real-world skills in isolated Docker containers with instant feedback, progress tracking, and AI-powered coaching.
 
-**60+ missions covering essential Linux skills** - from basic navigation to production-grade system administration tools. Progress through beginner, intermediate, advanced, and expert levels with hands-on scenarios based on real DevOps tasks.
+**120+ missions covering essential Linux and PowerShell skills** - from basic navigation to production-grade system administration tools. Progress through beginner, intermediate, advanced, and expert levels with hands-on scenarios based on real DevOps and Windows Server administration tasks.
 
 ### Why TermGame?
 
@@ -30,7 +30,7 @@ TermGame transforms command-line learning into an engaging, game-like experience
 - **Instant Validation**: Automated checking with helpful hints
 - **Progress Tracking**: XP system, achievements, and skill progression
 - **Mission-Based Learning**: Structured scenarios from beginner to expert
-- **Comprehensive Curriculum**: 60+ missions spanning navigation, text processing, scripting, and system administration
+- **Comprehensive Curriculum**: 120+ missions spanning Linux and PowerShell - navigation, text processing, scripting, system administration, and cloud management
 
 ---
 
@@ -90,6 +90,8 @@ TermGame transforms command-line learning into an engaging, game-like experience
 
 - **Python 3.12+**
 - **Docker Desktop** (or Docker Engine on Linux)
+  - For **PowerShell missions**: Windows 10/11 Pro/Enterprise/Education required
+  - See [Windows Containers Guide](docs/WINDOWS_CONTAINERS.md) for PowerShell setup
 - **Git**
 - **Terminal with ANSI color support**
 
@@ -373,38 +375,64 @@ See `scenarios/` directory for more examples.
 
 ### Mission Library
 
-TermGame currently includes **60+ missions** organized into themed weeks covering essential Linux skills:
+TermGame includes **126 missions** across two platforms with **25,800+ total XP** available:
 
-| Week | Topic | Missions | Difficulty Range |
-|------|-------|----------|------------------|
-| 2 | Navigation & Shell Arguments | 4 | Beginner → Advanced |
-| 3 | File Operations & Finding | 5 | Beginner → Advanced |
-| 4 | Text Processing & Commands | 5 | Beginner → Expert |
-| 5 | Environment Variables | 4 | Beginner → Practice |
-| 6 | Filesystem Structure | 4 | Beginner → Expert |
-| 7 | Disk Management | 4 | Beginner → Expert |
-| 9 | Process Management | 4 | Beginner → Expert |
-| 10 | System Monitoring | 5 | Beginner → Master |
-| 11 | Shell Scripting | 5 | Beginner → Master |
-| 13 | Networking Fundamentals | 5 | Beginner → Master |
-| 14 | SSH & Remote Administration | 5 | Beginner → Practice |
+| Platform | Missions | XP | Topics | Difficulty Levels |
+|----------|----------|-----|--------|-------------------|
+| **Linux** | 60 | 9,050 | 11 topics | Beginner → Master |
+| **PowerShell** | 66 | 16,750 | 15 topics | Beginner → Advanced |
 
-**Key Features:**
-- **Progressive Difficulty**: Each week includes missions from beginner to expert/master level
-- **Real-World Skills**: Scenarios based on actual DevOps and SysAdmin tasks
-- **Comprehensive Coverage**: Topics span essential Linux administration skills
-- **9,050+ XP Available**: ~12.8 hours of educational gameplay
-- **Production-Ready Examples**: Expert missions include deployment automation, log analysis, and monitoring tools
+<details>
+<summary><b>Linux Missions</b> (60 missions across 11 topics)</summary>
 
-**Topics Covered:**
-- Command-line navigation and file management
-- Text processing (grep, sed, awk, cut, sort, uniq)
-- Process management and troubleshooting
-- Disk space analysis and optimization
-- Environment configuration (.bashrc, PATH, aliases)
-- Shell scripting from basics to production-grade tools
-- System monitoring and health checks
-- Network diagnostics and SSH administration
+#### Topics
+- **Navigation & Shell Arguments** (4 missions) - Directory navigation, pushd/popd, xargs
+- **File Operations** (5 missions) - ls, cp, mv, find, file permissions
+- **Text Processing** (5 missions) - grep, sed, awk, cut, sort, uniq
+- **Environment Variables** (4 missions) - .bashrc, PATH, aliases, functions
+- **Filesystem Structure** (4 missions) - FHS, /etc, /var, /tmp, file types
+- **Disk Management** (4 missions) - df, du, disk analysis, cleanup automation
+- **Process Management** (4 missions) - ps, top, kill, signals, process control
+- **System Monitoring** (5 missions) - Resource monitoring, log analysis, health checks
+- **Shell Scripting** (5 missions) - Scripts, functions, control flow, production tools
+- **Networking** (5 missions) - ping, netstat, curl, DNS, network diagnostics
+- **SSH & Remote Access** (5 missions) - SSH keys, config, tunneling, remote commands
+
+#### Key Features
+- Progressive difficulty from beginner to expert/master levels
+- Real-world DevOps and SysAdmin scenarios
+- Production-ready automation examples
+- ~12.8 hours of educational content
+
+</details>
+
+<details>
+<summary><b>PowerShell Missions</b> (66 missions across 15 topics)</summary>
+
+#### Topics
+- **Basics** (6) - PowerShell fundamentals, cmdlets, Get-Help, navigation
+- **Files** (4) - New-Item, Copy-Item, Remove-Item, file properties
+- **Cmdlets** (5) - Syntax, parameters, discovery, best practices
+- **Objects** (5) - Pipeline, Select-Object, Where-Object, ForEach-Object
+- **Processes** (4) - Get-Process, services, scheduled tasks
+- **Users** (4) - User/group management, bulk operations
+- **Security** (4) - Permissions, ACLs, Get-Acl, Set-Acl
+- **Networking** (4) - Network config, Test-Connection, DNS
+- **Shares** (4) - SMB file shares, permissions, troubleshooting
+- **Compression** (3) - Compress-Archive, Expand-Archive
+- **Backup** (4) - Backup strategies, wbadmin, disaster recovery
+- **Registry** (5) - Registry navigation, read/write operations, safety
+- **Encryption** (4) - BitLocker, certificates, security
+- **Scripting** (6) - Functions, loops, conditionals, error handling
+- **Cloud** (4) - Azure PowerShell, VMs, hybrid cloud
+
+#### Key Features
+- Complete Windows Server administration curriculum
+- Windows Server Core containers (full OS feature support)
+- Azure cloud integration and hybrid scenarios
+- Progressive learning path with unlock chains
+
+</details>
 
 ---
 
@@ -458,6 +486,25 @@ pre-commit run --all-files
 ---
 
 ## 🔧 Troubleshooting
+
+### PowerShell Missions: Windows Containers Required
+
+PowerShell missions require Windows containers mode in Docker Desktop.
+
+**Error:** `Image not found: mcr.microsoft.com/windows/servercore:ltsc2022`
+
+**Solution:**
+1. Right-click Docker Desktop → "Switch to Windows containers..."
+2. Pull the image: `docker pull mcr.microsoft.com/windows/servercore:ltsc2022`
+3. Note: First pull is ~5-10 GB and takes 10-30 minutes
+
+📖 **Full guide:** [Windows Containers Setup](docs/WINDOWS_CONTAINERS.md)
+
+**Important:**
+- Linux missions require Linux containers mode
+- PowerShell missions require Windows containers mode
+- Docker Desktop can only run one mode at a time
+- Switching between modes restarts Docker (~1-2 minutes)
 
 ### Docker Connection Errors
 
@@ -641,11 +688,11 @@ TermGame/
 - [ ] Real-time step validation feedback
 
 ### Phase 3: Content & Polish
-- [x] 20+ Linux missions (beginner through expert) ✅
-- [x] Comprehensive progression across weeks 2-14 ✅
+- [x] 60+ Linux missions (beginner through expert) ✅
+- [x] Comprehensive Linux progression across weeks 2-14 ✅
+- [x] 66 PowerShell missions (complete Windows Server curriculum) ✅
 - [ ] Additional advanced Linux scenarios
 - [ ] Cisco IOS scenarios (with GNS3/EVE-NG integration)
-- [ ] PowerShell missions
 - [ ] Achievement system UI
 - [ ] Leaderboards (optional)
 

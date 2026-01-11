@@ -1,0 +1,136 @@
+mission:
+  id: "powershell/objects/pipeline-intro"
+  title: "Introduction to the PowerShell Pipeline"
+  difficulty: intermediate
+  description: "Understand how PowerShell passes objects through the pipeline"
+  estimated_time: 25
+  tags:
+    - powershell
+    - objects
+    - intermediate
+    - week-4
+    - pipeline
+
+environment:
+  image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+  workdir: "C:/learner"
+  setup:
+    - "New-Item -Path C:/learner -ItemType Directory -Force"
+    - "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
+    - "New-Item -Path C:/learner/file1.txt -ItemType File -Value 'Data 1' -Force"
+    - "New-Item -Path C:/learner/file2.txt -ItemType File -Value 'Data 2' -Force"
+    - "New-Item -Path C:/learner/doc.txt -ItemType File -Value 'Document' -Force"
+
+steps:
+  - id: "basic-pipeline"
+    title: "Understand Pipeline Basics"
+    description: |
+      The pipeline (|) passes output from one cmdlet to another.
+
+      List files and count them:
+      ```powershell
+      Get-ChildItem | Measure-Object
+      ```
+
+      Get-ChildItem passes files to Measure-Object, which counts them.
+    hint: "The pipeline is PowerShell's most powerful feature"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "objects-not-text"
+    title: "PowerShell Passes Objects, Not Text"
+    description: |
+      Unlike Linux pipes (which pass text), PowerShell passes objects with properties.
+
+      See object properties:
+      ```powershell
+      Get-ChildItem | Get-Member
+      ```
+
+      This shows that files are objects with properties like Name, Length, LastWriteTime.
+    hint: "This is why PowerShell is more powerful than traditional shells"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Select-Object -First 1 | Get-Member | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d+"
+
+  - id: "chain-multiple-cmdlets"
+    title: "Chain Multiple Cmdlets"
+    description: |
+      You can chain many cmdlets together in a pipeline.
+
+      Get files, sort by size, and get the largest:
+      ```powershell
+      Get-ChildItem | Sort-Object Length -Descending | Select-Object -First 1
+      ```
+
+      Each cmdlet processes and passes results to the next.
+    hint: "Pipeline chains can be as long as needed"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Sort-Object Length -Descending | Select-Object -First 1 -ExpandProperty Name"
+      matcher: "regex"
+      expected: ".+\\.txt"
+
+  - id: "pipeline-variable"
+    title: "Access Pipeline Objects with $_"
+    description: |
+      Inside script blocks, $_ represents the current pipeline object.
+
+      Filter files by checking their length property:
+      ```powershell
+      Get-ChildItem | Where-Object {$_.Length -gt 5}
+      ```
+
+      $_ refers to each file object as it comes through the pipeline.
+    hint: "$_ is the current object in the pipeline"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Where-Object {$_.Length -gt 0} | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "[1-9]\\d*"
+
+  - id: "pipeline-to-file"
+    title: "Send Pipeline Output to a File"
+    description: |
+      Pipeline results can be saved to files.
+
+      Get a directory listing and save it:
+      ```powershell
+      Get-ChildItem | Out-File -FilePath "listing.txt"
+      ```
+
+      The entire pipeline output is written to the file.
+    hint: "Out-File is the final step to save results"
+    validation:
+      type: "file-exists"
+      file: "C:/learner/listing.txt"
+      matcher: "exists"
+
+  - id: "pipeline-formatting"
+    title: "Format Pipeline Output"
+    description: |
+      Use Format-* cmdlets to control output appearance.
+
+      Display files as a table:
+      ```powershell
+      Get-ChildItem | Format-Table Name, Length
+      ```
+
+      Format-Table, Format-List, and Format-Wide control display.
+    hint: "Format-* cmdlets should be the last step in a pipeline"
+    validation:
+      type: "command-output"
+      command: "Get-ChildItem | Select-Object Name, Length | Measure-Object | Select-Object -ExpandProperty Count"
+      matcher: "regex"
+      expected: "\\d+"
+
+completion:
+  message: "Excellent! You understand the PowerShell pipeline. This is the foundation for advanced PowerShell!"
+  xp: 250
+  unlocks:
+    - "powershell/objects/select-object"

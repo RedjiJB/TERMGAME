@@ -108,7 +108,8 @@ class MissionEngine:
             )
         except ImagePullError as e:
             msg = f"Failed to pull image: {e}"
-            self._logger.error(msg)
+            # Log at INFO level - this is expected when user hasn't pulled image yet
+            self._logger.info(msg)
             raise ContainerCreationError(msg) from e
         except RuntimeConnectionError as e:
             msg = f"Docker connection error: {e}"
