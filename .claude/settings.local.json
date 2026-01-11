@@ -68,7 +68,10 @@
       "Bash(python -m termgame.cli:*)",
       "Bash(ls:*)",
       "Bash(python:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(ruff check:*)",
+      "Bash(ruff format:*)",
+      "Bash(mypy:*)"
     ]
   }
 }

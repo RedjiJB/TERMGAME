@@ -240,7 +240,9 @@ class InteractiveCLI:
         }
 
         # Sort by difficulty (beginner to advanced), then by ID
-        for mission in sorted(missions, key=lambda m: (diff_order.get(m["difficulty"], 999), m["id"])):
+        for mission in sorted(
+            missions, key=lambda m: (diff_order.get(m["difficulty"], 999), m["id"])
+        ):
             completed = "✓" if mission["id"] in completed_missions else ""
             table.add_row(
                 completed,
@@ -308,7 +310,7 @@ class InteractiveCLI:
             self._logger.error(f"Failed to start mission: {e}", exc_info=True)
 
             # Use specialized error handler for runtime errors
-            if isinstance(e, (RuntimeConnectionError, ContainerNotFoundError)):
+            if isinstance(e, RuntimeConnectionError | ContainerNotFoundError):
                 self._handle_runtime_error(e)
             else:
                 # Mission-specific errors
@@ -367,7 +369,7 @@ class InteractiveCLI:
             self._logger.error(f"Validation error: {e}", exc_info=True)
 
             # Use specialized error handler for runtime errors
-            if isinstance(e, (RuntimeConnectionError, ContainerNotFoundError)):
+            if isinstance(e, RuntimeConnectionError | ContainerNotFoundError):
                 self._handle_runtime_error(e)
             else:
                 # Validation-specific errors
@@ -620,7 +622,7 @@ class InteractiveCLI:
                 self._logger.error(f"Command execution error: {e}", exc_info=True)
 
                 # Use specialized error handler for runtime errors
-                if isinstance(e, (RuntimeConnectionError, ContainerNotFoundError)):
+                if isinstance(e, RuntimeConnectionError | ContainerNotFoundError):
                     self._handle_runtime_error(e)
                 else:
                     # Generic command execution error

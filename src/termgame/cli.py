@@ -120,7 +120,9 @@ def list_missions(
         }
 
         # Sort by difficulty (beginner to advanced), then by ID
-        for s in sorted(scenarios, key=lambda x: (diff_order.get(x["difficulty"], 999), str(x["id"]))):
+        for s in sorted(
+            scenarios, key=lambda x: (diff_order.get(x["difficulty"], 999), str(x["id"]))
+        ):
             table.add_row(
                 s["id"],
                 s["title"],
