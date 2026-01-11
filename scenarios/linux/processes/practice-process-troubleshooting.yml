@@ -1,5 +1,5 @@
 mission:
-  id: practice-process-troubleshooting
+  id: linux/processes/practice-process-troubleshooting
   title: 'Practice: Process Troubleshooting & Performance'
   difficulty: advanced
   description: 'Real-world process management challenges! Diagnose system performance

@@ -1,5 +1,5 @@
 mission:
-  id: shell-config-intermediate
+  id: linux/environment/shell-config-intermediate
   title: Shell Configuration and PATH Management
   difficulty: intermediate
   description: 'Master shell configuration files and PATH management. Learn about

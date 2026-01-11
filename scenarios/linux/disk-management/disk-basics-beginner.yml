@@ -1,5 +1,5 @@
 mission:
-  id: disk-basics-beginner
+  id: linux/disk-management/disk-basics-beginner
   title: Disk Space Management Basics
   difficulty: beginner
   description: 'Learn essential disk management commands - checking disk space, analyzing

@@ -1,5 +1,5 @@
 mission:
-  id: environment-basics-beginner
+  id: linux/environment/environment-basics-beginner
   title: Environment Variables Fundamentals
   difficulty: beginner
   description: 'Learn the basics of environment variables in Linux - what they are,

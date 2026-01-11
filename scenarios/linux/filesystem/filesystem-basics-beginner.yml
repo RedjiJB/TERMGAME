@@ -1,5 +1,5 @@
 mission:
-  id: filesystem-basics-beginner
+  id: linux/filesystem/filesystem-basics-beginner
   title: Linux Filesystem Basics
   difficulty: beginner
   description: 'Learn the fundamentals of the Linux filesystem - directory structure,

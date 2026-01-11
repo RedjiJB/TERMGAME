@@ -1,5 +1,5 @@
 mission:
-  id: command-basics-beginner
+  id: linux/text-processing/command-basics-beginner
   title: Essential Linux Commands
   difficulty: beginner
   description: 'Master the most commonly used Linux commands for text processing,

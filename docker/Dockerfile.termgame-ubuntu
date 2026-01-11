@@ -1,0 +1,87 @@
+# TermGame Ubuntu Base Image
+# Includes all essential tools for Linux training missions
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Update and install essential packages
+RUN apt-get update && \
+    apt-get install -y \
+    # Text editors
+    nano \
+    vim \
+    # File utilities
+    file \
+    tree \
+    ncdu \
+    # Compression tools
+    gzip \
+    bzip2 \
+    xz-utils \
+    zip \
+    unzip \
+    tar \
+    # Network tools
+    curl \
+    wget \
+    net-tools \
+    iputils-ping \
+    dnsutils \
+    openssh-client \
+    # Process tools
+    htop \
+    psmisc \
+    procps \
+    # Text processing
+    grep \
+    sed \
+    awk \
+    gawk \
+    # System utilities
+    coreutils \
+    findutils \
+    man-db \
+    manpages \
+    manpages-posix \
+    info \
+    less \
+    # Development tools
+    git \
+    make \
+    bc \
+    # Disk utilities
+    parted \
+    fdisk \
+    # Cron
+    cron \
+    # Other essentials
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
+
+# Restore minimized Ubuntu content (man pages, docs)
+RUN yes | unminimize || true
+
+# Create learner user with sudo access
+RUN useradd -m -s /bin/bash learner && \
+    echo "learner:learner" | chpasswd && \
+    usermod -aG sudo learner && \
+    echo "learner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Set up working directory
+WORKDIR /home/learner
+RUN chown -R learner:learner /home/learner
+
+# Switch to learner user
+USER learner
+
+# Set default shell
+SHELL ["/bin/bash", "-c"]
+
+# Labels
+LABEL maintainer="TermGame"
+LABEL description="Ubuntu 22.04 with essential tools for Linux training"
+LABEL version="1.0"
+
+CMD ["/bin/bash"]

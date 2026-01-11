@@ -1,5 +1,5 @@
 mission:
-  id: links-inodes-intermediate
+  id: linux/filesystem/links-inodes-intermediate
   title: Understanding Links and Inodes
   difficulty: intermediate
   description: 'Dive deeper into how Linux filesystems work. Learn about inodes, hard

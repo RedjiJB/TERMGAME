@@ -61,7 +61,14 @@
       "Bash(.venv/Scripts/python.exe:*)",
       "Bash(python play.py:*)",
       "Bash(dir:*)",
-      "Bash(DOCKER_HOST=\"npipe:////./pipe/podman-machine-default\" .venv/Scripts/python.exe:*)"
+      "Bash(DOCKER_HOST=\"npipe:////./pipe/podman-machine-default\" .venv/Scripts/python.exe:*)",
+      "Bash(xargs:*)",
+      "Bash(done)",
+      "Bash(python fix_all_missions.py:*)",
+      "Bash(python -m termgame.cli:*)",
+      "Bash(ls:*)",
+      "Bash(python:*)",
+      "Bash(find:*)"
     ]
   }
 }

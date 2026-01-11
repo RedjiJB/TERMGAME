@@ -1,5 +1,5 @@
 mission:
-  id: shell-scripting-advanced
+  id: linux/scripting/shell-scripting-advanced
   title: 'Advanced Shell Scripting: Arrays, Regex, and Process Management'
   difficulty: advanced
   description: 'Master advanced bash scripting techniques including arrays, regular

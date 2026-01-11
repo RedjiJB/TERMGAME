@@ -1,5 +1,5 @@
 mission:
-  id: advanced-find-techniques
+  id: linux/file-operations/advanced-find-techniques
   title: Advanced File Finding and Search Techniques
   difficulty: advanced
   description: 'Master advanced find command techniques, complex search patterns,

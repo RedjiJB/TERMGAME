@@ -1,5 +1,5 @@
 mission:
-  id: shell-scripting-intermediate
+  id: linux/scripting/shell-scripting-intermediate
   title: 'Shell Scripting: Control Flow and Functions'
   difficulty: intermediate
   description: 'Build on your shell scripting basics with control flow, functions,

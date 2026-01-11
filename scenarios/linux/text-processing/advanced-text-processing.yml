@@ -1,5 +1,5 @@
 mission:
-  id: advanced-text-processing
+  id: linux/text-processing/advanced-text-processing
   title: Advanced Text Processing and Data Manipulation
   difficulty: advanced
   description: 'Master advanced text processing with sed, awk, and complex pipelines.

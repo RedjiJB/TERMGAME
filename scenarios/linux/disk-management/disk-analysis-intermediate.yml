@@ -1,5 +1,5 @@
 mission:
-  id: disk-analysis-intermediate
+  id: linux/disk-management/disk-analysis-intermediate
   title: Advanced Disk Analysis and Optimization
   difficulty: intermediate
   description: 'Go beyond basics with advanced disk analysis techniques. Learn to

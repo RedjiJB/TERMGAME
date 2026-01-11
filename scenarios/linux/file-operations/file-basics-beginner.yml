@@ -1,5 +1,5 @@
 mission:
-  id: file-basics-beginner
+  id: linux/file-operations/file-basics-beginner
   title: File Operations and Basic Commands
   difficulty: beginner
   description: 'Learn essential file operations - viewing, copying, moving, and deleting

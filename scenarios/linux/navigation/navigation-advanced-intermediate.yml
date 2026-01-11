@@ -1,5 +1,5 @@
 mission:
-  id: navigation-advanced-intermediate
+  id: linux/navigation/navigation-advanced-intermediate
   title: Advanced Navigation and Directory Management
   difficulty: intermediate
   description: 'Master advanced navigation techniques including pushd/popd, directory

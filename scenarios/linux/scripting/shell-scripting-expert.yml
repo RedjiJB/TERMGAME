@@ -1,5 +1,5 @@
 mission:
-  id: shell-scripting-expert
+  id: linux/scripting/shell-scripting-expert
   title: 'Expert Shell Scripting: System Tools and Automation'
   difficulty: advanced
   description: 'Build sophisticated system administration tools using advanced bash

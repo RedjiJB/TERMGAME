@@ -1,5 +1,5 @@
 mission:
-  id: command-line-mastery-advanced
+  id: linux/navigation/command-line-mastery-advanced
   title: Command-Line Argument Processing and Tools
   difficulty: advanced
   description: 'Master advanced command-line techniques including argument parsing,
