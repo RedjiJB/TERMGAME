@@ -1,6 +1,6 @@
-# TermGame Test Suite
+# TermGame Exhaustive Test Suite
 
-Comprehensive test suite for TermGame covering all recent improvements including mission reorganization, schema validation, UI enhancements, and Docker image functionality.
+Exhaustive and comprehensive test suite for TermGame with 169 tests covering mission quality, dependencies, edge cases, schema validation, organization, UI enhancements, Docker functionality, and mission engine integration.
 
 ## Quick Start
 
@@ -8,19 +8,93 @@ Comprehensive test suite for TermGame covering all recent improvements including
 # Install test dependencies
 pip install pytest pytest-cov pyyaml docker
 
-# Run all tests
+# Run all tests (169 tests)
 pytest
 
 # Run quick tests (no Docker, no slow tests)
-python tests/test_suite_runner.py quick
+pytest -m "not slow and not docker"
 
 # Run specific test categories
-python tests/test_suite_runner.py schema
-python tests/test_suite_runner.py unit
-python tests/test_suite_runner.py integration
+pytest tests/unit/test_mission_content_quality.py -v
+pytest tests/unit/test_mission_dependencies.py -v
+pytest tests/unit/test_edge_cases.py -v
+pytest tests/integration/test_mission_engine_comprehensive.py -v
 ```
 
 ## Test Categories
+
+### NEW: Mission Content Quality Tests (`test_mission_content_quality.py`)
+
+**20 tests** validating mission content quality and helpfulness.
+
+**What it tests:**
+- ✅ Description quality (meaningful, learning-focused, no typos)
+- ✅ Step quality (titles, descriptions, hints, IDs)
+- ✅ Validation configuration (types, matchers, safety, paths)
+- ✅ Tag quality (presence, formatting, no duplicates)
+- ✅ Environment configuration (images, paths, safe commands)
+- ✅ Completion quality (encouraging messages, reasonable XP)
+
+**Run:**
+```bash
+pytest tests/unit/test_mission_content_quality.py -v
+```
+
+### NEW: Mission Dependencies Tests (`test_mission_dependencies.py`)
+
+**12 tests** validating mission unlock chains and learning progression.
+
+**What it tests:**
+- ✅ Unlocks reference existing missions
+- ✅ No circular dependencies
+- ✅ Difficulty progression in unlocks
+- ✅ Reasonable unlock chain lengths
+- ✅ Advanced missions have prerequisites
+- ✅ Beginner missions are entry points
+- ✅ Topics have progression paths
+- ✅ Time estimates scale with difficulty
+
+**Run:**
+```bash
+pytest tests/unit/test_mission_dependencies.py -v
+```
+
+### NEW: Edge Cases & Error Handling Tests (`test_edge_cases.py`)
+
+**26 tests** validating robustness and edge case handling.
+
+**What it tests:**
+- ✅ YAML structure (parsing, encoding, formatting)
+- ✅ Special characters (control chars, quotes)
+- ✅ Boundary conditions (title/description length, step counts, time)
+- ✅ Data consistency (required fields, types, null checks)
+- ✅ Error messaging (helpful validation messages)
+- ✅ File naming conventions (extensions, kebab-case, ID matching)
+
+**Run:**
+```bash
+pytest tests/unit/test_edge_cases.py -v
+```
+
+### NEW: Mission Engine Integration Tests (`test_mission_engine_comprehensive.py`)
+
+**24 tests** validating mission engine functionality end-to-end.
+
+**What it tests:**
+- ✅ Mission loading (all missions, error handling, schema validation)
+- ✅ Mission execution (completion, command validation)
+- ✅ Progress tracking (data structures, XP calculation)
+- ✅ Mission filtering (by difficulty, topic, time)
+- ✅ Mission search (by title, description, tags)
+- ✅ Recommendations (next missions, beginner first)
+- ✅ Statistics (totals, distribution, XP, averages)
+
+**Run:**
+```bash
+pytest tests/integration/test_mission_engine_comprehensive.py -v
+```
+
+## Original Test Categories
 
 ### 1. Mission Schema Tests (`test_mission_schema.py`)
 
@@ -228,7 +302,7 @@ Current test coverage areas:
 | Docker Image | ✅ Comprehensive | 12+ tests |
 | Data Integrity | ✅ Comprehensive | 15+ tests |
 
-**Total:** 70+ tests covering all recent improvements
+**Total:** 169 tests providing exhaustive coverage
 
 ## Writing New Tests
 

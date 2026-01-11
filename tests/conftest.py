@@ -1,8 +1,9 @@
 """Pytest configuration and fixtures."""
 
-import pytest
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
+
+import pytest
 
 
 @pytest.fixture
@@ -17,7 +18,7 @@ def sample_mission_data():
 
 
 @pytest.fixture
-def valid_mission_schema() -> Dict[str, Any]:
+def valid_mission_schema() -> dict[str, Any]:
     """Provide a complete valid mission schema."""
     return {
         "mission": {
@@ -59,7 +60,7 @@ def valid_mission_schema() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def beginner_mission() -> Dict[str, Any]:
+def beginner_mission() -> dict[str, Any]:
     """Provide a beginner difficulty mission."""
     return {
         "id": "linux/basics/test-beginner",
@@ -71,7 +72,7 @@ def beginner_mission() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def intermediate_mission() -> Dict[str, Any]:
+def intermediate_mission() -> dict[str, Any]:
     """Provide an intermediate difficulty mission."""
     return {
         "id": "linux/intermediate/test-intermediate",
@@ -83,7 +84,7 @@ def intermediate_mission() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def advanced_mission() -> Dict[str, Any]:
+def advanced_mission() -> dict[str, Any]:
     """Provide an advanced difficulty mission."""
     return {
         "id": "linux/advanced/test-advanced",
