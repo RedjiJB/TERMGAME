@@ -17,7 +17,7 @@
 
 ---
 
-## 🎯 Overview
+## Overview
 
 TermGame transforms command-line learning into an engaging, game-like experience. Practice real-world skills in isolated Docker containers with instant feedback, progress tracking, and AI-powered coaching.
 
@@ -34,36 +34,36 @@ TermGame transforms command-line learning into an engaging, game-like experience
 
 ---
 
-## ✨ Features
+## Features
 
 ### Core Features
 
-- 🎮 **Gamified Learning**
+- **Gamified Learning**
   - Mission-based progression system
   - XP rewards and achievement unlocks
   - Difficulty levels: Beginner → Intermediate → Advanced
 
-- 🐳 **Container-Based Sandboxes**
+- **Container-Based Sandboxes**
   - Docker runtime for Linux missions
   - Podman support (planned)
   - Isolated, safe practice environments
 
-- 📊 **Progress Tracking**
+- **Progress Tracking**
   - SQLite database for persistence
   - Step-by-step completion tracking
   - Skill assessment and statistics
 
-- ✅ **Intelligent Validation**
+- **Intelligent Validation**
   - Multiple matcher types: exact, contains, regex
   - File existence and content checking
   - Command output validation
 
-- 🤖 **AI Coaching** (Planned)
+- **Coaching** (Planned)
   - Context-aware hints
   - Personalized learning paths
   - Debugging assistance
 
-- 🎨 **Terminal UI** (Planned)
+- **Terminal UI** (Planned)
   - Beautiful Textual-based interface
   - Real-time mission progress
   - Command history and suggestions
@@ -72,19 +72,19 @@ TermGame transforms command-line learning into an engaging, game-like experience
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| Mission Engine | ✅ Complete | Core mission execution and state management |
-| Docker Runtime | ✅ Complete | Container creation, command execution, cleanup |
-| Database Layer | ✅ Complete | User profiles, progress tracking, achievements |
-| Scenario Loader | ✅ Complete | YAML parsing and validation |
-| Matcher System | ✅ Complete | Step validation with multiple strategies |
-| Integration Tests | ✅ Complete | Full mission lifecycle testing |
-| CLI Interface | 🚧 In Progress | Command-line interface |
-| TUI Application | 🚧 Planned | Interactive terminal UI |
-| AI Coach | 📋 Planned | Intelligent assistance system |
+| Mission Engine | Complete | Core mission execution and state management |
+| Docker Runtime | Complete | Container creation, command execution, cleanup |
+| Database Layer | Complete | User profiles, progress tracking, achievements |
+| Scenario Loader | Complete | YAML parsing and validation |
+| Matcher System | Complete | Step validation with multiple strategies |
+| Integration Tests | Complete | Full mission lifecycle testing |
+| CLI Interface | In Progress | Command-line interface |
+| TUI Application | Planned | Interactive terminal UI |
+| AI Coach | Planned | Intelligent assistance system |
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -190,7 +190,7 @@ Once inside TermGame, you can use these commands:
 **Reset Progress:**
 ```bash
 > reset
-⚠️  Reset Progress
+Reset Progress
 
 This will permanently delete:
   • All completed missions
@@ -239,7 +239,7 @@ asyncio.run(run())
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 ### Getting Started
 
@@ -261,7 +261,7 @@ asyncio.run(run())
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -320,7 +320,7 @@ asyncio.run(run())
 
 ---
 
-## 🎓 Creating Missions
+## Creating Missions
 
 Missions are defined in YAML format. Here's a simple example:
 
@@ -436,7 +436,7 @@ TermGame includes **126 missions** across two platforms with **25,800+ total XP*
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Unit Tests
 
@@ -670,49 +670,7 @@ TermGame/
 
 ---
 
-## 🗺️ Roadmap
-
-### Phase 1: Core Engine ✅
-- [x] Mission Engine implementation
-- [x] Docker Runtime integration
-- [x] Database models and migrations
-- [x] Scenario loader with YAML validation
-- [x] Matcher system (exact, contains, exists)
-- [x] Integration tests
-
-### Phase 2: CLI & TUI 🚧
-- [ ] CLI commands (list, start, progress, abandon)
-- [ ] Terminal UI with Textual
-- [ ] Mission selection interface
-- [ ] Progress dashboard
-- [ ] Real-time step validation feedback
-
-### Phase 3: Content & Polish
-- [x] 60+ Linux missions (beginner through expert) ✅
-- [x] Comprehensive Linux progression across weeks 2-14 ✅
-- [x] 66 PowerShell missions (complete Windows Server curriculum) ✅
-- [ ] Additional advanced Linux scenarios
-- [ ] Cisco IOS scenarios (with GNS3/EVE-NG integration)
-- [ ] Achievement system UI
-- [ ] Leaderboards (optional)
-
-### Phase 4: AI & Advanced Features
-- [ ] AI-powered coaching with Claude
-- [ ] Personalized learning paths
-- [ ] Adaptive difficulty
-- [ ] Hint generation
-- [ ] Code review and suggestions
-
-### Phase 5: Community & Ecosystem
-- [ ] Mission marketplace
-- [ ] User-submitted scenarios
-- [ ] Plugin system
-- [ ] API for third-party integrations
-- [ ] Web dashboard (optional)
-
----
-
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Here's how to get started:
 
@@ -727,22 +685,22 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ### Areas We Need Help
 
-- 🎓 **Mission Creators**: Design new scenarios
-- 🐛 **Bug Hunters**: Find and fix issues
-- 📝 **Documentation Writers**: Improve docs and tutorials
-- 🎨 **UI/UX Designers**: Enhance terminal interface
-- 🧪 **Test Engineers**: Expand test coverage
-- 🌍 **Translators**: Multi-language support (future)
+- **Mission Creators**: Design new scenarios
+- **Bug Hunters**: Find and fix issues
+- **Documentation Writers**: Improve docs and tutorials
+- **UI/UX Designers**: Enhance terminal interface
+- **Test Engineers**: Expand test coverage
+- **Translators**: Multi-language support (future)
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Docker** for containerization technology
 - **Textual** for the amazing TUI framework
@@ -754,15 +712,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📞 Support & Community
+## Support & Community
 
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/RedjiJB/TERMGAME/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/RedjiJB/TERMGAME/discussions)
-- 📖 **Documentation**: [docs/](docs/) directory
-- 🧪 **Integration Testing**: [INTEGRATION_TESTING.md](INTEGRATION_TESTING.md)
+- **Bug Reports**: [GitHub Issues](https://github.com/RedjiJB/TERMGAME/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/RedjiJB/TERMGAME/discussions)
+- **Documentation**: [docs/](docs/) directory
+- **Integration Testing**: [INTEGRATION_TESTING.md](INTEGRATION_TESTING.md)
 
 ---
-
-**Made with ❤️ by the TermGame community**
 
 *Learn by doing. Master the terminal.*
